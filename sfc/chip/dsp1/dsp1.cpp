@@ -8,25 +8,40 @@ DSP1 dsp1;
 #include "serialization.cpp"
 #include "dsp1emu.cpp"
 
+static void out(const char * what)
+{
+	unsigned int i=0;
+	if (i>20) return;
+	i++;
+	puts(what);
+}
+
 void DSP1::init() {
+	out("init");
 }
 
 void DSP1::load() {
+	out("load");
 }
 
 void DSP1::unload() {
+	out("unload");
 }
 
 void DSP1::power() {
+	out("power");
 }
 
 void DSP1::reset() {
+	out("reset");
 }
 
 uint8 DSP1::read(unsigned addr) {
+	out("read");
 }
 
 void DSP1::write(unsigned addr, uint8 data) {
+	out("write");
 }
 
 }
