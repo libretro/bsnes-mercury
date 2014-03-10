@@ -1,7 +1,7 @@
 #include <sfc/sfc.hpp>
 
 #define DSP1_CPP
-namespace SNES {
+namespace SuperFamicom {
 
 DSP1 dsp1;
 DSP1DR dsp1dr;
