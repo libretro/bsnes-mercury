@@ -1,0 +1,6 @@
+- make dsps compile
+- system/system.hpp
+- system/serialization.hpp
+- cartridge/markup.hpp
+- put back dsp2-4
+- make target-libretro/libretro.cpp locate the new sram
