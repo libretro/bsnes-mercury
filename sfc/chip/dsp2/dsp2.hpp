@@ -1,5 +1,18 @@
 class DSP2 {
 public:
+  void init();
+  void load();
+  void unload();
+  void power();
+  void reset();
+
+  uint8 read(unsigned addr);
+  void write(unsigned addr, uint8 data);
+
+  void serialize(serializer&);
+
+  unsigned Select;
+
   struct {
     bool waiting_for_command;
     unsigned command;
@@ -20,18 +33,6 @@ public:
     int    op0doutlen;
     int    op0dinlen;
   } status;
-
-  void init();
-  void enable();
-  void power();
-  void reset();
-
-  uint8 read(unsigned addr);
-  void write(unsigned addr, uint8 data);
-
-  void serialize(serializer&);
-  DSP2();
-  ~DSP2();
 
 protected:
   void op01();

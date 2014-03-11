@@ -13,6 +13,8 @@ public:
 
   void serialize(serializer&);
 
+  unsigned Select;
+
 private:
   Dsp1 dsp1;
 };
