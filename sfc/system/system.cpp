@@ -81,6 +81,10 @@ void System::init() {
   obc1.init();
   hsu1.init();
   msu1.init();
+  dsp1.init();
+  dsp2.init();
+  dsp3.init();
+  dsp4.init();
   satellaviewcartridge.init();
 
   video.init();
@@ -142,6 +146,10 @@ void System::load() {
   if(cartridge.has_msu1()) msu1.load();
   if(cartridge.has_bs_slot()) satellaviewcartridge.load();
   if(cartridge.has_st_slots()) sufamiturboA.load(), sufamiturboB.load();
+  if(cartridge.has_dsp1()) dsp1.load();
+  if(cartridge.has_dsp2()) dsp2.load();
+  if(cartridge.has_dsp3()) dsp3.load();
+  if(cartridge.has_dsp4()) dsp4.load();
 
   serialize_init();
   cheat.init();
@@ -167,6 +175,10 @@ void System::unload() {
   if(cartridge.has_msu1()) msu1.unload();
   if(cartridge.has_bs_slot()) satellaviewcartridge.unload();
   if(cartridge.has_st_slots()) sufamiturboA.unload(), sufamiturboB.unload();
+  if(cartridge.has_dsp1()) dsp1.unload();
+  if(cartridge.has_dsp2()) dsp2.unload();
+  if(cartridge.has_dsp3()) dsp3.unload();
+  if(cartridge.has_dsp4()) dsp4.unload();
 }
 
 void System::power() {
@@ -195,6 +207,10 @@ void System::power() {
   if(cartridge.has_hsu1()) hsu1.power();
   if(cartridge.has_msu1()) msu1.power();
   if(cartridge.has_bs_slot()) satellaviewcartridge.power();
+  if(cartridge.has_dsp1()) dsp1.power();
+  if(cartridge.has_dsp2()) dsp2.power();
+  if(cartridge.has_dsp3()) dsp3.power();
+  if(cartridge.has_dsp4()) dsp4.power();
 
   reset();
 }
@@ -223,6 +239,10 @@ void System::reset() {
   if(cartridge.has_hsu1()) hsu1.reset();
   if(cartridge.has_msu1()) msu1.reset();
   if(cartridge.has_bs_slot()) satellaviewcartridge.reset();
+  if(cartridge.has_dsp1()) dsp1.reset();
+  if(cartridge.has_dsp2()) dsp2.reset();
+  if(cartridge.has_dsp3()) dsp3.reset();
+  if(cartridge.has_dsp4()) dsp4.reset();
 
   if(cartridge.has_gb_slot()) cpu.coprocessors.append(&icd2);
   if(cartridge.has_event()) cpu.coprocessors.append(&event);
