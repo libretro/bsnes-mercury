@@ -1,6 +1,6 @@
 - make dsps compile - OK
-- system/system.hpp
-- system/serialization.hpp
+- system/system.hpp - OK
+- system/serialization.hpp - OK
 - cartridge/markup.hpp
 - fill in dsps
 - put back dsp2-4

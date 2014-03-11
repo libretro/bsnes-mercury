@@ -28,6 +28,7 @@ void Cartridge::parse_markup(const char* markup) {
   parse_markup_obc1(cartridge["obc1"]);
   parse_markup_hsu1(cartridge["hsu1"]);
   parse_markup_msu1(cartridge["msu1"]);
+  parse_markup_hledsp(cartridge["hledsp"]);
 }
 
 //
@@ -581,6 +582,47 @@ void Cartridge::parse_markup_msu1(Markup::Node root) {
       Mapping m({&MSU1::mmio_read, &msu1}, {&MSU1::mmio_write, &msu1});
       parse_markup_map(m, node);
       mapping.append(m);
+    }
+  }
+}
+
+void Cartridge::parse_markup_hledsp(Markup::Node root) {
+  if(root.exists() == false) return;
+
+  string revision = root["model"].data;
+
+  for(auto& node : root) {
+    if(node.name != "map") continue;
+
+    if(node["id"].data == "io") {
+      if(revision == "DSP-1") {
+        has_hledsp1 = true;
+        Mapping m({&DSP1::readsr, &dsp1}, {&DSP1::writesr, &dsp1});
+        parse_markup_map(m, node);
+        mapping.append(m);
+        dsp1.Select = numeral(node["select"].data);
+      }
+      if(revision == "DSP-2") {
+        has_hledsp2 = true;
+        Mapping m({&DSP2::readsr, &dsp2}, {&DSP2::writesr, &dsp2});
+        parse_markup_map(m, node);
+        mapping.append(m);
+        dsp1.Select = numeral(node["select"].data);
+      }
+      if(revision == "DSP-3") {
+        has_hledsp3 = true;
+        Mapping m({&DSP3::readsr, &dsp3}, {&DSP3::writesr, &dsp3});
+        parse_markup_map(m, node);
+        mapping.append(m);
+        dsp1.Select = numeral(node["select"].data);
+      }
+      if(revision == "DSP-4") {
+        has_hledsp4 = true;
+        Mapping m({&DSP4::readsr, &dsp4}, {&DSP4::writesr, &dsp4});
+        parse_markup_map(m, node);
+        mapping.append(m);
+        dsp1.Select = numeral(node["select"].data);
+      }
     }
   }
 }

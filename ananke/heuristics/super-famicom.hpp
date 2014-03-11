@@ -442,7 +442,7 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size)
 #else
   if(has_dsp1) {
     markup.append(
-      "  hledsp model=DSP-1B\n"
+      "  hledsp model=DSP-1\n"
     );
     if(dsp1_mapper == DSP1LoROM1MB) markup.append(
       "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"

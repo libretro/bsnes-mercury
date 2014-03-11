@@ -40,7 +40,6 @@ struct Cartridge : property<Cartridge> {
   readonly<bool> has_hsu1;
   readonly<bool> has_msu1;
   readonly<bool> has_hledsp1;
-  readonly<bool> has_hledsp1b;
   readonly<bool> has_hledsp2;
   readonly<bool> has_hledsp3;
   readonly<bool> has_hledsp4;

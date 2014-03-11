@@ -80,4 +80,23 @@ uint8 DSP1SR::read(unsigned addr) { return dsp1.dsp1.getSr(); }
 void DSP1SR::write(unsigned addr, uint8 data) {}
 
 }
+
+
+uint8 NECDSP::read(unsigned addr) {
+  cpu.synchronize_coprocessors();
+  if(addr & Select) {
+    return uPD96050::sr_read();
+  } else {
+    return uPD96050::dr_read();
+  }
+}
+
+void NECDSP::write(unsigned addr, uint8 data) {
+  cpu.synchronize_coprocessors();
+  if(addr & Select) {
+    return uPD96050::sr_write(data);
+  } else {
+    return uPD96050::dr_write(data);
+  }
+}
 #endif
