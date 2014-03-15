@@ -29,6 +29,8 @@ struct Coprocessor : Thread {
 #include <sfc/chip/dsp2/dsp2.hpp>
 #include <sfc/chip/dsp3/dsp3.hpp>
 #include <sfc/chip/dsp4/dsp4.hpp>
+#include <sfc/chip/cx4/cx4.hpp>
+#include <sfc/chip/st0010/st0010.hpp>
 
 void Coprocessor::step(unsigned clocks) {
   clock += clocks * (uint64)cpu.frequency;

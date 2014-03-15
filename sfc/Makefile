@@ -10,6 +10,7 @@ sfc_objects += sfc-spc7110 sfc-sdd1 sfc-obc1
 sfc_objects += sfc-hsu1 sfc-msu1
 sfc_objects += sfc-satellaviewcart sfc-sufamiturbo
 sfc_objects += sfc-hledsp1 sfc-hledsp2 sfc-hledsp3 sfc-hledsp4
+sfc_objects += sfc-hlecx4 sfc-hlest0010
 objects += $(sfc_objects)
 
 ifeq ($(profile),accuracy)
@@ -76,3 +77,6 @@ obj/sfc-hledsp1.o:         $(sfc)/chip/dsp1/dsp1.cpp $(sfc)/chip/dsp1/*
 obj/sfc-hledsp2.o:         $(sfc)/chip/dsp2/dsp2.cpp $(sfc)/chip/dsp2/*
 obj/sfc-hledsp3.o:         $(sfc)/chip/dsp3/dsp3.cpp $(sfc)/chip/dsp3/*
 obj/sfc-hledsp4.o:         $(sfc)/chip/dsp4/dsp4.cpp $(sfc)/chip/dsp4/*
+
+obj/sfc-hlecx4.o:          $(sfc)/chip/cx4/cx4.cpp $(sfc)/chip/cx4/*
+obj/sfc-hlest0010.o:       $(sfc)/chip/st0010/st0010.cpp $(sfc)/chip/st0010/*
