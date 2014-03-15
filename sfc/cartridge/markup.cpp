@@ -614,14 +614,12 @@ void Cartridge::parse_markup_hledsp(Markup::Node root) {
         Mapping m({&DSP3::read, &dsp3}, {&DSP3::write, &dsp3});
         parse_markup_map(m, node);
         mapping.append(m);
-        dsp3.Select = numeral(node["select"].data);
       }
       if(revision == "DSP-4") {
         has_dsp4 = true;
         Mapping m({&DSP4::read, &dsp4}, {&DSP4::write, &dsp4});
         parse_markup_map(m, node);
         mapping.append(m);
-        dsp4.Select = numeral(node["select"].data);
       }
     }
   }

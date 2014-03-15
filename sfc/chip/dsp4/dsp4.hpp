@@ -8,8 +8,6 @@ public:
 
   uint8 read(unsigned addr);
   void write(unsigned addr, uint8 data);
-
-  unsigned Select;
 };
 
 extern DSP4 dsp4;
