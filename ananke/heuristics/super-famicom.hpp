@@ -445,7 +445,7 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size)
 #else
     markup.append(
       "  hledsp model=DSP-3\n"
-      "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
+      "    map id=io address=20-3f,a0-bf:8000-ffff\n"
     );
 #endif
     if((size & 0x7fff) == 0x2000) {
@@ -466,7 +466,7 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size)
 #else
     markup.append(
       "  hledsp model=DSP-4\n"
-      "    map id=io address=30-3f,b0-bf:8000-ffff select=0x4000\n"
+      "    map id=io address=30-3f,b0-bf:8000-ffff\n"
     );
 #endif
     if((size & 0x7fff) == 0x2000) {
