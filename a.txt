@@ -1,2 +1,2 @@
-time ./minir roms/bsnes_accuracy_libretro.so /home/alcaro/smw.sfc
+minir out/bsnes_libretro.so /home/alcaro/Desktop/minir/roms/smk.sfc
 make target=libretro ui=target-libretro -j8 profile=balanced

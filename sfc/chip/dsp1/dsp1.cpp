@@ -10,38 +10,36 @@ DSP1 dsp1;
 
 static void out(const char * what)
 {
-	unsigned int i=0;
+	static unsigned int i=0;
 	if (i>20) return;
 	i++;
 	puts(what);
 }
 
 void DSP1::init() {
-	out("init");
 }
 
 void DSP1::load() {
-	out("load");
 }
 
 void DSP1::unload() {
-	out("unload");
 }
 
 void DSP1::power() {
-	out("power");
 }
 
 void DSP1::reset() {
-	out("reset");
+  dsp1.reset();
 }
 
 uint8 DSP1::read(unsigned addr) {
-	out("read");
+	if (addr & Select) return dsp1.getSr();
+	else return dsp1.getDr();
 }
 
 void DSP1::write(unsigned addr, uint8 data) {
-	out("write");
+	if (addr & Select) {}
+	else dsp1.setDr(data);
 }
 
 }
