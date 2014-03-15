@@ -1,7 +1,8 @@
 class ST0010 : public Memory {
 public:
   void init();
-  void enable();
+  void load();
+  void unload();
   void power();
   void reset();
 

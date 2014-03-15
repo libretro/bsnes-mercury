@@ -1,7 +1,7 @@
-#include <snes.hpp>
+#include <sfc/sfc.hpp>
 
 #define ST0010_CPP
-namespace SNES {
+namespace SuperFamicom {
 
 ST0010 st0010;
 
@@ -12,7 +12,10 @@ ST0010 st0010;
 void ST0010::init() {
 }
 
-void ST0010::enable() {
+void ST0010::load() {
+}
+
+void ST0010::unload() {
 }
 
 int16 ST0010::sin(int16 theta) {

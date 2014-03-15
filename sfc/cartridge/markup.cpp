@@ -29,6 +29,8 @@ void Cartridge::parse_markup(const char* markup) {
   parse_markup_hsu1(cartridge["hsu1"]);
   parse_markup_msu1(cartridge["msu1"]);
   parse_markup_hledsp(cartridge["hledsp"]);
+  parse_markup_hlecx4(cartridge["hlecx4"]);
+  parse_markup_hlest0010(cartridge["hlest0010"]);
 }
 
 //
@@ -623,6 +625,12 @@ void Cartridge::parse_markup_hledsp(Markup::Node root) {
       }
     }
   }
+}
+
+void Cartridge::parse_markup_hlecx4(Markup::Node root) {
+}
+
+void Cartridge::parse_markup_hlest0010(Markup::Node root) {
 }
 
 Cartridge::Mapping::Mapping() {

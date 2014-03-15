@@ -468,7 +468,7 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size,
         "  hledsp model=DSP-4\n"
         "    map id=io address=30-3f,b0-bf:8000-ffff\n"
       );
-		}
+    }
     if((size & 0x7fff) == 0x2000) {
       firmware_appended = true;
       rom_size -= 0x2000;
@@ -487,7 +487,7 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size,
       );
     } else {
       markup.append(
-        "  hlest010\n"
+        "  hlest0010\n"
         "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
         "    map id=ram address=68-6f,e8-ef:0000-7fff\n"
       );
