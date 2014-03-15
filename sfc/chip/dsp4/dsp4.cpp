@@ -34,7 +34,6 @@ namespace DSP4i {
 };
 
 void DSP4::power() {
-  reset();
 }
 
 void DSP4::reset() {

@@ -21,7 +21,6 @@ void DSP3::unload() {
 }
 
 void DSP3::power() {
-  reset();
 }
 
 void DSP3::reset() {
