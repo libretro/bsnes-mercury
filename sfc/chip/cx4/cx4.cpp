@@ -200,7 +200,6 @@ uint32 Cx4::readl(uint16 addr) {
 }
 
 void Cx4::power() {
-  reset();
 }
 
 void Cx4::reset() {

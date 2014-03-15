@@ -81,11 +81,13 @@ void System::init() {
   obc1.init();
   hsu1.init();
   msu1.init();
+  satellaviewcartridge.init();
   dsp1.init();
   dsp2.init();
   dsp3.init();
   dsp4.init();
-  satellaviewcartridge.init();
+  cx4.init();
+  st0010.init();
 
   video.init();
   audio.init();
@@ -150,6 +152,8 @@ void System::load() {
   if(cartridge.has_dsp2()) dsp2.load();
   if(cartridge.has_dsp3()) dsp3.load();
   if(cartridge.has_dsp4()) dsp4.load();
+  if(cartridge.has_cx4()) cx4.load();
+  if(cartridge.has_st0010()) st0010.load();
 
   serialize_init();
   cheat.init();
@@ -179,6 +183,8 @@ void System::unload() {
   if(cartridge.has_dsp2()) dsp2.unload();
   if(cartridge.has_dsp3()) dsp3.unload();
   if(cartridge.has_dsp4()) dsp4.unload();
+  if(cartridge.has_cx4()) cx4.unload();
+  if(cartridge.has_st0010()) st0010.unload();
 }
 
 void System::power() {
@@ -211,6 +217,8 @@ void System::power() {
   if(cartridge.has_dsp2()) dsp2.power();
   if(cartridge.has_dsp3()) dsp3.power();
   if(cartridge.has_dsp4()) dsp4.power();
+  if(cartridge.has_cx4()) cx4.power();
+  if(cartridge.has_st0010()) st0010.power();
 
   reset();
 }
@@ -239,10 +247,6 @@ void System::reset() {
   if(cartridge.has_hsu1()) hsu1.reset();
   if(cartridge.has_msu1()) msu1.reset();
   if(cartridge.has_bs_slot()) satellaviewcartridge.reset();
-  if(cartridge.has_dsp1()) dsp1.reset();
-  if(cartridge.has_dsp2()) dsp2.reset();
-  if(cartridge.has_dsp3()) dsp3.reset();
-  if(cartridge.has_dsp4()) dsp4.reset();
 
   if(cartridge.has_gb_slot()) cpu.coprocessors.append(&icd2);
   if(cartridge.has_event()) cpu.coprocessors.append(&event);
@@ -255,6 +259,13 @@ void System::reset() {
   if(cartridge.has_sharprtc()) cpu.coprocessors.append(&sharprtc);
   if(cartridge.has_spc7110()) cpu.coprocessors.append(&spc7110);
   if(cartridge.has_msu1()) cpu.coprocessors.append(&msu1);
+
+  if(cartridge.has_dsp1()) dsp1.reset();
+  if(cartridge.has_dsp2()) dsp2.reset();
+  if(cartridge.has_dsp3()) dsp3.reset();
+  if(cartridge.has_dsp4()) dsp4.reset();
+  if(cartridge.has_cx4()) cx4.reset();
+  if(cartridge.has_st0010()) st0010.reset();
 
   scheduler.init();
   input.connect(0, config.controller_port1);
