@@ -152,10 +152,12 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size,
       );
     } else {
       markup.append(
+        "  rom name=program.rom size=0x", hex(rom_size), "\n"
+        "  ram name=save.ram size=0x", hex(ram_size), "\n"
+        "  map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
+        "  map id=ram address=70-77:0000-7fff\n"
         "  hlecx4\n"
         "    map id=io address=00-3f,80-bf:6000-7fff\n"
-        "    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
-        "    map id=ram address=70-77:0000-7fff\n"
       );
     }
     if((rom_size & 0x7fff) == 0xc00) {

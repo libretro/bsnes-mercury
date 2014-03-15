@@ -628,9 +628,29 @@ void Cartridge::parse_markup_hledsp(Markup::Node root) {
 }
 
 void Cartridge::parse_markup_hlecx4(Markup::Node root) {
+  if(root.exists() == false) return;
+  
+  has_cx4 = true;
+  
+  for(auto& node : root) {
+    if(node.name != "map") continue;
+    Mapping m({&Cx4::read, &cx4}, {&Cx4::write, &cx4});
+    parse_markup_map(m, node);
+    mapping.append(m);
+  }
 }
 
 void Cartridge::parse_markup_hlest0010(Markup::Node root) {
+  if(root.exists() == false) return;
+  
+  has_st0010 = true;
+  
+  for(auto& node : root) {
+    if(node.name != "map") continue;
+    Mapping m({&ST0010::read, &st0010}, {&ST0010::write, &st0010});
+    parse_markup_map(m, node);
+    mapping.append(m);
+  }
 }
 
 Cartridge::Mapping::Mapping() {
