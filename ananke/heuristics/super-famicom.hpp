@@ -139,7 +139,7 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size)
     }
   }
 
-#ifdef PREFER_LLE_DSP
+#ifdef PREFER_LLE_CHIPS
   else if(has_cx4) {
     markup.append(
       "  hitachidsp model=HG51B169 frequency=20000000\n"
@@ -390,7 +390,7 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size)
     );
   }
 
-#ifdef PREFER_LLE_DSP
+#ifdef PREFER_LLE_CHIPS
   if(has_dsp1) {
     markup.append(
       "  necdsp model=uPD7725 frequency=8000000\n"
@@ -508,7 +508,7 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size)
   }
 #endif
 
-#ifdef PREFER_LLE_DSP
+#ifdef PREFER_LLE_CHIPS
   if(has_st010) {
     markup.append(
       "  necdsp model=uPD96050 frequency=11000000\n"
