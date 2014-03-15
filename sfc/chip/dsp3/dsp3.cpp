@@ -20,9 +20,6 @@ void DSP3::load() {
 void DSP3::unload() {
 }
 
-//void DSP3::enable() {
-//}
-
 void DSP3::power() {
   reset();
 }

@@ -462,6 +462,7 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size)
   if(has_dsp2) {
     markup.append(
       "  hledsp model=DSP-2\n"
+      "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
     );
     if((size & 0x7fff) == 0x2000) {
       firmware_appended = true;
