@@ -39,7 +39,6 @@ void DSP2::reset() {
   status.op0dinlen       = 0;
 }
 
-static int g=0;
 uint8 DSP2::read(unsigned addr) {
 	if (addr & Select)
 	{
@@ -57,8 +56,6 @@ uint8 DSP2::read(unsigned addr) {
 	      status.out_count = 0;
 	    }
 	  }
-	if(g<100)g++,
-	printf("%.6X:%.2X\n",addr,r);
 	  return r;
 	}
 }
@@ -71,8 +68,7 @@ void DSP2::write(unsigned addr, uint8 data) {
 	}
 	else
 	{
-		if(g<100)g++,
-printf("%.6X=%.2X\n",addr,data);
+		//dr
 	  if(status.waiting_for_command) {
 	    status.command  = data;
 	    status.in_index = 0;
@@ -160,7 +156,6 @@ printf("%.6X=%.2X\n",addr,data);
 	    case 0x0f: break;
 	    }
 	  }
-		//dr
 	}
 }
 
