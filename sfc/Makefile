@@ -9,8 +9,7 @@ sfc_objects += sfc-epsonrtc sfc-sharprtc
 sfc_objects += sfc-spc7110 sfc-sdd1 sfc-obc1
 sfc_objects += sfc-hsu1 sfc-msu1
 sfc_objects += sfc-satellaviewcart sfc-sufamiturbo
-sfc_objects += sfc-hledsp1
-# sfc-hledsp2 sfc-hledsp3 sfc-hledsp4
+sfc_objects += sfc-hledsp1 sfc-hledsp2 sfc-hledsp3 sfc-hledsp4
 objects += $(sfc_objects)
 
 ifeq ($(profile),accuracy)

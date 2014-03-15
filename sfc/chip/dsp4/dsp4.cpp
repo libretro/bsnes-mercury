@@ -1,15 +1,21 @@
-#include <snes.hpp>
+#include <sfc/sfc.hpp>
 
 #define DSP4_CPP
-namespace SNES {
+namespace SuperFamicom {
 
 DSP4 dsp4;
 
 void DSP4::init() {
 }
 
-void DSP4::enable() {
+void DSP4::load() {
 }
+
+void DSP4::unload() {
+}
+
+//void DSP4::enable() {
+//}
 
 namespace DSP4i {
   inline uint16 READ_WORD(uint8 *addr) {

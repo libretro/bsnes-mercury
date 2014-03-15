@@ -1,7 +1,7 @@
-#include <snes.hpp>
+#include <sfc/sfc.hpp>
 
 #define DSP3_CPP
-namespace SNES {
+namespace SuperFamicom {
 
 DSP3 dsp3;
 
@@ -14,8 +14,14 @@ namespace DSP3i {
 void DSP3::init() {
 }
 
-void DSP3::enable() {
+void DSP3::load() {
 }
+
+void DSP3::unload() {
+}
+
+//void DSP3::enable() {
+//}
 
 void DSP3::power() {
   reset();

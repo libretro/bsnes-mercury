@@ -1,7 +1,7 @@
-#include <snes.hpp>
+#include <sfc/sfc.hpp>
 
 #define DSP2_CPP
-namespace SNES {
+namespace SuperFamicom {
 
 DSP2 dsp2;
 DSP2DR dsp2dr;
@@ -13,8 +13,14 @@ DSP2SR dsp2sr;
 void DSP2::init() {
 }
 
-void DSP2::enable() {
+void DSP2::load() {
 }
+
+void DSP2::unload() {
+}
+
+//void DSP2::enable() {
+//}
 
 void DSP2::power() {
   reset();
@@ -141,8 +147,8 @@ void DSP2::write(unsigned addr, uint8 data) {
   }
 }
 
-DSP2::DSP2() {}
-DSP2::~DSP2() {}
+//DSP2::DSP2() {}
+//DSP2::~DSP2() {}
 
 uint8 DSP2DR::read(unsigned addr) { return dsp2.read(addr); }
 void DSP2DR::write(unsigned addr, uint8 data) { dsp2.write(addr, data); }
