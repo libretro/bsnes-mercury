@@ -106,7 +106,7 @@ struct SuperFamicomCartridge {
   bool has_st018;
 };
 
-SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size, bool hlechips) {
+SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size, bool hlechips = false) {
   firmware_appended = false;
 
   //skip copier header

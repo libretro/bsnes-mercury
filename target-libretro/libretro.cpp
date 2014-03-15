@@ -7,6 +7,8 @@
 #include <string>
 using namespace nall;
 
+#define USE_HLE_CHIPS true
+
 const uint8 iplrom[64] = {
 /*ffc0*/  0xcd, 0xef,        //mov   x,#$ef
 /*ffc2*/  0xbd,              //mov   sp,x
@@ -478,7 +480,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
 static bool snes_load_cartridge_normal(
   const char *rom_xml, const uint8_t *rom_data, unsigned rom_size
 ) {
-  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
+  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS).markup;
 
   core_bind.rom_data = rom_data;
   core_bind.rom_size = rom_size;
@@ -494,8 +496,8 @@ static bool snes_load_cartridge_bsx_slotted(
   const char *bsx_xml, const uint8_t *bsx_data, unsigned bsx_size
 ) {
 #if 0
-  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
-  string xmlbsx = (bsx_xml && *bsx_xml) ? string(bsx_xml) : SuperFamicomCartridge(bsx_data, bsx_size).markup;
+  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS).markup;
+  string xmlbsx = (bsx_xml && *bsx_xml) ? string(bsx_xml) : SuperFamicomCartridge(bsx_data, bsx_size, USE_HLE_CHIPS).markup;
 
   SuperFamicom::bsxflash.memory.copy(memorystream(bsx_data, bsx_size));
   SuperFamicom::cartridge.load(xmlrom, memorystream(rom_data, rom_size));
@@ -511,8 +513,8 @@ static bool snes_load_cartridge_bsx(
   const char *bsx_xml, const uint8_t *bsx_data, unsigned bsx_size
 ) {
 #if 0
-  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
-  string xmlbsx = (bsx_xml && *bsx_xml) ? string(bsx_xml) : SuperFamicomCartridge(bsx_data, bsx_size).markup;
+  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS).markup;
+  string xmlbsx = (bsx_xml && *bsx_xml) ? string(bsx_xml) : SuperFamicomCartridge(bsx_data, bsx_size, USE_HLE_CHIPS).markup;
 
   SuperFamicom::bsxflash.memory.copy(memorystream(bsx_data, bsx_size));
   SuperFamicom::cartridge.load(xmlrom, memorystream(rom_data, rom_size));
@@ -529,9 +531,9 @@ static bool snes_load_cartridge_sufami_turbo(
   const char *stb_xml, const uint8_t *stb_data, unsigned stb_size
 ) {
 #if 0
-  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
-  string xmlsta = (sta_xml && *sta_xml) ? string(sta_xml) : SuperFamicomCartridge(sta_data, sta_size).markup;
-  string xmlstb = (stb_xml && *stb_xml) ? string(stb_xml) : SuperFamicomCartridge(stb_data, stb_size).markup;
+  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS).markup;
+  string xmlsta = (sta_xml && *sta_xml) ? string(sta_xml) : SuperFamicomCartridge(sta_data, sta_size, USE_HLE_CHIPS).markup;
+  string xmlstb = (stb_xml && *stb_xml) ? string(stb_xml) : SuperFamicomCartridge(stb_data, stb_size, USE_HLE_CHIPS).markup;
 
   if(sta_data) SuperFamicom::sufamiturbo.slotA.rom.copy(memorystream(sta_data, sta_size));
   if(stb_data) SuperFamicom::sufamiturbo.slotB.rom.copy(memorystream(stb_data, stb_size));
@@ -547,7 +549,7 @@ static bool snes_load_cartridge_super_game_boy(
   const char *rom_xml, const uint8_t *rom_data, unsigned rom_size,
   const char *dmg_xml, const uint8_t *dmg_data, unsigned dmg_size
 ) {
-  string xmlrom_sgb = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
+  string xmlrom_sgb = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS).markup;
   string xmlrom_gb  = (dmg_xml && *dmg_xml) ? string(dmg_xml) : GameBoyCartridge((uint8_t*)dmg_data, dmg_size).markup;
   fprintf(stderr, "[bSNES]: Markup SGB: %s\n", (const char*)xmlrom_sgb);
   fprintf(stderr, "[bSNES]: Markup GB: %s\n", (const char*)xmlrom_gb);
