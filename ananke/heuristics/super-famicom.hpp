@@ -139,6 +139,7 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size)
     }
   }
 
+#ifdef PREFER_LLE_DSP
   else if(has_cx4) {
     markup.append(
       "  hitachidsp model=HG51B169 frequency=20000000\n"
@@ -154,6 +155,20 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size)
       rom_size -= 0xc00;
     }
   }
+#else
+  else if(has_cx4) {
+    markup.append(
+      "  hlecx4\n"
+      "    map id=io address=00-3f,80-bf:6000-7fff\n"
+      "    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
+      "    map id=ram address=70-77:0000-7fff\n"
+    );
+    if((rom_size & 0x7fff) == 0xc00) {
+      firmware_appended = true;
+      rom_size -= 0xc00;
+    }
+  }
+#endif
 
   else if(has_spc7110) {
     markup.append(
@@ -493,6 +508,7 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size)
   }
 #endif
 
+#ifdef PREFER_LLE_DSP
   if(has_st010) {
     markup.append(
       "  necdsp model=uPD96050 frequency=11000000\n"
@@ -507,6 +523,19 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size)
       rom_size -= 0xd000;
     }
   }
+#else
+  if(has_st010) {
+    markup.append(
+      "  hlest010\n"
+      "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
+      "    map id=ram address=68-6f,e8-ef:0000-7fff\n"
+    );
+    if((size & 0xffff) == 0xd000) {
+      firmware_appended = true;
+      rom_size -= 0xd000;
+    }
+  }
+#endif
 
   if(has_st011) {
     markup.append(
