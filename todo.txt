@@ -1,3 +1,0 @@
-- cx4
-- st010
-- make target-libretro/libretro.cpp locate the new sram
