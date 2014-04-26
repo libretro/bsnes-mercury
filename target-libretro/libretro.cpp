@@ -338,35 +338,35 @@ Interface::Interface() {
 }
 
 void Interface::setCheats(const lstring &list) {
-  if(core_interface.mode == SuperFamicomCartridge::ModeSuperGameBoy) {
-    GameBoy::cheat.reset();
-    for(auto &code : list) {
-      lstring codelist;
-      codelist.split("+", code);
-      for(auto &part : codelist) {
-        unsigned addr, data, comp;
-        if(GameBoy::Cheat::decode(part, addr, data, comp)) {
-          GameBoy::cheat.append({addr, data, comp});
-        }
-      }
-    }
-    GameBoy::cheat.synchronize();
-    return;
-  }
-
-  SuperFamicom::cheat.reset();
-  for(auto &code : list) {
-    lstring codelist;
-    codelist.split("+", code);
-    for(auto &part : codelist) {
-      unsigned addr, data;
-      if(SuperFamicom::Cheat::decode(part, addr, data)) {
-        SuperFamicom::cheat.append({addr, data});
-      }
-    }
-  }
-
-  SuperFamicom::cheat.synchronize();
+  //if(core_interface.mode == SuperFamicomCartridge::ModeSuperGameBoy) {
+  //  GameBoy::cheat.reset();
+  //  for(auto &code : list) {
+  //    lstring codelist;
+  //    codelist.split("+", code);
+  //    for(auto &part : codelist) {
+  //      unsigned addr, data, comp;
+  //      if(GameBoy::Cheat::decode(part, addr, data, comp)) {
+  //        GameBoy::cheat.append({addr, data, comp});
+  //      }
+  //    }
+  //  }
+  //  GameBoy::cheat.synchronize();
+  //  return;
+  //}
+  //
+  //SuperFamicom::cheat.reset();
+  //for(auto &code : list) {
+  //  lstring codelist;
+  //  codelist.split("+", code);
+  //  for(auto &part : codelist) {
+  //    unsigned addr, data;
+  //    if(SuperFamicom::Cheat::decode(part, addr, data)) {
+  //      SuperFamicom::cheat.append({addr, data});
+  //    }
+  //  }
+  //}
+  //
+  //SuperFamicom::cheat.synchronize();
 }
 
 unsigned retro_api_version(void) {
@@ -426,29 +426,30 @@ bool retro_unserialize(const void *data, size_t size) {
   return SuperFamicom::system.unserialize(s);
 }
 
-struct CheatList {
-  bool enable;
-  string code;
-  CheatList() : enable(false) {}
-};
+//struct CheatList {
+//  bool enable;
+//  string code;
+//  CheatList() : enable(false) {}
+//};
 
-static vector<CheatList> cheatList;
+//static vector<CheatList> cheatList;
 
 void retro_cheat_reset(void) {
-  cheatList.reset();
-  core_interface.setCheats();
+  //cheatList.reset();
+  //core_interface.setCheats();
 }
 
 void retro_cheat_set(unsigned index, bool enable, const char *code) {
-  cheatList[index].enable = enable;
-  cheatList[index].code = code;
-  lstring list;
-
-  for(unsigned n = 0; n < cheatList.size(); n++) {
-    if(cheatList[n].enable) list.append(cheatList[n].code);
-  }
-
-  core_interface.setCheats(list);
+  //cheatList.reserve(index+1);
+  //cheatList[index].enable = enable;
+  //cheatList[index].code = code;
+  //lstring list;
+  //
+  //for(unsigned n = 0; n < cheatList.size(); n++) {
+  //  if(cheatList[n].enable) list.append(cheatList[n].code);
+  //}
+  //
+  //core_interface.setCheats(list);
 }
 
 void retro_get_system_info(struct retro_system_info *info) {
