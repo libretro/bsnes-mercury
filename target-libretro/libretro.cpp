@@ -100,7 +100,11 @@ struct Callbacks : Emulator::Interface::Bind {
     }
   }
 
-  void videoRefresh(const uint32_t *data, unsigned pitch, unsigned width, unsigned height) {
+  virtual uint32_t videoColor(unsigned source, uint16_t alpha, uint16_t red, uint16_t green, uint16_t blue) {
+    return (red<<16) | (green<<8) | (blue<<0);
+  }
+
+  void videoRefresh(const uint32_t* palette, const uint32_t* data, unsigned pitch, unsigned width, unsigned height) {
     if (!overscan) {
       data += 8 * 1024;
 
@@ -318,14 +322,14 @@ struct Interface : public SuperFamicom::Interface {
   Interface(); 
 
   void init() {
-     SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Literal);
+     SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard);
   }
 };
 
 struct GBInterface : public GameBoy::Interface {
   GBInterface() { bind = &core_bind; }
   void init() {
-     SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Literal);
+     SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard);
   }
 };
 
