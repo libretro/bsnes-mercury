@@ -45,6 +45,9 @@ const uint8 iplrom[64] = {
 /*fffe*/  0xc0, 0xff         //reset vector location ($ffc0)
 };
 
+static uint32_t* videodata=NULL;
+static unsigned videodatalen=0;
+
 struct Callbacks : Emulator::Interface::Bind {
   retro_video_refresh_t pvideo_refresh;
   retro_audio_sample_t paudio_sample;
@@ -104,9 +107,6 @@ struct Callbacks : Emulator::Interface::Bind {
     return ((blue&0xFF00)<<8) | ((green&0xFF00)) | ((red&0xFF00)>>8);
   }
 
-  //uint32_t* converteddata;
-  //unsigned converteddatalen;
-
   void videoRefresh(const uint32_t* palette, const uint32_t* data, unsigned pitch, unsigned width, unsigned height) {
     if (!overscan) {
       data += 8 * 1024;
@@ -117,7 +117,20 @@ struct Callbacks : Emulator::Interface::Bind {
         height = 448;
     }
 
-    pvideo_refresh(data, width, height, pitch);
+    if (width*height > videodatalen)
+    {
+      delete[] videodata;
+      videodatalen = width*height;
+      videodata = new uint32_t[videodatalen];
+    }
+
+    for (unsigned y=0;y<height;y++)
+    for (unsigned x=0;x<width;x++)
+    {
+      videodata[y*width + x] = palette[data[y*pitch + x]];
+    }
+
+    pvideo_refresh(videodata, width, height, width*sizeof(uint32_t));
     pinput_poll();
   }
 
@@ -406,6 +419,7 @@ void retro_init(void) {
 
 void retro_deinit(void) {
   SuperFamicom::system.term();
+  delete[] videodata;
 }
 
 void retro_reset(void) {
