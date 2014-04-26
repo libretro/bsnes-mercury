@@ -23,13 +23,15 @@ obj/libretro.o: $(ui)/libretro.cpp $(ui)/*
 
 #targets
 build: $(objects)
-ifeq ($(platform),unix)
+ifeq ($(platform),linux)
+	$(compiler) -o out/bsnes_libretro.so -shared $(objects) -ldl -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T
+else if ($(platform),bsd)
 	$(compiler) -o out/bsnes_libretro.so -shared $(objects) -ldl -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T
 else ifeq ($(platform),ios)
 	$(compiler) -o out/bsnes_libretro_ios.dylib -dynamiclib $(objects) -isysroot $(IOSSDK) -arch armv7
-else ifeq ($(platform),osx)
+else ifeq ($(platform),maxosx)
 	$(compiler) -o out/bsnes_libretro.dylib -dynamiclib $(objects)
-else ifeq ($(platform),win)
+else ifeq ($(platform),windows)
 	$(compiler) -o out/bsnes_libretro.dll -shared $(objects) -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T -static-libgcc -static-libstdc++ -lws2_32
 endif
 
