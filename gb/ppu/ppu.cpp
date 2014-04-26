@@ -25,22 +25,26 @@ void PPU::main() {
       scheduler.exit(Scheduler::ExitReason::SynchronizeEvent);
     }
 
-    add_clocks(4);
-    status.lx += 4;
-    if(status.lx >= 456) scanline();
-
-    if(status.display_enable && status.lx == 0) {
+    if(status.display_enable && status.ly < 144) {
       if(status.interrupt_oam) cpu.interrupt_raise(CPU::Interrupt::Stat);
-    }
-
-    if(status.display_enable && status.lx == 252) {
+      add_clocks(92);
+      for(unsigned n = 0; n < 160; n++) {
+        system.cgb() ? cgb_run() : dmg_run();
+        add_clocks(1);
+      }
       if(status.interrupt_hblank) cpu.interrupt_raise(CPU::Interrupt::Stat);
       cpu.hblank();
+      add_clocks(204);
+    } else {
+      add_clocks(456);
     }
+
+    scanline();
   }
 }
 
 void PPU::add_clocks(unsigned clocks) {
+  status.lx += clocks;
   clock += clocks * cpu.frequency;
   if(clock >= 0 && scheduler.sync != Scheduler::SynchronizeMode::All) {
     co_switch(scheduler.active_thread = cpu.thread);
@@ -48,15 +52,16 @@ void PPU::add_clocks(unsigned clocks) {
 }
 
 void PPU::scanline() {
-  status.lx -= 456;
+  status.lx = 0;
   if(++status.ly == 154) frame();
+
+  if(status.ly < 144) {
+    interface->lcdScanline();  //Super Game Boy rendering notification
+    system.cgb() ? cgb_scanline() : dmg_scanline();
+  }
 
   if(status.display_enable && status.interrupt_lyc == true) {
     if(status.ly == status.lyc) cpu.interrupt_raise(CPU::Interrupt::Stat);
-  }
-
-  if(status.ly < 144) {
-    system.cgb() == false ? dmg_render() : cgb_render();
   }
 
   if(status.display_enable && status.ly == 144) {
@@ -66,10 +71,7 @@ void PPU::scanline() {
 }
 
 void PPU::frame() {
-  cpu.mmio_joyp_poll();
-
   status.ly = 0;
-  status.wyc = 0;
   scheduler.exit(Scheduler::ExitReason::FrameEvent);
 }
 
@@ -106,10 +108,6 @@ void PPU::power() {
   bus.mmio[0xff6b] = this;  //OBPD
   }
 
-  for(auto& n : screen) n = 0x0000;
-  for(auto& n : line) n = 0x0000;
-  for(auto& n : origin) n = Origin::None;
-
   for(auto& n : vram) n = 0x00;
   for(auto& n : oam) n = 0x00;
   for(auto& n : bgp) n = 0x00;
@@ -119,7 +117,6 @@ void PPU::power() {
   for(auto& n : obpd) n = 0x0000;
 
   status.lx = 0;
-  status.wyc = 0;
 
   status.display_enable = 0;
   status.window_tilemap_select = 0;
@@ -149,6 +146,31 @@ void PPU::power() {
 
   status.obpi_increment = 0;
   status.obpi = 0;
+
+  for(auto& n : screen) n = 0x0000;
+
+  bg.color = 0;
+  bg.palette = 0;
+  bg.priority = 0;
+
+  ob.color = 0;
+  ob.palette = 0;
+  ob.priority = 0;
+
+  for(auto& s : sprite) {
+    s.x = 0;
+    s.y = 0;
+    s.tile = 0;
+    s.attr = 0;
+    s.data = 0;
+  }
+  sprites = 0;
+
+  background.attr = 0;
+  background.data = 0;
+
+  window.attr = 0;
+  window.data = 0;
 }
 
 PPU::PPU() {

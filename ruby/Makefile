@@ -1,4 +1,4 @@
-ifeq ($(platform),osx)
+ifeq ($(platform),macosx)
   rubyflags = $(objcppflags) $(flags)
 else
   rubyflags = $(cppflags) $(flags)
@@ -23,15 +23,15 @@ rubylink += $(if $(findstring audio.pulseaudio,$(ruby)),-lpulse)
 rubylink += $(if $(findstring audio.pulseaudiosimple,$(ruby)),-lpulse-simple)
 rubylink += $(if $(findstring audio.xaudio2,$(ruby)),-lole32)
 
-rubylink += $(if $(findstring input.directinput,$(ruby)),-ldinput8 -ldxguid)
-rubylink += $(if $(findstring input.rawinput,$(ruby)),-ldinput8 -ldxguid)
+rubylink += $(if $(findstring input.udev,$(ruby)),-ludev)
+rubylink += $(if $(findstring input.windows,$(ruby)),-ldinput8 -ldxguid)
 
 rubylink += $(if $(findstring .sdl,$(ruby)),`sdl-config --libs`)
 
-ifeq ($(platform),x)
-  rubylink += $(if $(findstring audio.openal,$(ruby)),-lopenal)
-else ifeq ($(platform),osx)
-  rubylink += $(if $(findstring audio.openal,$(ruby)),-framework OpenAL)
-else ifeq ($(platform),win)
+ifeq ($(platform),windows)
   rubylink += $(if $(findstring audio.openal,$(ruby)),-lopenal32)
+else ifeq ($(platform),macosx)
+  rubylink += $(if $(findstring audio.openal,$(ruby)),-framework OpenAL)
+else
+  rubylink += $(if $(findstring audio.openal,$(ruby)),-lopenal)
 endif

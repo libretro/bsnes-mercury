@@ -7,12 +7,12 @@ string pBrowserWindow::directory(BrowserWindow::State& state) {
     QString::fromUtf8(state.path), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
   );
   string name = directory.toUtf8().constData();
-  if(name && name.endswith("/") == false) name.append("/");
+  if(name && name.endsWith("/") == false) name.append("/");
   return name;
 }
 
 string pBrowserWindow::open(BrowserWindow::State& state) {
-  string filters = state.filters.concatenate(";;");
+  string filters = state.filters.merge(";;");
 
   //convert filter list from phoenix to Qt format, example:
   //"Text, XML files (*.txt,*.xml)" -> "Text, XML files (*.txt *.xml)"
@@ -32,7 +32,7 @@ string pBrowserWindow::open(BrowserWindow::State& state) {
 }
 
 string pBrowserWindow::save(BrowserWindow::State& state) {
-  string filters = state.filters.concatenate(";;");
+  string filters = state.filters.merge(";;");
 
   //convert filter list from phoenix to Qt format, example:
   //"Text, XML files (*.txt,*.xml)" -> "Text, XML files (*.txt *.xml)"

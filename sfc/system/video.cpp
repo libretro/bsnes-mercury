@@ -2,25 +2,49 @@
 
 Video video;
 
-void Video::generate_palette() {
+void Video::generate_palette(Emulator::Interface::PaletteMode mode) {
   for(unsigned color = 0; color < (1 << 19); color++) {
+    if(mode == Emulator::Interface::PaletteMode::Literal) {
+      palette[color] = color;
+      continue;
+    }
+
     unsigned l = (color >> 15) & 15;
     unsigned b = (color >> 10) & 31;
     unsigned g = (color >>  5) & 31;
     unsigned r = (color >>  0) & 31;
 
+    if(mode == Emulator::Interface::PaletteMode::Channel) {
+      l = image::normalize(l, 4, 16);
+      r = image::normalize(r, 5, 16);
+      g = image::normalize(g, 5, 16);
+      b = image::normalize(b, 5, 16);
+      palette[color] = interface->videoColor(color, l, r, g, b);
+      continue;
+    }
+
+    if(mode == Emulator::Interface::PaletteMode::Emulation) {
+      r = gamma_ramp[r];
+      g = gamma_ramp[g];
+      b = gamma_ramp[b];
+    } else {
+      r = image::normalize(r, 5, 8);
+      g = image::normalize(g, 5, 8);
+      b = image::normalize(b, 5, 8);
+    }
+
     double L = (1.0 + l) / 16.0;
     if(l == 0) L *= 0.5;
-    unsigned R = L * (r << 11 | r << 6 | r << 1 | r >> 4);
-    unsigned G = L * (g << 11 | g << 6 | g << 1 | g >> 4);
-    unsigned B = L * (b << 11 | b << 6 | b << 1 | b >> 4);
+    unsigned R = L * image::normalize(r, 8, 16);
+    unsigned G = L * image::normalize(g, 8, 16);
+    unsigned B = L * image::normalize(b, 8, 16);
 
-    palette[color] = interface->videoColor(color, R, G, B);
+    palette[color] = interface->videoColor(color, 0, R, G, B);
   }
 }
 
 Video::Video() {
-  palette = new unsigned[1 << 19]();
+  palette = new uint32_t[1 << 19]();
 }
 
 Video::~Video() {
@@ -28,6 +52,13 @@ Video::~Video() {
 }
 
 //internal
+
+const uint8_t Video::gamma_ramp[32] = {
+  0x00, 0x01, 0x03, 0x06, 0x0a, 0x0f, 0x15, 0x1c,
+  0x24, 0x2d, 0x37, 0x42, 0x4e, 0x5b, 0x69, 0x78,
+  0x88, 0x90, 0x98, 0xa0, 0xa8, 0xb0, 0xb8, 0xc0,
+  0xc8, 0xd0, 0xd8, 0xe0, 0xe8, 0xf0, 0xf8, 0xff,
+};
 
 const uint8_t Video::cursor[15 * 15] = {
   0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,
@@ -74,7 +105,7 @@ void Video::draw_cursor(uint16_t color, int x, int y) {
 }
 
 void Video::update() {
-  switch(config.controller_port2) {
+  switch(configuration.controller_port2) {
   case Input::Device::SuperScope:
     if(dynamic_cast<SuperScope*>(input.port2)) {
       SuperScope &device = (SuperScope&)*input.port2;
@@ -109,6 +140,7 @@ void Video::update() {
   //overscan: when disabled, shift image down (by scrolling video buffer up) to center image onscreen
   //(memory before ppu.output is filled with black scanlines)
   interface->videoRefresh(
+    video.palette,
     ppu.output - (ppu.overscan() ? 0 : 7 * 1024),
     4 * (1024 >> ppu.interlace()),
     256 << hires,

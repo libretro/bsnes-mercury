@@ -39,12 +39,6 @@ struct Cartridge : property<Cartridge> {
   readonly<bool> has_obc1;
   readonly<bool> has_hsu1;
   readonly<bool> has_msu1;
-  readonly<bool> has_dsp1;
-  readonly<bool> has_dsp2;
-  readonly<bool> has_dsp3;
-  readonly<bool> has_dsp4;
-  readonly<bool> has_cx4;
-  readonly<bool> has_st0010;
 
   struct Mapping {
     function<uint8 (unsigned)> reader;
@@ -122,9 +116,6 @@ private:
   void parse_markup_obc1(Markup::Node);
   void parse_markup_hsu1(Markup::Node);
   void parse_markup_msu1(Markup::Node);
-  void parse_markup_hledsp(Markup::Node);
-  void parse_markup_hlecx4(Markup::Node);
-  void parse_markup_hlest0010(Markup::Node);
 
   friend class Interface;
 };

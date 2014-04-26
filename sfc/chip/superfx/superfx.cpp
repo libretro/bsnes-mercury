@@ -9,7 +9,7 @@ namespace SuperFamicom {
 #include "memory/memory.cpp"
 #include "mmio/mmio.cpp"
 #include "timing/timing.cpp"
-#include "disasm/disasm.cpp"
+#include "disassembler/disassembler.cpp"
 
 SuperFX superfx;
 
@@ -53,7 +53,6 @@ void SuperFX::unload() {
 
 void SuperFX::power() {
   GSU::power();
-  clockmode = config.superfx.speed;
 }
 
 void SuperFX::reset() {

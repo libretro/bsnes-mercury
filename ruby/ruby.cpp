@@ -366,6 +366,7 @@ const char* Input::Handle = "Handle";
 const char* Input::KeyboardSupport = "KeyboardSupport";
 const char* Input::MouseSupport = "MouseSupport";
 const char* Input::JoypadSupport = "JoypadSupport";
+const char* Input::JoypadRumbleSupport = "JoypadRumbleSupport";
 
 void InputInterface::driver(const char* driver) {
   if(p) term();
@@ -374,42 +375,42 @@ void InputInterface::driver(const char* driver) {
 
   if(0);
 
-  #ifdef INPUT_DIRECTINPUT
-  else if(!strcmp(driver, "DirectInput")) p = new InputDI();
-  #endif
-
-  #ifdef INPUT_RAWINPUT
-  else if(!strcmp(driver, "RawInput")) p = new InputRaw();
+  #ifdef INPUT_WINDOWS
+  else if(!strcmp(driver, "Windows")) p = new InputWindows();
   #endif
 
   #ifdef INPUT_CARBON
   else if(!strcmp(driver, "Carbon")) p = new InputCarbon();
   #endif
 
+  #ifdef INPUT_UDEV
+  else if(!strcmp(driver, "udev")) p = new InputUdev();
+  #endif
+
   #ifdef INPUT_SDL
   else if(!strcmp(driver, "SDL")) p = new InputSDL();
   #endif
 
-  #ifdef INPUT_X
-  else if(!strcmp(driver, "X-Windows")) p = new InputX();
+  #ifdef INPUT_XLIB
+  else if(!strcmp(driver, "Xlib")) p = new InputXlib();
   #endif
 
   else p = new Input();
 }
 
 const char* InputInterface::optimalDriver() {
-  #if defined(INPUT_RAWINPUT)
-  return "RawInput";
-  #elif defined(INPUT_DIRECTINPUT)
-  return "DirectInput";
+  #if defined(INPUT_WINDOWS)
+  return "Windows";
 
   #elif defined(INPUT_CARBON)
   return "Carbon";
 
+  #elif defined(INPUT_UDEV)
+  return "udev";
   #elif defined(INPUT_SDL)
   return "SDL";
-  #elif defined(INPUT_X)
-  return "X-Windows";
+  #elif defined(INPUT_XLIB)
+  return "Xlib";
 
   #else
   return "None";
@@ -417,18 +418,18 @@ const char* InputInterface::optimalDriver() {
 }
 
 const char* InputInterface::safestDriver() {
-  #if defined(INPUT_RAWINPUT)
-  return "RawInput";
-  #elif defined(INPUT_DIRECTINPUT)
-  return "DirectInput";
+  #if defined(INPUT_WINDOWS)
+  return "Windows";
 
   #elif defined(INPUT_CARBON)
   return "Carbon";
 
+  #elif defined(INPUT_UDEV)
+  return "udev";
   #elif defined(INPUT_SDL)
   return "SDL";
-  #elif defined(INPUT_X)
-  return "X-Windows";
+  #elif defined(INPUT_XLIB)
+  return "Xlib";
 
   #else
   return "none";
@@ -440,12 +441,8 @@ const char* InputInterface::availableDrivers() {
 
   //Windows
 
-  #if defined(INPUT_RAWINPUT)
-  "RawInput;"
-  #endif
-
-  #if defined(INPUT_DIRECTINPUT)
-  "DirectInput;"
+  #if defined(INPUT_WINDOWS)
+  "Windows;"
   #endif
 
   //OS X
@@ -456,12 +453,16 @@ const char* InputInterface::availableDrivers() {
 
   //Linux
 
+  #if defined(INPUT_UDEV)
+  "udev;"
+  #endif
+
   #if defined(INPUT_SDL)
   "SDL;"
   #endif
 
-  #if defined(INPUT_X)
-  "X-Windows;"
+  #if defined(INPUT_XLIB)
+  "Xlib;"
   #endif
 
   "None";
@@ -486,7 +487,8 @@ bool InputInterface::set(const string& name, const any& value) { return p ? p->s
 bool InputInterface::acquire() { return p ? p->acquire() : false; }
 bool InputInterface::unacquire() { return p ? p->unacquire() : false; }
 bool InputInterface::acquired() { return p ? p->acquired() : false; }
-bool InputInterface::poll(int16_t* table) { return p ? p->poll(table) : false; }
+vector<HID::Device*> InputInterface::poll() { return p ? p->poll() : vector<HID::Device*>(); }
+bool InputInterface::rumble(uint64_t id, bool enable) { return p ? p->rumble(id, enable) : false; }
 InputInterface::InputInterface() : p(nullptr) {}
 InputInterface::~InputInterface() { term(); }
 

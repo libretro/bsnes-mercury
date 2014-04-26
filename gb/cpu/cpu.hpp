@@ -57,6 +57,7 @@ struct CPU : Processor::LR35902, Thread, MMIO {
     //$ff55  HDMA5
     bool dma_mode;
     uint16 dma_length;
+    bool dma_completed;
 
     //$ff6c  ???
     uint8 ff6c;
@@ -77,6 +78,12 @@ struct CPU : Processor::LR35902, Thread, MMIO {
     bool interrupt_enable_stat;
     bool interrupt_enable_vblank;
   } status;
+
+  struct OAMDMA {
+    bool active;
+    uint8 bank;
+    uint8 offset;
+  } oamdma;
 
   uint8 wram[32768];  //GB=8192, GBC=32768
   uint8 hram[128];
@@ -102,6 +109,8 @@ struct CPU : Processor::LR35902, Thread, MMIO {
   uint8 op_read(uint16 addr);
   void op_write(uint16 addr, uint8 data);
   void cycle_edge();
+  uint8 dma_read(uint16 addr);
+  void dma_write(uint16 addr, uint8 data);
   uint8 debugger_read(uint16 addr);
 
   //timing.cpp

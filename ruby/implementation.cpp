@@ -4,7 +4,7 @@
   #include <X11/Xlib.h>
   #include <X11/Xutil.h>
   #include <X11/Xatom.h>
-#elif defined(PLATFORM_OSX)
+#elif defined(PLATFORM_MACOSX)
   #define decimal CocoaDecimal
   #include <Cocoa/Cocoa.h>
   #include <Carbon/Carbon.h>
@@ -19,8 +19,7 @@ using namespace nall;
 /* Video */
 
 #define DeclareVideo(Name) \
-  class Video##Name : public Video { \
-  public: \
+  struct Video##Name : Video { \
     bool cap(const string& name) { return p.cap(name); } \
     any get(const string& name) { return p.get(name); } \
     bool set(const string& name, const any& value) { return p.set(name, value); } \
@@ -79,8 +78,7 @@ using namespace nall;
 /* Audio */
 
 #define DeclareAudio(Name) \
-  class Audio##Name : public Audio { \
-  public: \
+  struct Audio##Name : Audio { \
     bool cap(const string& name) { return p.cap(name); } \
     any get(const string& name) { return p.get(name); } \
     bool set(const string& name, const any& value) { return p.set(name, value); } \
@@ -132,8 +130,7 @@ using namespace nall;
 /* Input */
 
 #define DeclareInput(Name) \
-  class Input##Name : public Input { \
-  public: \
+  struct Input##Name : Input { \
     bool cap(const string& name) { return p.cap(name); } \
     any get(const string& name) { return p.get(name); } \
     bool set(const string& name, const any& value) { return p.set(name, value); } \
@@ -142,7 +139,8 @@ using namespace nall;
     bool unacquire() { return p.unacquire(); } \
     bool acquired() { return p.acquired(); } \
     \
-    bool poll(int16_t* table) { return p.poll(table); } \
+    vector<HID::Device*> poll() { return p.poll(); } \
+    bool rumble(uint64_t id, bool enable) { return p.rumble(id, enable); } \
     bool init() { return p.init(); } \
     void term() { p.term(); } \
     \
@@ -153,14 +151,6 @@ using namespace nall;
     pInput##Name& p; \
   };
 
-#ifdef INPUT_DIRECTINPUT
-  #include <ruby/input/directinput.cpp>
-#endif
-
-#ifdef INPUT_RAWINPUT
-  #include <ruby/input/rawinput.cpp>
-#endif
-
 #ifdef INPUT_CARBON
   #include <ruby/input/carbon.cpp>
 #endif
@@ -169,6 +159,14 @@ using namespace nall;
   #include <ruby/input/sdl.cpp>
 #endif
 
-#ifdef INPUT_X
-  #include <ruby/input/x.cpp>
+#ifdef INPUT_UDEV
+  #include <ruby/input/udev.cpp>
+#endif
+
+#ifdef INPUT_WINDOWS
+  #include <ruby/input/windows.cpp>
+#endif
+
+#ifdef INPUT_XLIB
+  #include <ruby/input/xlib.cpp>
 #endif

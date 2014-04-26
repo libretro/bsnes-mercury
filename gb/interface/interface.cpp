@@ -21,7 +21,7 @@ double Interface::videoFrequency() {
 }
 
 double Interface::audioFrequency() {
-  return 4194304.0;
+  return 4194304.0 / 2.0;
 }
 
 bool Interface::loaded() {
@@ -41,12 +41,13 @@ unsigned Interface::group(unsigned id) {
   case ID::Manifest:
   case ID::ROM:
   case ID::RAM:
-    if(system.revision() == System::Revision::GameBoy) return ID::GameBoy;
-    if(system.revision() == System::Revision::SuperGameBoy) return ID::SuperGameBoy;
-    if(system.revision() == System::Revision::GameBoyColor) return ID::GameBoyColor;
+    switch(system.revision) {
+    case System::Revision::GameBoy: return ID::GameBoy;
+    case System::Revision::SuperGameBoy: return ID::SuperGameBoy;
+    case System::Revision::GameBoyColor: return ID::GameBoyColor;
+    }
     throw;
   }
-
   throw;
 }
 
@@ -120,18 +121,18 @@ bool Interface::unserialize(serializer& s) {
 
 void Interface::cheatSet(const lstring& list) {
   cheat.reset();
-  for(auto& code : list) {
-    lstring codelist = code.split("+");
-    for(auto& part : codelist) {
-      unsigned addr, data, comp;
-      if(Cheat::decode(part, addr, data, comp)) cheat.append({addr, data, comp});
+  for(auto& codeset : list) {
+    lstring codes = codeset.split("+");
+    for(auto& code : codes) {
+      lstring part = code.split("/");
+      if(part.size() == 2) cheat.append(hex(part[0]), hex(part[1]));
+      if(part.size() == 3) cheat.append(hex(part[0]), hex(part[1]), hex(part[2]));
     }
   }
-  cheat.synchronize();
 }
 
-void Interface::paletteUpdate() {
-  video.generate_palette();
+void Interface::paletteUpdate(PaletteMode mode) {
+  video.generate_palette(mode);
 }
 
 Interface::Interface() {

@@ -115,7 +115,7 @@ struct Node {
 
       if(path.size() == 0) result.append(node);
       else {
-        auto list = node.find(path.concatenate("/"));
+        auto list = node.find(path.merge("/"));
         for(auto& item : list) result.append(item);
       }
     }
@@ -131,8 +131,8 @@ struct Node {
   vector<Node>::iterator begin() { return children.begin(); }
   vector<Node>::iterator end() { return children.end(); }
 
-  const vector<Node>::const_iterator begin() const { return children.begin(); }
-  const vector<Node>::const_iterator end() const { return children.end(); }
+  const vector<Node>::constIterator begin() const { return children.begin(); }
+  const vector<Node>::constIterator end() const { return children.end(); }
 
   Node() : attribute(false), level(0) {}
 

@@ -46,7 +46,7 @@ void ICD2::unload() {
 
 void ICD2::power() {
   audio.coprocessor_enable(true);
-  audio.coprocessor_frequency(4 * 1024 * 1024);
+  audio.coprocessor_frequency(2 * 1024 * 1024);
 }
 
 void ICD2::reset() {
@@ -73,7 +73,7 @@ void ICD2::reset() {
   joyp14lock = 0;
   pulselock = true;
 
-  GameBoy::video.generate_palette();
+  GameBoy::video.generate_palette(Emulator::Interface::PaletteMode::Literal);
   GameBoy::system.init();
   GameBoy::system.power();
 }

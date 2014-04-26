@@ -20,6 +20,10 @@ void CPU::mmio_joyp_poll() {
   dpad |= interface->inputPoll(0, 0, (unsigned)Input::Left) << 1;
   dpad |= interface->inputPoll(0, 0, (unsigned)Input::Right) << 0;
 
+  //D-pad pivot makes it impossible to press opposing directions at the same time
+  if(dpad & 4) dpad &= ~8;  //disallow up+down
+  if(dpad & 2) dpad &= ~1;  //disallow left+right
+
   status.joyp = 0x0f;
   if(status.p15 == 1 && status.p14 == 1) status.joyp -= status.mlt_req;
   if(status.p15 == 0) status.joyp &= button ^ 0x0f;
@@ -32,6 +36,7 @@ uint8 CPU::mmio_read(uint16 addr) {
   if(addr >= 0xff80 && addr <= 0xfffe) return hram[addr & 0x7f];
 
   if(addr == 0xff00) {  //JOYP
+    mmio_joyp_poll();
     return (status.p15 << 5)
          | (status.p14 << 4)
          | (status.joyp << 0);
@@ -76,7 +81,8 @@ uint8 CPU::mmio_read(uint16 addr) {
   }
 
   if(addr == 0xff55) {  //HDMA5
-    return (status.dma_length / 16) - 1;
+    return (status.dma_completed << 7)
+         | (((status.dma_length / 16) - 1) & 0x7f);
   }
 
   if(addr == 0xff56) {  //RP
@@ -134,7 +140,6 @@ void CPU::mmio_write(uint16 addr, uint8 data) {
     status.p15 = data & 0x20;
     status.p14 = data & 0x10;
     interface->joypWrite(status.p15, status.p14);
-    mmio_joyp_poll();
     return;
   }
 
@@ -181,10 +186,9 @@ void CPU::mmio_write(uint16 addr, uint8 data) {
   }
 
   if(addr == 0xff46) {  //DMA
-    for(unsigned n = 0x00; n <= 0x9f; n++) {
-      bus.write(0xfe00 + n, bus.read((data << 8) + n));
-      add_clocks(4);
-    }
+    oamdma.active = true;
+    oamdma.bank = data;
+    oamdma.offset = 0;
     return;
   }
 
@@ -199,7 +203,7 @@ void CPU::mmio_write(uint16 addr, uint8 data) {
   }
 
   if(addr == 0xff52) {  //HDMA2
-    status.dma_source = (status.dma_source & 0xff00) | (data << 0);
+    status.dma_source = (status.dma_source & 0xff00) | (data & 0xf0);
     return;
   }
 
@@ -209,18 +213,24 @@ void CPU::mmio_write(uint16 addr, uint8 data) {
   }
 
   if(addr == 0xff54) {  //HDMA4
-    status.dma_target = (status.dma_target & 0xff00) | (data << 0);
+    status.dma_target = (status.dma_target & 0xff00) | (data & 0xf0);
     return;
   }
 
   if(addr == 0xff55) {  //HDMA5
     status.dma_mode = data & 0x80;
     status.dma_length = ((data & 0x7f) + 1) * 16;
+    status.dma_completed = !status.dma_mode;
 
-    if(status.dma_mode == 0) do {
-      bus.write(status.dma_target++, bus.read(status.dma_source++));
-      add_clocks(4 << status.speed_double);
-    } while(--status.dma_length);
+    if(status.dma_mode == 0) {
+      do {
+        for(unsigned n = 0; n < 16; n++) {
+          dma_write(status.dma_target++, dma_read(status.dma_source++));
+        }
+        add_clocks(8 << status.speed_double);
+        status.dma_length -= 16;
+      } while(status.dma_length);
+    }
     return;
   }
 

@@ -4,15 +4,15 @@
 namespace SuperFamicom {
 
 System system;
-
-#include <sfc/config/config.cpp>
-#include <sfc/scheduler/scheduler.cpp>
-#include <sfc/random/random.cpp>
+Configuration configuration;
+Random random;
 
 #include "video.cpp"
 #include "audio.cpp"
 #include "input.cpp"
 #include "serialization.cpp"
+
+#include <sfc/scheduler/scheduler.cpp>
 
 void System::run() {
   scheduler.sync = Scheduler::SynchronizeMode::None;
@@ -82,27 +82,18 @@ void System::init() {
   hsu1.init();
   msu1.init();
   satellaviewcartridge.init();
-  dsp1.init();
-  dsp2.init();
-  dsp3.init();
-  dsp4.init();
-  cx4.init();
-  st0010.init();
 
   video.init();
   audio.init();
 
-  input.connect(0, config.controller_port1);
-  input.connect(1, config.controller_port2);
+  input.connect(0, configuration.controller_port1);
+  input.connect(1, configuration.controller_port2);
 }
 
 void System::term() {
 }
 
 void System::load() {
-#ifdef __LIBRETRO__
-  interface->loadRequest(ID::IPLROM, "");
-#else
   string manifest = string::read({interface->path(ID::System), "manifest.bml"});
   auto document = Markup::Document(manifest);
 
@@ -110,16 +101,15 @@ void System::load() {
   if(!file::exists({interface->path(ID::System), document["system/smp/rom/name"].data})) {
     interface->notify("Error: required Super Famicom firmware ipl.rom not found.\n");
   }
-#endif
 
-  region = config.region;
-  expansion = config.expansion_port;
+  region = configuration.region;
+  expansion = configuration.expansion_port;
   if(region == Region::Autodetect) {
     region = (cartridge.region() == Cartridge::Region::NTSC ? Region::NTSC : Region::PAL);
   }
 
-  cpu_frequency = region() == Region::NTSC ? config.cpu.ntsc_frequency : config.cpu.pal_frequency;
-  apu_frequency = region() == Region::NTSC ? config.smp.ntsc_frequency : config.smp.pal_frequency;
+  cpu_frequency = region() == Region::NTSC ? 21477272 : 21281370;
+  apu_frequency = 24607104;
 
   audio.coprocessor_enable(false);
 
@@ -148,15 +138,8 @@ void System::load() {
   if(cartridge.has_msu1()) msu1.load();
   if(cartridge.has_bs_slot()) satellaviewcartridge.load();
   if(cartridge.has_st_slots()) sufamiturboA.load(), sufamiturboB.load();
-  if(cartridge.has_dsp1()) dsp1.load();
-  if(cartridge.has_dsp2()) dsp2.load();
-  if(cartridge.has_dsp3()) dsp3.load();
-  if(cartridge.has_dsp4()) dsp4.load();
-  if(cartridge.has_cx4()) cx4.load();
-  if(cartridge.has_st0010()) st0010.load();
 
   serialize_init();
-  cheat.init();
 }
 
 void System::unload() {
@@ -179,12 +162,6 @@ void System::unload() {
   if(cartridge.has_msu1()) msu1.unload();
   if(cartridge.has_bs_slot()) satellaviewcartridge.unload();
   if(cartridge.has_st_slots()) sufamiturboA.unload(), sufamiturboB.unload();
-  if(cartridge.has_dsp1()) dsp1.unload();
-  if(cartridge.has_dsp2()) dsp2.unload();
-  if(cartridge.has_dsp3()) dsp3.unload();
-  if(cartridge.has_dsp4()) dsp4.unload();
-  if(cartridge.has_cx4()) cx4.unload();
-  if(cartridge.has_st0010()) st0010.unload();
 }
 
 void System::power() {
@@ -213,12 +190,6 @@ void System::power() {
   if(cartridge.has_hsu1()) hsu1.power();
   if(cartridge.has_msu1()) msu1.power();
   if(cartridge.has_bs_slot()) satellaviewcartridge.power();
-  if(cartridge.has_dsp1()) dsp1.power();
-  if(cartridge.has_dsp2()) dsp2.power();
-  if(cartridge.has_dsp3()) dsp3.power();
-  if(cartridge.has_dsp4()) dsp4.power();
-  if(cartridge.has_cx4()) cx4.power();
-  if(cartridge.has_st0010()) st0010.power();
 
   reset();
 }
@@ -260,16 +231,9 @@ void System::reset() {
   if(cartridge.has_spc7110()) cpu.coprocessors.append(&spc7110);
   if(cartridge.has_msu1()) cpu.coprocessors.append(&msu1);
 
-  if(cartridge.has_dsp1()) dsp1.reset();
-  if(cartridge.has_dsp2()) dsp2.reset();
-  if(cartridge.has_dsp3()) dsp3.reset();
-  if(cartridge.has_dsp4()) dsp4.reset();
-  if(cartridge.has_cx4()) cx4.reset();
-  if(cartridge.has_st0010()) st0010.reset();
-
   scheduler.init();
-  input.connect(0, config.controller_port1);
-  input.connect(1, config.controller_port2);
+  input.connect(0, configuration.controller_port1);
+  input.connect(1, configuration.controller_port2);
 }
 
 void System::scanline() {

@@ -9,7 +9,10 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
+#include <uxtheme.h>
 #include <io.h>
 #include <shlobj.h>
 #include <nall/windows/registry.hpp>
 #include <nall/windows/utf8.hpp>
+
+#define TBS_TRANSPARENTBKGND 0x1000

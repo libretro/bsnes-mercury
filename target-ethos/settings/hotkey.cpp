@@ -1,14 +1,10 @@
 HotkeySettings* hotkeySettings = nullptr;
 
 HotkeySettings::HotkeySettings() {
-  title.setFont(program->titleFont);
-  title.setText("Hotkey Bindings");
-
-  inputList.setHeaderText("Name", "Mapping");
+  inputList.setHeaderText({"Name", "Mapping"});
   inputList.setHeaderVisible();
   eraseButton.setText("Erase");
 
-  append(title, {~0, 0}, 5);
   append(inputList, {~0, ~0}, 5);
   append(controlLayout, {~0, 0});
     controlLayout.append(spacer, {~0, 0});
@@ -18,7 +14,7 @@ HotkeySettings::HotkeySettings() {
   inputList.onActivate = {&HotkeySettings::assignInput, this};
   eraseButton.onActivate = {&HotkeySettings::eraseInput, this};
 
-  for(auto& hotkey : inputManager->hotkeyMap) inputList.append("", "");
+  for(auto& hotkey : inputManager->hotkeyMap) inputList.append({"", ""});
   refresh();
 }
 
@@ -29,18 +25,15 @@ void HotkeySettings::synchronize() {
 void HotkeySettings::refresh() {
   unsigned index = 0;
   for(auto& hotkey : inputManager->hotkeyMap) {
-    string mapping = hotkey->mapping;
-    mapping.replace("KB0::", "");
-    mapping.replace("MS0::", "Mouse::");
-    mapping.replace(",", " and ");
-    inputList.modify(index++, hotkey->name, mapping);
+    string mapping = inputManager->sanitize(hotkey->mapping, " and ");
+    inputList.setText(index++, {hotkey->name, mapping});
   }
   synchronize();
 }
 
 void HotkeySettings::eraseInput() {
   activeInput = inputManager->hotkeyMap[inputList.selection()];
-  inputEvent(Scancode::None, 1);
+  inputEvent(hidNull, 0, 0, 0, 1);
 }
 
 void HotkeySettings::assignInput() {
@@ -51,14 +44,11 @@ void HotkeySettings::assignInput() {
   setEnabled(false);
 }
 
-void HotkeySettings::inputEvent(unsigned scancode, int16_t value) {
-  using nall::Mouse;
-
+void HotkeySettings::inputEvent(HID::Device& device, unsigned group, unsigned input, int16_t oldValue, int16_t newValue) {
   if(activeInput == nullptr) return;
-  if(value != 1) return;
-  if(Mouse::isAnyButton(scancode) || Mouse::isAnyAxis(scancode)) return;
-  if(Joypad::isAnyAxis(scancode)) return;
-  if(activeInput->bind(scancode, value) == false) return;
+  if(device.isMouse()) return;
+  if(device.isJoypad() && group == HID::Joypad::GroupID::Axis) return;
+  if(activeInput->bind(device, group, input, oldValue, newValue) == false) return;
 
   activeInput = nullptr;
   settings->setStatusText("");

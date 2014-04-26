@@ -58,18 +58,16 @@ void pWindow::append(Menu& menu) {
 }
 
 void pWindow::append(Widget& widget) {
-  widget.p.parentWindow = &window;
+  if(GetParentWidget(&widget)) {
+    widget.p.parentHwnd = GetParentWidget(&widget)->p.hwnd;
+  } else {
+    widget.p.parentHwnd = window.p.hwnd;
+  }
   widget.p.orphan();
 
   if(widget.font().empty() && !window.state.widgetFont.empty()) {
     widget.setFont(window.state.widgetFont);
   }
-}
-
-Color pWindow::backgroundColor() {
-  if(window.state.backgroundColorOverride) return window.state.backgroundColor;
-  DWORD color = GetSysColor(COLOR_3DFACE);
-  return {(uint8_t)(color >> 16), (uint8_t)(color >> 8), (uint8_t)(color >> 0), 255u};
 }
 
 bool pWindow::focused() {
@@ -143,9 +141,19 @@ void pWindow::setFullScreen(bool fullScreen) {
     SetWindowLongPtr(hwnd, GWL_STYLE, WS_VISIBLE | (window.state.resizable ? ResizableStyle : FixedStyle));
     setGeometry(window.state.geometry);
   } else {
+    HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFOEX info;
+    memset(&info, 0, sizeof(MONITORINFOEX));
+    info.cbSize = sizeof(MONITORINFOEX);
+    GetMonitorInfo(monitor, &info);
+    RECT rc = info.rcMonitor;
+    Geometry geometry = {rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top};
     SetWindowLongPtr(hwnd, GWL_STYLE, WS_VISIBLE | WS_POPUP);
     Geometry margin = frameMargin();
-    setGeometry({margin.x, margin.y, GetSystemMetrics(SM_CXSCREEN) - margin.width, GetSystemMetrics(SM_CYSCREEN) - margin.height});
+    setGeometry({
+      geometry.x + margin.x, geometry.y + margin.y,
+      geometry.width - margin.width, geometry.height - margin.height
+    });
   }
   locked = false;
 }
@@ -180,7 +188,7 @@ void pWindow::setMenuVisible(bool visible) {
 
 void pWindow::setModal(bool modality) {
   if(modality == true) {
-    modal.appendonce(this);
+    modal.appendOnce(this);
     updateModality();
     while(window.state.modal) {
       Application::processEvents();
@@ -232,7 +240,7 @@ void pWindow::constructor() {
   hmenu = CreateMenu();
   hstatus = CreateWindow(STATUSCLASSNAME, L"", WS_CHILD, 0, 0, 0, 0, hwnd, 0, GetModuleHandle(0), 0);
   hstatusfont = 0;
-  setStatusFont("Tahoma, 8");
+  setStatusFont(Font::sans(8));
 
   //status bar will be capable of receiving tab focus if it is not disabled
   SetWindowLongPtr(hstatus, GWL_STYLE, GetWindowLong(hstatus, GWL_STYLE) | WS_DISABLED);
@@ -240,6 +248,9 @@ void pWindow::constructor() {
   SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)&window);
   setDroppable(window.state.droppable);
   setGeometry({128, 128, 256, 256});
+
+  DWORD color = GetSysColor(COLOR_3DFACE);
+  window.state.backgroundColor = Color((uint8_t)(color >> 16), (uint8_t)(color >> 8), (uint8_t)(color >> 0), 255u);
 }
 
 void pWindow::destructor() {
@@ -261,6 +272,64 @@ void pWindow::updateMenu() {
   }
 
   SetMenu(hwnd, window.state.menuVisible ? hmenu : 0);
+}
+
+void pWindow::onClose() {
+  if(window.onClose) window.onClose();
+  else window.setVisible(false);
+  if(window.state.modal && !window.state.visible) window.setModal(false);
+}
+
+void pWindow::onDrop(WPARAM wparam) {
+  lstring paths = DropPaths(wparam);
+  if(paths.empty()) return;
+  if(window.onDrop) window.onDrop(paths);
+}
+
+bool pWindow::onEraseBackground() {
+  if(brush == 0) return false;
+  RECT rc;
+  GetClientRect(hwnd, &rc);
+  PAINTSTRUCT ps;
+  BeginPaint(hwnd, &ps);
+  FillRect(ps.hdc, &rc, brush);
+  EndPaint(hwnd, &ps);
+  return true;
+}
+
+void pWindow::onModalBegin() {
+  if(Application::Windows::onModalBegin) Application::Windows::onModalBegin();
+}
+
+void pWindow::onModalEnd() {
+  if(Application::Windows::onModalEnd) Application::Windows::onModalEnd();
+}
+
+void pWindow::onMove() {
+  if(locked) return;
+
+  Geometry windowGeometry = geometry();
+  window.state.geometry.x = windowGeometry.x;
+  window.state.geometry.y = windowGeometry.y;
+
+  if(window.onMove) window.onMove();
+}
+
+void pWindow::onSize() {
+  if(locked) return;
+  SetWindowPos(hstatus, NULL, 0, 0, 0, 0, SWP_NOZORDER | SWP_FRAMECHANGED);
+
+  Geometry windowGeometry = geometry();
+  window.state.geometry.width = windowGeometry.width;
+  window.state.geometry.height = windowGeometry.height;
+
+  for(auto& layout : window.state.layout) {
+    Geometry geom = geometry();
+    geom.x = geom.y = 0;
+    layout.setGeometry(geom);
+  }
+
+  if(window.onSize) window.onSize();
 }
 
 }

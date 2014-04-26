@@ -1,17 +1,14 @@
 InputSettings* inputSettings = nullptr;
 
 InputSettings::InputSettings() {
-  title.setFont(program->titleFont);
-  title.setText("Input Settings");
   focusLabel.setText("When Focus is Lost:");
   focusPause.setText("Pause Emulation");
   focusAllow.setText("Allow Input");
-  inputList.setHeaderText("Name", "Mapping");
+  inputList.setHeaderText({"Name", "Mapping"});
   inputList.setHeaderVisible();
   resetButton.setText("Reset");
   eraseButton.setText("Erase");
 
-  append(title, {~0, 0}, 5);
   append(focusLayout, {~0, 0}, 5);
     focusLayout.append(focusLabel, {0, 0}, 5);
     focusLayout.append(focusPause, {0, 0}, 5);
@@ -72,8 +69,7 @@ void InputSettings::synchronize() {
       assign[2].setVisible(true);
     }
 
-    if(dynamic_cast<RelativeInput*>(selectedInput)
-    || dynamic_cast<AbsoluteInput*>(selectedInput)) {
+    if(dynamic_cast<RelativeInput*>(selectedInput)) {
       assign[0].setText("Mouse X-axis");
       assign[1].setText("Mouse Y-axis");
       assign[0].setVisible(true);
@@ -115,7 +111,7 @@ void InputSettings::portChanged() {
 
 void InputSettings::deviceChanged() {
   inputList.reset();
-  for(unsigned number : activeDevice().order) inputList.append("", "");
+  for(unsigned number : activeDevice().order) inputList.append({"", ""});
   inputChanged();
   synchronize();
 }
@@ -125,11 +121,8 @@ void InputSettings::inputChanged() {
   for(unsigned number : activeDevice().order) {
     auto& input = activeDevice().input[number];
     auto abstract = inputManager->inputMap(input.guid);
-    string mapping = abstract->mapping;
-    mapping.replace("KB0::", "");
-    mapping.replace("MS0::", "Mouse::");
-    mapping.replace(",", " or ");
-    inputList.modify(index++, input.name, mapping);
+    string mapping = inputManager->sanitize(abstract->mapping, " or ");
+    inputList.setText(index++, {input.name, mapping});
   }
 }
 
@@ -141,7 +134,7 @@ void InputSettings::resetInput() {
   unsigned length = device.input.size();
   for(unsigned n = 0; n < length; n++) {
     activeInput = inputManager->inputMap[device.input[n].guid];
-    inputEvent(Scancode::None, 1);
+    inputEvent(hidNull, 0, 0, 0, 1);
   }
 }
 
@@ -149,7 +142,7 @@ void InputSettings::eraseInput() {
   unsigned number = activeDevice().order[inputList.selection()];
   auto& input = activeDevice().input[number];
   activeInput = inputManager->inputMap[input.guid];
-  inputEvent(Scancode::None, 1);
+  inputEvent(hidNull, 0, 0, 0, 1);
 }
 
 void InputSettings::assignInput() {
@@ -168,20 +161,22 @@ void InputSettings::assignMouseInput(unsigned n) {
   activeInput = inputManager->inputMap[input.guid];
 
   if(dynamic_cast<DigitalInput*>(activeInput)) {
-    return inputEvent(mouse(0).button(n), 1, true);
+    if(auto hidMouse = inputManager->findMouse()) {
+      return inputEvent(*hidMouse, HID::Mouse::GroupID::Button, n, 0, 1, true);
+    }
   }
 
-  if(dynamic_cast<RelativeInput*>(activeInput)
-  || dynamic_cast<AbsoluteInput*>(activeInput)) {
-    return inputEvent(mouse(0).axis(n), 1, true);
+  if(dynamic_cast<RelativeInput*>(activeInput)) {
+    if(auto hidMouse = inputManager->findMouse()) {
+      return inputEvent(*hidMouse, HID::Mouse::GroupID::Axis, n, 0, +32767, true);
+    }
   }
 }
 
-void InputSettings::inputEvent(unsigned scancode, int16_t value, bool allowMouseInput) {
-  using nall::Mouse;
+void InputSettings::inputEvent(HID::Device& device, unsigned group, unsigned input, int16_t oldValue, int16_t newValue, bool allowMouseInput) {
   if(activeInput == nullptr) return;
-  if(allowMouseInput == false && (Mouse::isAnyButton(scancode) || Mouse::isAnyAxis(scancode))) return;
-  if(activeInput->bind(scancode, value) == false) return;
+  if(allowMouseInput == false && device.isMouse()) return;
+  if(activeInput->bind(device, group, input, oldValue, newValue) == false) return;
 
   activeInput = nullptr;
   inputChanged();

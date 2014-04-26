@@ -1,11 +1,5 @@
 namespace phoenix {
 
-Window& pWindow::none() {
-  static Window* window = nullptr;
-  if(window == nullptr) window = new Window;
-  return *window;
-}
-
 void pWindow::append(Layout& layout) {
   Geometry geometry = window.state.geometry;
   geometry.x = geometry.y = 0;
@@ -14,7 +8,7 @@ void pWindow::append(Layout& layout) {
 
 void pWindow::append(Menu& menu) {
   if(window.state.menuFont != "") menu.p.setFont(window.state.menuFont);
-  else menu.p.setFont("Sans, 8");
+  else menu.p.setFont(Font::sans(8));
   qtMenu->addMenu(menu.p.qtMenu);
 }
 
@@ -22,15 +16,13 @@ void pWindow::append(Widget& widget) {
   if(widget.font().empty() && !window.state.widgetFont.empty()) {
     widget.setFont(window.state.widgetFont);
   }
-  if(widget.font().empty()) widget.p.setFont("Sans, 8");
-  widget.p.qtWidget->setParent(qtContainer);
+  if(widget.font().empty()) widget.p.setFont(Font::sans(8));
+  if(GetParentWidget(&widget)) {
+    widget.p.qtWidget->setParent(GetParentWidget(&widget)->p.container(widget));
+  } else {
+    widget.p.qtWidget->setParent(qtContainer);
+  }
   widget.setVisible(widget.visible());
-}
-
-Color pWindow::backgroundColor() {
-  if(window.state.backgroundColorOverride) return window.state.backgroundColor;
-  QColor color = qtWindow->palette().color(QPalette::ColorRole::Window);
-  return {(uint8_t)color.red(), (uint8_t)color.green(), (uint8_t)color.blue(), (uint8_t)color.alpha()};
 }
 
 Geometry pWindow::frameMargin() {
@@ -53,7 +45,8 @@ Geometry pWindow::geometry() {
   if(window.state.fullScreen) {
     unsigned menuHeight = window.state.menuVisible ? qtMenu->height() : 0;
     unsigned statusHeight = window.state.statusVisible ? qtStatus->height() : 0;
-    return {0, menuHeight, Desktop::size().width, Desktop::size().height - menuHeight - statusHeight};
+    QRect geometry = qtWindow->geometry();  //frameGeometry() includes frame even though it's not visible in fullscreen mode
+    return {geometry.x(), geometry.y() + menuHeight, geometry.width(), geometry.height() - menuHeight - statusHeight};
   }
   return window.state.geometry;
 }
@@ -75,10 +68,11 @@ void pWindow::remove(Widget& widget) {
 
 void pWindow::setBackgroundColor(Color color) {
   QPalette palette;
-  palette.setColor(QPalette::Window, QColor(color.red, color.green, color.blue, color.alpha));
+  palette.setColor(QPalette::Background, QColor(color.red, color.green, color.blue /*, color.alpha */));
   qtContainer->setPalette(palette);
   qtContainer->setAutoFillBackground(true);
-  qtWindow->setAttribute(Qt::WA_TranslucentBackground, color.alpha != 255);
+  //translucency results are very unpleasant without a compositor; so disable for now
+  //qtWindow->setAttribute(Qt::WA_TranslucentBackground, color.alpha != 255);
 }
 
 void pWindow::setDroppable(bool droppable) {
@@ -223,8 +217,11 @@ void pWindow::constructor() {
   qtLayout->addWidget(qtStatus);
 
   setGeometry(window.state.geometry);
-  setMenuFont("Sans, 8");
-  setStatusFont("Sans, 8");
+  setMenuFont(Font::sans(8));
+  setStatusFont(Font::sans(8));
+
+  QColor color = qtWindow->palette().color(QPalette::ColorRole::Window);
+  window.state.backgroundColor = Color((uint8_t)color.red(), (uint8_t)color.green(), (uint8_t)color.blue(), (uint8_t)color.alpha());
 }
 
 void pWindow::destructor() {

@@ -1,6 +1,6 @@
 /*
   ruby
-  version: 0.10 (2013-07-27)
+  version: 0.11 (2013-12-19)
   license: public domain
 */
 
@@ -8,7 +8,6 @@
 #define RUBY_H
 
 #include <nall/nall.hpp>
-#include <nall/input.hpp>
 
 namespace ruby {
 
@@ -32,6 +31,7 @@ struct VideoInterface {
   void unlock();
   void clear();
   void refresh();
+
   VideoInterface();
   ~VideoInterface();
 
@@ -53,6 +53,7 @@ struct AudioInterface {
 
   void sample(uint16_t left, uint16_t right);
   void clear();
+
   AudioInterface();
   ~AudioInterface();
 
@@ -61,6 +62,8 @@ private:
 };
 
 struct InputInterface {
+  nall::function<void (nall::HID::Device& device, unsigned group, unsigned input, int16_t oldValue, int16_t newValue)> onChange;
+
   void driver(const char* driver = "");
   const char* optimalDriver();
   const char* safestDriver();
@@ -76,7 +79,9 @@ struct InputInterface {
   bool unacquire();
   bool acquired();
 
-  bool poll(int16_t* table);
+  nall::vector<nall::HID::Device*> poll();
+  bool rumble(uint64_t id, bool enable);
+
   InputInterface();
   ~InputInterface();
 

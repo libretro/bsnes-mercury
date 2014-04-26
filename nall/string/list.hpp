@@ -9,7 +9,7 @@ optional<unsigned> lstring::find(rstring key) const {
   return false;
 }
 
-string lstring::concatenate(const string& separator) const {
+string lstring::merge(const string& separator) const {
   string output;
   for(unsigned i = 0; i < size(); i++) {
     output.append(operator[](i));

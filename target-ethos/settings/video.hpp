@@ -7,11 +7,11 @@ struct VideoSlider : HorizontalLayout {
 };
 
 struct VideoSettings : SettingsLayout {
-  Label title;
   Label colorAdjustment;
   VideoSlider saturation;
   VideoSlider gamma;
   VideoSlider luminance;
+  CheckLabel colorEmulation;
   Label overscanAdjustment;
   VideoSlider overscanHorizontal;
   VideoSlider overscanVertical;

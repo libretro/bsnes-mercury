@@ -8,7 +8,7 @@ namespace nall {
 
 struct SuperFamicomCartridge {
   string markup;
-  inline SuperFamicomCartridge(const uint8_t *data, unsigned size, bool hlechips);
+  inline SuperFamicomCartridge(const uint8_t *data, unsigned size);
 
 //private:
   inline void read_header(const uint8_t *data, unsigned size);
@@ -106,7 +106,7 @@ struct SuperFamicomCartridge {
   bool has_st018;
 };
 
-SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size, bool hlechips = false) {
+SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size) {
   firmware_appended = false;
 
   //skip copier header
@@ -140,26 +140,15 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size,
   }
 
   else if(has_cx4) {
-    if(!hlechips) {
-      markup.append(
-        "  hitachidsp model=HG51B169 frequency=20000000\n"
-        "    rom id=program name=program.rom size=0x", hex(rom_size), "\n"
-        "    rom id=data name=cx4.data.rom size=0xc00\n"
-        "    ram id=data size=0xc00\n"
-        "    map id=io address=00-3f,80-bf:6000-7fff\n"
-        "    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
-        "    map id=ram address=70-77:0000-7fff\n"
-      );
-    } else {
-      markup.append(
-        "  rom name=program.rom size=0x", hex(rom_size), "\n"
-        "  ram name=save.ram size=0x", hex(ram_size), "\n"
-        "  map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
-        "  map id=ram address=70-77:0000-7fff\n"
-        "  hlecx4\n"
-        "    map id=io address=00-3f,80-bf:6000-7fff\n"
-      );
-    }
+    markup.append(
+      "  hitachidsp model=HG51B169 frequency=20000000\n"
+      "    rom id=program name=program.rom size=0x", hex(rom_size), "\n"
+      "    rom id=data name=cx4.data.rom size=0xc00\n"
+      "    ram id=data size=0xc00\n"
+      "    map id=io address=00-3f,80-bf:6000-7fff\n"
+      "    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
+      "    map id=ram address=70-77:0000-7fff\n"
+    );
     if((rom_size & 0x7fff) == 0xc00) {
       firmware_appended = true;
       rom_size -= 0xc00;
@@ -387,18 +376,12 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size,
   }
 
   if(has_dsp1) {
-    if(!hlechips) {
-      markup.append(
-        "  necdsp model=uPD7725 frequency=8000000\n"
-        "    rom id=program name=dsp1b.program.rom size=0x1800\n"
-        "    rom id=data name=dsp1b.data.rom size=0x800\n"
-        "    ram id=data size=0x200\n"
-      );
-    } else {
-      markup.append(
-        "  hledsp model=DSP-1\n"
-      );
-    }
+    markup.append(
+      "  necdsp model=uPD7725 frequency=8000000\n"
+      "    rom id=program name=dsp1b.program.rom size=0x1800\n"
+      "    rom id=data name=dsp1b.data.rom size=0x800\n"
+      "    ram id=data size=0x200\n"
+    );
     if(dsp1_mapper == DSP1LoROM1MB) markup.append(
       "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
     );
@@ -415,20 +398,13 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size,
   }
 
   if(has_dsp2) {
-    if(!hlechips) {
-      markup.append(
-        "  necdsp model=uPD7725 frequency=8000000\n"
-        "    rom id=program name=dsp2.program.rom size=0x1800\n"
-        "    rom id=data name=dsp2.data.rom size=0x800\n"
-        "    ram id=data size=0x200\n"
-        "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
-      );
-    } else {
-      markup.append(
-        "  hledsp model=DSP-2\n"
-        "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
-      );
-    }
+    markup.append(
+      "  necdsp model=uPD7725 frequency=8000000\n"
+      "    rom id=program name=dsp2.program.rom size=0x1800\n"
+      "    rom id=data name=dsp2.data.rom size=0x800\n"
+      "    ram id=data size=0x200\n"
+      "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
+    );
     if((size & 0x7fff) == 0x2000) {
       firmware_appended = true;
       rom_size -= 0x2000;
@@ -436,20 +412,13 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size,
   }
 
   if(has_dsp3) {
-    if(!hlechips) {
-      markup.append(
-        "  necdsp model=uPD7725 frequency=8000000\n"
-        "    rom id=program name=dsp3.program.rom size=0x1800\n"
-        "    rom id=data name=dsp3.data.rom size=0x800\n"
-        "    ram id=data size=0x200\n"
-        "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
-      );
-    } else {
-      markup.append(
-        "  hledsp model=DSP-3\n"
-        "    map id=io address=20-3f,a0-bf:8000-ffff\n"
-      );
-    }
+    markup.append(
+      "  necdsp model=uPD7725 frequency=8000000\n"
+      "    rom id=program name=dsp3.program.rom size=0x1800\n"
+      "    rom id=data name=dsp3.data.rom size=0x800\n"
+      "    ram id=data size=0x200\n"
+      "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
+    );
     if((size & 0x7fff) == 0x2000) {
       firmware_appended = true;
       rom_size -= 0x2000;
@@ -457,20 +426,13 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size,
   }
 
   if(has_dsp4) {
-    if(!hlechips) {
-      markup.append(
-        "  necdsp model=uPD7725 frequency=8000000\n"
-        "    rom id=program name=dsp4.program.rom size=0x1800\n"
-        "    rom id=data name=dsp4.data.rom size=0x800\n"
-        "    ram id=data size=0x200\n"
-        "    map id=io address=30-3f,b0-bf:8000-ffff select=0x4000\n"
-      );
-    } else {
-      markup.append(
-        "  hledsp model=DSP-4\n"
-        "    map id=io address=30-3f,b0-bf:8000-ffff\n"
-      );
-    }
+    markup.append(
+      "  necdsp model=uPD7725 frequency=8000000\n"
+      "    rom id=program name=dsp4.program.rom size=0x1800\n"
+      "    rom id=data name=dsp4.data.rom size=0x800\n"
+      "    ram id=data size=0x200\n"
+      "    map id=io address=30-3f,b0-bf:8000-ffff select=0x4000\n"
+    );
     if((size & 0x7fff) == 0x2000) {
       firmware_appended = true;
       rom_size -= 0x2000;
@@ -478,23 +440,14 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size,
   }
 
   if(has_st010) {
-    if(!hlechips) {
-      markup.append(
-        "  necdsp model=uPD96050 frequency=11000000\n"
-        "    rom id=program name=st010.program.rom size=0xc000\n"
-        "    rom id=data name=st010.data.rom size=0x1000\n"
-        "    ram id=data name=save.ram size=0x1000\n"
-        "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
-        "    map id=ram address=68-6f,e8-ef:0000-7fff\n"
-      );
-    } else {
-      markup.append(
-        "  ram name=save.ram size=0x1000\n"
-        "  map id=ram address=68-6f,e8-ef:0000-7fff\n"
-        "  hlest0010\n"
-        "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
-      );
-    }
+    markup.append(
+      "  necdsp model=uPD96050 frequency=11000000\n"
+      "    rom id=program name=st010.program.rom size=0xc000\n"
+      "    rom id=data name=st010.data.rom size=0x1000\n"
+      "    ram id=data name=save.ram size=0x1000\n"
+      "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
+      "    map id=ram address=68-6f,e8-ef:0000-7fff\n"
+    );
     if((size & 0xffff) == 0xd000) {
       firmware_appended = true;
       rom_size -= 0xd000;

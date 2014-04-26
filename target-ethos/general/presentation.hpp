@@ -22,9 +22,7 @@ struct Presentation : Window {
   Emulator* active = nullptr;
 
   Menu loadMenu;
-    vector<Item*> loadListSystem;
-    Separator loadSeparator;
-    Item loadImport;
+    vector<Item*> loadBootableMedia;
   Menu settingsMenu;
     Menu videoMenu;
       RadioItem centerVideo;
@@ -35,6 +33,7 @@ struct Presentation : Window {
     Menu shaderMenu;
       RadioItem shaderNone;
       RadioItem shaderBlur;
+      RadioItem shaderEmulation;
       vector<RadioItem*> shaderList;
     CheckItem synchronizeVideo;
     CheckItem synchronizeAudio;
@@ -56,6 +55,9 @@ struct Presentation : Window {
   void loadShaders();
   void bootstrap();
   Presentation();
+
+//internal:
+  string systemName;
 };
 
 extern Presentation* presentation;

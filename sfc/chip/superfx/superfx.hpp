@@ -7,7 +7,7 @@ struct SuperFX : Processor::GSU, Coprocessor {
   #include "memory/memory.hpp"
   #include "mmio/mmio.hpp"
   #include "timing/timing.hpp"
-  #include "disasm/disasm.hpp"
+  #include "disassembler/disassembler.hpp"
 
   static void Enter();
   void enter();
@@ -19,7 +19,7 @@ struct SuperFX : Processor::GSU, Coprocessor {
   void serialize(serializer&);
 
 privileged:
-  unsigned clockmode;
+  unsigned clockmode = 0;  //0 = selectable, 1 = force 10.74mhz, 2 = force 21.48mhz
   unsigned instruction_counter;
 };
 

@@ -10,17 +10,7 @@ void Utility::setInterface(Emulator::Interface* emulator) {
 //load from command-line, etc
 void Utility::loadMedia(string pathname) {
   pathname.transform("\\", "/");
-  if(pathname.endswith("/")) pathname.rtrim("/");
-
-  //if a filename was provided: convert to game folder and then load
-  if(!directory::exists(pathname) && file::exists(pathname)) {
-    if(program->ananke.open() == false) return;
-    function<string (string)> open = program->ananke.sym("ananke_open");
-    if(!open) return;
-    string name = open(pathname);
-    if(name.empty()) return;
-    return loadMedia(name);
-  }
+  if(pathname.endsWith("/")) pathname.rtrim("/");
 
   if(!directory::exists(pathname)) return;
   string type = extension(pathname);
@@ -30,18 +20,13 @@ void Utility::loadMedia(string pathname) {
     for(auto& media : emulator->media) {
       if(media.bootable == false) continue;
       if(type != media.type) continue;
-      return loadMedia(emulator, media, {pathname, "/"});
+      loadMedia(emulator, media, {pathname, "/"});
+      libraryManager->setVisible(false);
+      return;
     }
   }
 
   MessageWindow().setText("Unable to determine media type.").warning();
-}
-
-//load menu option selected
-void Utility::loadMedia(Emulator::Interface* emulator, Emulator::Interface::Media& media) {
-  string pathname = browser->select({"Load ", media.name}, media.type);
-  if(!directory::exists(pathname)) return;
-  return loadMedia(emulator, media, pathname);
 }
 
 //load base cartridge
@@ -62,7 +47,7 @@ void Utility::loadMedia(Emulator::Interface* emulator, Emulator::Interface::Medi
 
 //request from emulation core to load non-volatile media folder
 void Utility::loadRequest(unsigned id, string name, string type) {
-  string pathname = browser->select({"Load ", name}, type);
+  string pathname = libraryManager->load(type);
   if(pathname.empty()) return;
   path(id) = pathname;
   this->pathname.append(pathname);
@@ -106,10 +91,10 @@ void Utility::load() {
   cheatEditor->load({pathname[0], "cheats.bml"});
   stateManager->load({pathname[0], "bsnes/states.bsa"}, 1);
 
-  system().paletteUpdate();
   synchronizeDSP();
 
   resize();
+  updateShader();
   cheatEditor->synchronize();
   cheatEditor->refresh();
 }
@@ -142,7 +127,7 @@ void Utility::saveState(unsigned slot) {
   if(s.size() == 0) return;
   directory::create({pathname[0], "bsnes/"});
   if(file::write({pathname[0], "bsnes/state-", slot, ".bsa"}, s.data(), s.size()) == false);
-  showMessage({"Save to slot ", slot});
+  showMessage({"Saved to slot ", slot});
 }
 
 void Utility::loadState(unsigned slot) {
@@ -194,18 +179,47 @@ void Utility::synchronizeRuby() {
   synchronizeDSP();
 }
 
+void Utility::updatePalette() {
+  if(program->active == nullptr) return;
+
+  if(config->video.shader == "Display Emulation" && config->video.driver == "OpenGL") {
+    system().paletteUpdate(Emulator::Interface::PaletteMode::Channel);
+  } else if(config->video.colorEmulation) {
+    system().paletteUpdate(Emulator::Interface::PaletteMode::Emulation);
+  } else {
+    system().paletteUpdate(Emulator::Interface::PaletteMode::Standard);
+  }
+}
+
 void Utility::updateShader() {
   if(config->video.shader == "None") {
     video.set(Video::Shader, (const char*)"");
     video.set(Video::Filter, Video::FilterNearest);
-    return;
-  }
-  if(config->video.shader == "Blur") {
+  } else if(config->video.shader == "Blur") {
     video.set(Video::Shader, (const char*)"");
     video.set(Video::Filter, Video::FilterLinear);
-    return;
+  } else if(config->video.shader == "Display Emulation" && config->video.driver != "OpenGL") {
+    video.set(Video::Shader, (const char*)"");
+    video.set(Video::Filter, Video::FilterLinear);
+  } else if(config->video.shader == "Display Emulation") {
+    if(program->active) {
+      string pathname = program->path("Video Shaders/");
+      pathname.append("Display Emulation/");
+      pathname.append(presentation->systemName, ".shader/");
+      if(directory::exists(pathname)) {
+        video.set(Video::Shader, (const char*)pathname);
+      } else {
+        video.set(Video::Shader, (const char*)"");
+        video.set(Video::Filter, Video::FilterLinear);
+      }
+    } else {
+      video.set(Video::Shader, (const char*)"");
+      video.set(Video::Filter, Video::FilterLinear);
+    }
+  } else {
+    video.set(Video::Shader, (const char*)config->video.shader);
   }
-  video.set(Video::Shader, (const char*)config->video.shader);
+  updatePalette();
 }
 
 void Utility::resize(bool resizeWindow) {
@@ -301,6 +315,13 @@ void Utility::setStatusText(string text) {
 void Utility::showMessage(string message) {
   statusTime = time(0);
   statusMessage = message;
+}
+
+string Utility::libraryPath() {
+  string path = string::read({configpath(), "higan/library.bml"}).strip().ltrim<1>("Path: ").transform("\\", "/");
+  if(path.empty()) path = {userpath(), "Emulation/"};
+  if(path.endsWith("/") == false) path.append("/");
+  return path;
 }
 
 Utility::Utility() {

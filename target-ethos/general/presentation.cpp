@@ -12,6 +12,7 @@ void Presentation::synchronize() {
   shaderNone.setChecked();
   if(config->video.shader == "None") shaderNone.setChecked();
   if(config->video.shader == "Blur") shaderBlur.setChecked();
+  if(config->video.shader == "Display Emulation") shaderEmulation.setChecked();
   for(auto& shader : shaderList) {
     string name = notdir(config->video.shader.split<1>(".shader/")(0));
     if(name == shader->text()) shader->setChecked();
@@ -43,7 +44,7 @@ void Presentation::synchronize() {
 }
 
 void Presentation::setSystemName(string name) {
-  if(active) active->menu.setText(name);
+  if(active) active->menu.setText(systemName = name);
 }
 
 Presentation::Presentation() {
@@ -61,7 +62,6 @@ Presentation::Presentation() {
   viewport.setDroppable();
 
   loadMenu.setText("Library");
-    loadImport.setText("Import Game ...");
   settingsMenu.setText("Settings");
     videoMenu.setText("Video");
       centerVideo.setText("Center");
@@ -73,6 +73,7 @@ Presentation::Presentation() {
     shaderMenu.setText("Shader");
       shaderNone.setText("None");
       shaderBlur.setText("Blur");
+      shaderEmulation.setText("Display Emulation");
     synchronizeVideo.setText("Synchronize Video");
     synchronizeAudio.setText("Synchronize Audio");
     muteAudio.setText("Mute Audio");
@@ -88,19 +89,29 @@ Presentation::Presentation() {
     synchronizeTime.setText("Synchronize Time");
 
   append(loadMenu);
-    for(auto& item : loadListSystem) loadMenu.append(*item);
-    if(program->ananke.open()) loadMenu.append(loadSeparator, loadImport);
+    for(auto& item : loadBootableMedia) loadMenu.append(*item);
   for(auto& systemItem : emulatorList) append(systemItem->menu);
   append(settingsMenu);
     settingsMenu.append(videoMenu);
-      videoMenu.append(centerVideo, scaleVideo, stretchVideo, *new Separator, aspectCorrection, maskOverscan);
+      videoMenu.append(centerVideo);
+      videoMenu.append(scaleVideo);
+      videoMenu.append(stretchVideo);
+      videoMenu.append(*new Separator);
+      videoMenu.append(aspectCorrection);
+      videoMenu.append(maskOverscan);
     settingsMenu.append(shaderMenu);
-      shaderMenu.append(shaderNone, shaderBlur);
-      if(shaderList.size() > 0) shaderMenu.append(*new Separator);
-      for(auto& shader : shaderList) shaderMenu.append(*shader);
+      shaderMenu.append(shaderNone);
+      shaderMenu.append(shaderBlur);
+      if(config->video.driver == "OpenGL") shaderMenu.append(shaderEmulation);
+      if(shaderList.size() > 0) {
+        shaderMenu.append(*new Separator);
+        for(auto& shader : shaderList) shaderMenu.append(*shader);
+      }
     settingsMenu.append(*new Separator);
-    settingsMenu.append(synchronizeVideo, synchronizeAudio, muteAudio);
-    if(Intrinsics::platform() != Intrinsics::Platform::OSX) {
+    settingsMenu.append(synchronizeVideo);
+    settingsMenu.append(synchronizeAudio);
+    settingsMenu.append(muteAudio);
+    if(Intrinsics::platform() != Intrinsics::Platform::MacOSX) {
       settingsMenu.append(*new Separator);
       settingsMenu.append(configurationSettings);
     }
@@ -110,7 +121,10 @@ Presentation::Presentation() {
     toolsMenu.append(loadStateMenu);
       for(unsigned n = 0; n < 5; n++) loadStateMenu.append(loadStateItem[n]);
     toolsMenu.append(stateMenuSeparator);
-    toolsMenu.append(resizeWindow, stateManager, cheatEditor, synchronizeTime);
+    toolsMenu.append(resizeWindow);
+    toolsMenu.append(stateManager);
+    toolsMenu.append(cheatEditor);
+    toolsMenu.append(synchronizeTime);
 
   append(layout);
   layout.append(viewport, {0, 0, 1, 1});
@@ -128,24 +142,16 @@ Presentation::Presentation() {
 
   onClose = [&] {
     setVisible(false);
-    if(Intrinsics::platform() == Intrinsics::Platform::OSX) {
+    if(Intrinsics::platform() == Intrinsics::Platform::MacOSX) {
       utility->unload();
     } else {
       Application::quit();
     }
   };
 
-  loadImport.onActivate = [&] {
-    if(program->ananke.open() == false) return;
-    function<string ()> browse = program->ananke.sym("ananke_browse");
-    if(!browse) return;
-    string pathname = browse();
-    if(pathname.empty()) return;
-    utility->loadMedia(pathname);
-  };
-
   shaderNone.onActivate = [&] { config->video.shader = "None"; utility->updateShader(); };
   shaderBlur.onActivate = [&] { config->video.shader = "Blur"; utility->updateShader(); };
+  shaderEmulation.onActivate = [&] { config->video.shader = "Display Emulation"; utility->updateShader(); };
   centerVideo.onActivate  = [&] { config->video.scaleMode = 0; utility->resize(); };
   scaleVideo.onActivate   = [&] { config->video.scaleMode = 1; utility->resize(); };
   stretchVideo.onActivate = [&] { config->video.scaleMode = 2; utility->resize(); };
@@ -154,12 +160,12 @@ Presentation::Presentation() {
   synchronizeVideo.onToggle = [&] { config->video.synchronize = synchronizeVideo.checked(); utility->synchronizeRuby(); };
   synchronizeAudio.onToggle = [&] { config->audio.synchronize = synchronizeAudio.checked(); utility->synchronizeRuby(); };
   muteAudio.onToggle = [&] { config->audio.mute = muteAudio.checked(); utility->synchronizeRuby(); };
-  configurationSettings.onActivate = [&] { settings->setVisible(); settings->panelList.setFocused(); };
+  configurationSettings.onActivate = [&] { settings->setVisible(); };
   for(unsigned n = 0; n < 5; n++) saveStateItem[n].onActivate = [=] { utility->saveState(1 + n); };
   for(unsigned n = 0; n < 5; n++) loadStateItem[n].onActivate = [=] { utility->loadState(1 + n); };
   resizeWindow.onActivate = [&] { utility->resize(true); };
-  stateManager.onActivate = [&] { ::stateManager->setVisible(); };
-  cheatEditor.onActivate = [&] { ::cheatEditor->setVisible(); };
+  stateManager.onActivate = [&] { tools->panels.setSelection(1); tools->setVisible(); };
+  cheatEditor.onActivate = [&] { tools->panels.setSelection(0); tools->setVisible(); };
   synchronizeTime.onActivate = [&] { system().rtcsync(); };
 
   synchronize();
@@ -167,18 +173,18 @@ Presentation::Presentation() {
 
 void Presentation::bootstrap() {
   for(auto& emulator : program->emulator) {
-    auto iEmulator = new Emulator;
-    iEmulator->interface = emulator;
-
     for(auto& media : emulator->media) {
       if(media.bootable == false) continue;
-      auto item = new Item;
-      item->onActivate = [=, &media] {
-        utility->loadMedia(iEmulator->interface, media);
-      };
+      Item* item = new Item;
       item->setText({media.name, " ..."});
-      loadListSystem.append(item);
+      item->onActivate = [=] { libraryManager->show(media.type); };
+      loadBootableMedia.append(item);
     }
+  }
+
+  for(auto& emulator : program->emulator) {
+    auto iEmulator = new Emulator;
+    iEmulator->interface = emulator;
 
     iEmulator->menu.setText(emulator->information.name);
     iEmulator->power.setText("Power");
@@ -245,6 +251,7 @@ void Presentation::loadShaders() {
   nall::group<RadioItem> group;
   group.append(shaderNone);
   group.append(shaderBlur);
+  group.append(shaderEmulation);
   for(auto& shader : shaderList) group.append(*shader);
   RadioItem::group(group);
 }

@@ -6,7 +6,7 @@ struct APU : Thread, MMIO {
   #include "master/master.hpp"
 
   uint8 mmio_data[48];
-  uint13 sequencer_base;
+  uint12 sequencer_base;
   uint3 sequencer_step;
 
   Square1 square1;
@@ -17,6 +17,7 @@ struct APU : Thread, MMIO {
 
   static void Main();
   void main();
+  void hipass(int16& sample, int64& bias);
   void power();
 
   uint8 mmio_read(uint16 addr);

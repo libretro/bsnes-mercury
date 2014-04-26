@@ -13,7 +13,7 @@ static int CALLBACK BrowserWindowCallbackProc(HWND hwnd, UINT msg, LPARAM lparam
 }
 
 static string BrowserWindow_fileDialog(bool save, BrowserWindow::State& state) {
-  string path = string{path}.replace("/", "\\");
+  string path = string{state.path}.replace("/", "\\");
 
   string filters;
   for(auto& filter : state.filters) {
@@ -90,7 +90,7 @@ string pBrowserWindow::directory(BrowserWindow::State& state) {
   string name = (const char*)utf8_t(wname);
   if(!name) return "";
   name.transform("\\", "/");
-  if(name.endswith("/") == false) name.append("/");
+  if(name.endsWith("/") == false) name.append("/");
   return name;
 }
 

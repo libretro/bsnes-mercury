@@ -5,6 +5,7 @@ struct ConfigurationSettings : Configuration::Document {
     string shader;
     unsigned scaleMode;
     bool aspectCorrection;
+    bool colorEmulation;
     struct MaskOverscan : Configuration::Node {
       bool enable;
       unsigned horizontal;
@@ -44,6 +45,12 @@ struct ConfigurationSettings : Configuration::Document {
     string username;
     string password;
   } server;
+
+  struct Library : Configuration::Node {
+    signed selection;
+    unsigned mediaMode;
+    bool showOnStartup;
+  } library;
 
   void load();
   void save();

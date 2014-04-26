@@ -13,16 +13,8 @@ target  := ethos
 # console := true
 
 # compiler
-
-ifneq ($(debug),)
-  flags := -I. -O0 -g
-else
-  flags := -I. -O3 -fomit-frame-pointer
-endif
-
-cflags := -std=gnu99 -xc
-cppflags := -std=gnu++0x
-
+flags   += -I. -O3 -fomit-frame-pointer
+link    +=
 objects := libco
 
 # profile-guided optimization mode
@@ -36,30 +28,29 @@ else ifeq ($(pgo),optimize)
   flags += -fprofile-use
 endif
 
-ifeq ($(compiler),)
-  compiler := g++
-endif
-
 # platform
-ifeq ($(findstring libretro,$(ui)),)
-  ifeq ($(platform),x)
-    flags += -march=native
-    link += -Wl,-export-dynamic -ldl -lX11 -lXext
-  else ifeq ($(platform),win)
-    ifeq ($(arch),win32)
-      flags += -m32
-      link += -m32
-    endif
-    ifeq ($(console),true)
-      link += -mconsole
-    else
-      link += -mwindows
-    endif
-    link += -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lws2_32
-    link += -Wl,-enable-auto-import -Wl,-enable-runtime-pseudo-reloc
-  else
-    unknown_platform: help;
+ifeq ($(platform),windows)
+  ifeq ($(arch),x86)
+    flags += -m32
+    link += -m32
   endif
+  ifeq ($(console),true)
+    link += -mconsole
+  else
+    link += -mwindows
+  endif
+  link += -s -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lws2_32
+  link += -Wl,-enable-auto-import -Wl,-enable-runtime-pseudo-reloc
+else ifeq ($(platform),macosx)
+  flags += -march=native
+else ifeq ($(platform),linux)
+  flags += -march=native
+  link += -s -Wl,-export-dynamic -lX11 -lXext -ldl
+else ifeq ($(platform),bsd)
+  flags += -march=native
+  link += -s -Wl,-export-dynamic -lX11 -lXext
+else
+  $(error unsupported platform.)
 endif
 
 ui := target-$(target)

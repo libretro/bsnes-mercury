@@ -17,7 +17,9 @@ static gboolean Window_expose(GtkWidget* widget, GdkEvent* event, Window* window
   double blue  = (double)color.blue  / 255.0;
   double alpha = (double)color.alpha / 255.0;
 
-  if(gdk_screen_is_composited(gdk_screen_get_default())) {
+  if(gdk_screen_is_composited(gdk_screen_get_default())
+  && gdk_screen_get_rgba_colormap(gdk_screen_get_default())
+  ) {
     cairo_set_source_rgba(context, red, green, blue, alpha);
   } else {
     cairo_set_source_rgb(context, red, green, blue);
@@ -80,7 +82,7 @@ static gboolean Window_configure(GtkWidget* widget, GdkEvent* event, Window* win
   return false;
 }
 
-static void Window_dropEvent(GtkWidget* widget, GdkDragContext* context, gint x, gint y,
+static void Window_drop(GtkWidget* widget, GdkDragContext* context, gint x, gint y,
 GtkSelectionData* data, guint type, guint timestamp, Window* window) {
   if(window->state.droppable == false) return;
   lstring paths = DropPaths(data);
@@ -88,13 +90,13 @@ GtkSelectionData* data, guint type, guint timestamp, Window* window) {
   if(window->onDrop) window->onDrop(paths);
 }
 
-static gboolean Window_keyPressEvent(GtkWidget* widget, GdkEventKey* event, Window* window) {
+static gboolean Window_keyPress(GtkWidget* widget, GdkEventKey* event, Window* window) {
   Keyboard::Keycode key = Keysym(event->keyval);
   if(key != Keyboard::Keycode::None && window->onKeyPress) window->onKeyPress(key);
   return false;
 }
 
-static gboolean Window_keyReleaseEvent(GtkWidget* widget, GdkEventKey* event, Window* window) {
+static gboolean Window_keyRelease(GtkWidget* widget, GdkEventKey* event, Window* window) {
   Keyboard::Keycode key = Keysym(event->keyval);
   if(key != Keyboard::Keycode::None && window->onKeyRelease) window->onKeyRelease(key);
   return false;
@@ -140,8 +142,8 @@ void pWindow::append(Layout& layout) {
 }
 
 void pWindow::append(Menu& menu) {
-  if(window.state.menuFont != "") menu.p.setFont(window.state.menuFont);
-  else menu.p.setFont("Sans, 8");
+  if(window.state.menuFont) menu.p.setFont(window.state.menuFont);
+  else menu.p.setFont(Font::sans(8));
   gtk_menu_shell_append(GTK_MENU_SHELL(this->menu), menu.p.widget);
   gtk_widget_show(menu.p.widget);
 }
@@ -151,22 +153,17 @@ void pWindow::append(Widget& widget) {
     widget.setFont(window.state.widgetFont);
   }
 
-  ((Sizable&)widget).state.window = &window;
-  gtk_fixed_put(GTK_FIXED(formContainer), widget.p.gtkWidget, 0, 0);
-  if(widget.state.font != "") widget.p.setFont(widget.state.font);
-  else if(window.state.widgetFont != "") widget.p.setFont(window.state.widgetFont);
-  else widget.p.setFont("Sans, 8");
-  widget.setVisible(widget.visible());
-}
+  if(GetParentWidget(&widget)) {
+    widget.p.gtkParent = GetParentWidget(&widget)->p.container(widget);
+  } else {
+    widget.p.gtkParent = formContainer;
+  }
 
-Color pWindow::backgroundColor() {
-  if(window.state.backgroundColorOverride) return window.state.backgroundColor;
-  return {
-    (uint8_t)(settings->window.backgroundColor >> 16),
-    (uint8_t)(settings->window.backgroundColor >>  8),
-    (uint8_t)(settings->window.backgroundColor >>  0),
-    255
-  };
+  gtk_fixed_put(GTK_FIXED(widget.p.gtkParent), widget.p.gtkWidget, 0, 0);
+  if(widget.state.font) widget.p.setFont(widget.state.font);
+  else if(window.state.widgetFont) widget.p.setFont(window.state.widgetFont);
+  else widget.p.setFont(Font::sans(8));
+  widget.setVisible(widget.visible());
 }
 
 Geometry pWindow::frameMargin() {
@@ -190,13 +187,12 @@ bool pWindow::focused() {
 }
 
 Geometry pWindow::geometry() {
-  if(window.state.fullScreen == true) return {
-    0,
-    menuHeight(),
-    Desktop::size().width,
-    Desktop::size().height - menuHeight() - statusHeight()
-  };
-
+  if(window.state.fullScreen) {
+    int x, y, width, height;
+    gtk_window_get_position(GTK_WINDOW(widget), &x, &y);
+    gtk_window_get_size(GTK_WINDOW(widget), &width, &height);
+    return {x, y + menuHeight(), width, height - menuHeight() - statusHeight()};
+  }
   return window.state.geometry;
 }
 
@@ -212,11 +208,7 @@ void pWindow::remove(Widget& widget) {
 }
 
 void pWindow::setBackgroundColor(Color color) {
-  GdkColor gdkColor;
-  gdkColor.pixel = (color.red   << 16) | (color.green << 8) | (color.blue << 0);
-  gdkColor.red   = (color.red   <<  8) | (color.red   << 0);
-  gdkColor.green = (color.green <<  8) | (color.green << 0);
-  gdkColor.blue  = (color.blue  <<  8) | (color.blue  << 0);
+  GdkColor gdkColor = CreateColor(color.red, color.green, color.blue);
   gtk_widget_modify_bg(widget, GTK_STATE_NORMAL, &gdkColor);
 }
 
@@ -234,6 +226,13 @@ void pWindow::setFullScreen(bool fullScreen) {
     gtk_window_unfullscreen(GTK_WINDOW(widget));
   } else {
     gtk_window_fullscreen(GTK_WINDOW(widget));
+  /*unsigned monitor = gdk_screen_get_monitor_at_window(gdk_screen_get_default(), gtk_widget_get_window(widget));
+    GdkRectangle rectangle = {0};
+    gdk_screen_get_monitor_geometry(gdk_screen_get_default(), monitor, &rectangle);
+    gtk_window_set_decorated(GTK_WINDOW(widget), false);
+    gtk_window_move(GTK_WINDOW(widget), rectangle.x, rectangle.y);
+    gtk_window_resize(GTK_WINDOW(widget), rectangle.width, rectangle.height);
+    gtk_widget_set_size_request(formContainer, rectangle.width, rectangle.height);*/
   }
 }
 
@@ -327,18 +326,21 @@ void pWindow::constructor() {
 
   //if program was given a name, try and set the window taskbar icon from one of the pixmaps folders
   if(applicationState.name.empty() == false) {
-    if(file::exists({"/usr/share/pixmaps/", applicationState.name, ".png"})) {
-      gtk_window_set_icon_from_file(GTK_WINDOW(widget), string{"/usr/share/pixmaps/", applicationState.name, ".png"}, nullptr);
-    } else if(file::exists({"/usr/local/share/pixmaps/", applicationState.name, ".png"})) {
-      gtk_window_set_icon_from_file(GTK_WINDOW(widget), string{"/usr/local/share/pixmaps/", applicationState.name, ".png"}, nullptr);
+    string filename = {"/usr/share/pixmaps/", applicationState.name, ".png"};
+    if(!file::exists(filename)) filename = {"/usr/local/share/pixmaps/", applicationState.name, ".png"};
+    if(file::exists(filename)) {
+      //maximum image size supported by GTK+ is 256x256; so we must scale larger images ourselves
+      nall::image icon(filename);
+      icon.scale(min(256u, icon.width), min(256u, icon.height), Interpolation::Hermite);
+      GdkPixbuf* pixbuf = CreatePixbuf(icon);
+      gtk_window_set_icon(GTK_WINDOW(widget), pixbuf);
+      g_object_unref(G_OBJECT(pixbuf));
     }
   }
 
-  if(gdk_screen_is_composited(gdk_screen_get_default())) {
-    gtk_widget_set_colormap(widget, gdk_screen_get_rgba_colormap(gdk_screen_get_default()));
-  } else {
-    gtk_widget_set_colormap(widget, gdk_screen_get_rgb_colormap(gdk_screen_get_default()));
-  }
+  GdkColormap* colormap = gdk_screen_get_rgba_colormap(gdk_screen_get_default());
+  if(!colormap) colormap = gdk_screen_get_rgb_colormap(gdk_screen_get_default());
+  if(colormap) gtk_widget_set_colormap(widget, colormap);
 
   gtk_window_set_resizable(GTK_WINDOW(widget), true);
   #if GTK_MAJOR_VERSION >= 3
@@ -369,18 +371,24 @@ void pWindow::constructor() {
   setTitle("");
   setResizable(window.state.resizable);
   setGeometry(window.state.geometry);
-  setMenuFont("Sans, 8");
-  setStatusFont("Sans, 8");
+  setMenuFont(Font::sans(8));
+  setStatusFont(Font::sans(8));
 
   g_signal_connect(G_OBJECT(widget), "delete-event", G_CALLBACK(Window_close), (gpointer)&window);
   g_signal_connect(G_OBJECT(widget), "expose-event", G_CALLBACK(Window_expose), (gpointer)&window);
   g_signal_connect(G_OBJECT(widget), "configure-event", G_CALLBACK(Window_configure), (gpointer)&window);
-  g_signal_connect(G_OBJECT(widget), "drag-data-received", G_CALLBACK(Window_dropEvent), (gpointer)&window);
-  g_signal_connect(G_OBJECT(widget), "key-press-event", G_CALLBACK(Window_keyPressEvent), (gpointer)&window);
-  g_signal_connect(G_OBJECT(widget), "key-release-event", G_CALLBACK(Window_keyPressEvent), (gpointer)&window);
+  g_signal_connect(G_OBJECT(widget), "drag-data-received", G_CALLBACK(Window_drop), (gpointer)&window);
+  g_signal_connect(G_OBJECT(widget), "key-press-event", G_CALLBACK(Window_keyPress), (gpointer)&window);
+  g_signal_connect(G_OBJECT(widget), "key-release-event", G_CALLBACK(Window_keyPress), (gpointer)&window);
 
   g_signal_connect(G_OBJECT(formContainer), "size-allocate", G_CALLBACK(Window_sizeAllocate), (gpointer)&window);
   g_signal_connect(G_OBJECT(formContainer), "size-request", G_CALLBACK(Window_sizeRequest), (gpointer)&window);
+
+  window.state.backgroundColor = Color(
+    (uint8_t)(settings->window.backgroundColor >> 16),
+    (uint8_t)(settings->window.backgroundColor >>  8),
+    (uint8_t)(settings->window.backgroundColor >>  0)
+  );
 }
 
 unsigned pWindow::menuHeight() {

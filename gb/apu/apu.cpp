@@ -46,6 +46,10 @@ void APU::main() {
     noise.run();
     master.run();
 
+    hipass(master.center, master.center_bias);
+    hipass(master.left, master.left_bias);
+    hipass(master.right, master.right_bias);
+
     interface->audioSample(master.left, master.right);
 
     clock += cpu.frequency;
@@ -53,8 +57,13 @@ void APU::main() {
   }
 }
 
+void APU::hipass(int16& sample, int64& bias) {
+  bias += ((((int64)sample << 16) - (bias >> 16)) * 57593) >> 16;
+  sample = sclamp<16>(sample - (bias >> 32));
+}
+
 void APU::power() {
-  create(Main, 4 * 1024 * 1024);
+  create(Main, 2 * 1024 * 1024);
   for(unsigned n = 0xff10; n <= 0xff3f; n++) bus.mmio[n] = this;
 
   for(auto& n : mmio_data) n = 0x00;
