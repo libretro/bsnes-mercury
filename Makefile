@@ -13,8 +13,16 @@ target  := ethos
 # console := true
 
 # compiler
-flags   += -I. -O3 -fomit-frame-pointer
-link    +=
+
+ifneq ($(debug),)
+  flags := -I. -O0 -g
+else
+  flags := -I. -O3 -fomit-frame-pointer
+endif
+
+cflags := -std=gnu99 -xc
+cppflags := -std=gnu++0x
+
 objects := libco
 
 # profile-guided optimization mode

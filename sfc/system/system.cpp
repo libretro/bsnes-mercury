@@ -82,6 +82,12 @@ void System::init() {
   hsu1.init();
   msu1.init();
   satellaviewcartridge.init();
+  dsp1.init();
+  dsp2.init();
+  dsp3.init();
+  dsp4.init();
+  cx4.init();
+  st0010.init();
 
   video.init();
   audio.init();
@@ -94,6 +100,9 @@ void System::term() {
 }
 
 void System::load() {
+#ifdef __LIBRETRO__
+  interface->loadRequest(ID::IPLROM, "");
+#else
   string manifest = string::read({interface->path(ID::System), "manifest.bml"});
   auto document = Markup::Document(manifest);
 
@@ -101,6 +110,7 @@ void System::load() {
   if(!file::exists({interface->path(ID::System), document["system/smp/rom/name"].data})) {
     interface->notify("Error: required Super Famicom firmware ipl.rom not found.\n");
   }
+#endif
 
   region = configuration.region;
   expansion = configuration.expansion_port;
@@ -138,6 +148,12 @@ void System::load() {
   if(cartridge.has_msu1()) msu1.load();
   if(cartridge.has_bs_slot()) satellaviewcartridge.load();
   if(cartridge.has_st_slots()) sufamiturboA.load(), sufamiturboB.load();
+  if(cartridge.has_dsp1()) dsp1.load();
+  if(cartridge.has_dsp2()) dsp2.load();
+  if(cartridge.has_dsp3()) dsp3.load();
+  if(cartridge.has_dsp4()) dsp4.load();
+  if(cartridge.has_cx4()) cx4.load();
+  if(cartridge.has_st0010()) st0010.load();
 
   serialize_init();
 }
@@ -162,6 +178,12 @@ void System::unload() {
   if(cartridge.has_msu1()) msu1.unload();
   if(cartridge.has_bs_slot()) satellaviewcartridge.unload();
   if(cartridge.has_st_slots()) sufamiturboA.unload(), sufamiturboB.unload();
+  if(cartridge.has_dsp1()) dsp1.unload();
+  if(cartridge.has_dsp2()) dsp2.unload();
+  if(cartridge.has_dsp3()) dsp3.unload();
+  if(cartridge.has_dsp4()) dsp4.unload();
+  if(cartridge.has_cx4()) cx4.unload();
+  if(cartridge.has_st0010()) st0010.unload();
 }
 
 void System::power() {
@@ -190,6 +212,12 @@ void System::power() {
   if(cartridge.has_hsu1()) hsu1.power();
   if(cartridge.has_msu1()) msu1.power();
   if(cartridge.has_bs_slot()) satellaviewcartridge.power();
+  if(cartridge.has_dsp1()) dsp1.power();
+  if(cartridge.has_dsp2()) dsp2.power();
+  if(cartridge.has_dsp3()) dsp3.power();
+  if(cartridge.has_dsp4()) dsp4.power();
+  if(cartridge.has_cx4()) cx4.power();
+  if(cartridge.has_st0010()) st0010.power();
 
   reset();
 }
@@ -230,6 +258,13 @@ void System::reset() {
   if(cartridge.has_sharprtc()) cpu.coprocessors.append(&sharprtc);
   if(cartridge.has_spc7110()) cpu.coprocessors.append(&spc7110);
   if(cartridge.has_msu1()) cpu.coprocessors.append(&msu1);
+
+  if(cartridge.has_dsp1()) dsp1.reset();
+  if(cartridge.has_dsp2()) dsp2.reset();
+  if(cartridge.has_dsp3()) dsp3.reset();
+  if(cartridge.has_dsp4()) dsp4.reset();
+  if(cartridge.has_cx4()) cx4.reset();
+  if(cartridge.has_st0010()) st0010.reset();
 
   scheduler.init();
   input.connect(0, configuration.controller_port1);

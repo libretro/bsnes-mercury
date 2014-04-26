@@ -73,6 +73,10 @@ void System::serialize_all(serializer& s) {
   if(cartridge.has_hsu1()) hsu1.serialize(s);
   if(cartridge.has_msu1()) msu1.serialize(s);
   if(cartridge.has_st_slots()) sufamiturboA.serialize(s), sufamiturboB.serialize(s);
+  if(cartridge.has_dsp1()) dsp1.serialize(s);
+  if(cartridge.has_dsp2()) dsp2.serialize(s);
+  //if(cartridge.has_dsp3()) dsp3.serialize(s);
+  //if(cartridge.has_dsp4()) dsp4.serialize(s);
 }
 
 //perform dry-run state save:

@@ -17,10 +17,7 @@ struct Intrinsics {
 
 /* Compiler detection */
 
-#if defined(__clang__)
-  #define COMPILER_CLANG
-  Intrinsics::Compiler Intrinsics::compiler() { return Intrinsics::Compiler::Clang; }
-#elif defined(__GNUC__)
+#if defined(__GNUC__)
   #define COMPILER_GCC
   Intrinsics::Compiler Intrinsics::compiler() { return Intrinsics::Compiler::GCC; }
 #elif defined(_MSC_VER)
@@ -76,7 +73,5 @@ struct Intrinsics {
   #define ENDIAN_UNKNOWN
   Intrinsics::Endian Intrinsics::endian() { return Intrinsics::Endian::Unknown; }
 #endif
-
-}
 
 #endif

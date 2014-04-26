@@ -9,6 +9,10 @@
 #include <nall/windows/utf8.hpp>
 #include <nall/stream/memory.hpp>
 
+#ifdef __APPLE__
+#include "TargetConditionals.h"
+#endif
+
 namespace nall {
 
 inline FILE* fopen_utf8(const string& filename, const string& mode) {

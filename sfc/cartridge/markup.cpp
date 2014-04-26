@@ -28,6 +28,9 @@ void Cartridge::parse_markup(const char* markup) {
   parse_markup_obc1(cartridge["obc1"]);
   parse_markup_hsu1(cartridge["hsu1"]);
   parse_markup_msu1(cartridge["msu1"]);
+  parse_markup_hledsp(cartridge["hledsp"]);
+  parse_markup_hlecx4(cartridge["hlecx4"]);
+  parse_markup_hlest0010(cartridge["hlest0010"]);
 }
 
 //
@@ -583,6 +586,71 @@ void Cartridge::parse_markup_msu1(Markup::Node root) {
       parse_markup_map(m, node);
       mapping.append(m);
     }
+  }
+}
+
+void Cartridge::parse_markup_hledsp(Markup::Node root) {
+  if(root.exists() == false) return;
+
+  string revision = root["model"].data;
+
+  for(auto& node : root) {
+    if(node.name != "map") continue;
+
+    if(node["id"].data == "io") {
+      if(revision == "DSP-1") {
+        has_dsp1 = true;
+        Mapping m({&DSP1::read, &dsp1}, {&DSP1::write, &dsp1});
+        parse_markup_map(m, node);
+        mapping.append(m);
+        dsp1.Select = numeral(node["select"].data);
+      }
+      if(revision == "DSP-2") {
+        has_dsp2 = true;
+        Mapping m({&DSP2::read, &dsp2}, {&DSP2::write, &dsp2});
+        parse_markup_map(m, node);
+        mapping.append(m);
+        dsp2.Select = numeral(node["select"].data);
+      }
+      if(revision == "DSP-3") {
+        has_dsp3 = true;
+        Mapping m({&DSP3::read, &dsp3}, {&DSP3::write, &dsp3});
+        parse_markup_map(m, node);
+        mapping.append(m);
+      }
+      if(revision == "DSP-4") {
+        has_dsp4 = true;
+        Mapping m({&DSP4::read, &dsp4}, {&DSP4::write, &dsp4});
+        parse_markup_map(m, node);
+        mapping.append(m);
+      }
+    }
+  }
+}
+
+void Cartridge::parse_markup_hlecx4(Markup::Node root) {
+  if(root.exists() == false) return;
+  
+  has_cx4 = true;
+  
+  for(auto& node : root) {
+    if(node.name != "map") continue;
+    Mapping m({&Cx4::read, &cx4}, {&Cx4::write, &cx4});
+    parse_markup_map(m, node);
+    mapping.append(m);
+  }
+}
+
+void Cartridge::parse_markup_hlest0010(Markup::Node root) {
+  if(root.exists() == false) return;
+  
+  has_st0010 = true;
+  
+  for(auto& node : root) {
+    if(node.name != "map") continue;
+    Mapping m({&ST0010::read, &st0010}, {&ST0010::write, &st0010});
+    parse_markup_map(m, node);
+    mapping.append(m);
   }
 }
 

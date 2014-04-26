@@ -73,14 +73,21 @@ unsigned Bus::mirror(unsigned addr, unsigned size) {
   return base;
 }
 
-unsigned Bus::reduce(unsigned addr, unsigned mask) {
-  unsigned result = 0, length = 0;
-  for(unsigned n = 0; n < 24; n++) {
-    unsigned bit = 1 << n;
-    if(mask & bit) continue;
-    result |= (bool)(addr & bit) << length++;
-  }
-  return result;
+unsigned Bus::reduce(unsigned addr, unsigned mask)
+{
+	while (mask)
+	{
+		//extract the bits to keep
+		//set everything below the lowest set bit; 0x018000 -> 0x007FFF
+		unsigned tmp=((mask-1)&(~mask));
+		
+		//shift everything above that
+		addr=(addr&tmp)|((addr>>1)&~tmp);
+		
+		//adjust the mask
+		mask=(mask&(mask-1))>>1;
+	}
+	return addr;
 }
 
 uint8 Bus::read(unsigned addr) {
