@@ -104,7 +104,7 @@ struct Callbacks : Emulator::Interface::Bind {
   }
 
   virtual uint32_t videoColor(unsigned source, uint16_t alpha, uint16_t red, uint16_t green, uint16_t blue) {
-    return ((blue&0xFF00)<<8) | ((green&0xFF00)) | ((red&0xFF00)>>8);
+    return ((red&0xFF00)<<8) | ((green&0xFF00)) | ((blue&0xFF00)>>8);
   }
 
   void videoRefresh(const uint32_t* palette, const uint32_t* data, unsigned pitch, unsigned width, unsigned height) {
