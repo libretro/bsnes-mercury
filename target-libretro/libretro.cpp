@@ -119,7 +119,7 @@ struct Callbacks : Emulator::Interface::Bind {
   }
 
   int16_t inputPoll(unsigned port, unsigned device, unsigned id) {
-    if(id > 11) return 0;
+    if(id >= 12) return 0;
     return pinput_state(port, snes_to_retro(device), 0, snes_to_retro(device, id));
   }
 
