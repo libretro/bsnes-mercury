@@ -318,14 +318,14 @@ struct Interface : public SuperFamicom::Interface {
   Interface(); 
 
   void init() {
-     SuperFamicom::video.generate_palette();
+     SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Literal);
   }
 };
 
 struct GBInterface : public GameBoy::Interface {
   GBInterface() { bind = &core_bind; }
   void init() {
-     SuperFamicom::video.generate_palette();
+     SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Literal);
   }
 };
 
@@ -569,7 +569,7 @@ static bool snes_load_cartridge_super_game_boy(
 
 bool retro_load_game(const struct retro_game_info *info) {
   // Support loading a manifest directly.
-  core_bind.manifest = info->path && string(info->path).endswith(".bml");
+  core_bind.manifest = info->path && string(info->path).endsWith(".bml");
 
   const uint8_t *data = (const uint8_t*)info->data;
   size_t size = info->size;
