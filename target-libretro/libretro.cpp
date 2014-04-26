@@ -127,7 +127,7 @@ struct Callbacks : Emulator::Interface::Bind {
     for (unsigned y=0;y<height;y++)
     for (unsigned x=0;x<width;x++)
     {
-      videodata[y*width + x] = palette[data[y*pitch + x]];
+      videodata[y*width + x] = palette[data[y*pitch/sizeof(uint32_t) + x]];
     }
 
     pvideo_refresh(videodata, width, height, width*sizeof(uint32_t));
