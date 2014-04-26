@@ -25,7 +25,7 @@ obj/libretro.o: $(ui)/libretro.cpp $(ui)/*
 build: $(objects)
 ifeq ($(platform),linux)
 	$(compiler) -o out/bsnes_libretro.so -shared $(objects) -ldl -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T
-else if ($(platform),bsd)
+else ifeq ($(platform),bsd)
 	$(compiler) -o out/bsnes_libretro.so -shared $(objects) -ldl -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T
 else ifeq ($(platform),ios)
 	$(compiler) -o out/bsnes_libretro_ios.dylib -dynamiclib $(objects) -isysroot $(IOSSDK) -arch armv7
