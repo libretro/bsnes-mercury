@@ -236,7 +236,10 @@ struct file : varint {
   }
 
   static bool exists(const string& filename) {
-    #if !defined(_WIN32)
+    #if defined(__APPLE__) && TARGET_OS_IPHONE
+    struct stat data;
+    if(stat(filename, &data) != 0) return false;
+    #elif !defined(_WIN32)
     struct stat data;
     if(stat(filename, &data) != 0) return false;
     #else
@@ -248,7 +251,10 @@ struct file : varint {
   }
 
   static uintmax_t size(const string& filename) {
-    #if !defined(_WIN32)
+    #if defined(__APPLE__) && TARGET_OS_IPHONE
+    struct stat data;
+    if(stat(filename, &data) != 0) return false;
+    #elif !defined(_WIN32)
     struct stat data;
     stat(filename, &data);
     #else
@@ -259,7 +265,10 @@ struct file : varint {
   }
 
   static time_t timestamp(const string& filename, file::time mode = file::time::create) {
-    #if !defined(_WIN32)
+    #if defined(__APPLE__) && TARGET_OS_IPHONE
+    struct stat data;
+    if(stat(filename, &data) != 0) return false;
+    #elif !defined(_WIN32)
     struct stat data;
     stat(filename, &data);
     #else
