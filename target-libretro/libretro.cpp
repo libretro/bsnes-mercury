@@ -7,8 +7,6 @@
 #include <string>
 using namespace nall;
 
-#define USE_HLE_CHIPS_ALSO_RENAME_THIS true ||
-
 const uint8 iplrom[64] = {
 /*ffc0*/  0xcd, 0xef,        //mov   x,#$ef
 /*ffc2*/  0xbd,              //mov   sp,x
@@ -393,7 +391,17 @@ unsigned retro_api_version(void) {
   return RETRO_API_VERSION;
 }
 
-void retro_set_environment(retro_environment_t environ_cb)        { core_bind.penviron       = environ_cb; }
+void retro_set_environment(retro_environment_t environ_cb)
+{
+  core_bind.penviron = environ_cb;
+  
+  static const struct retro_variable vars[] = {
+    { "bsnes_chip_hle", "Special Chip Accuracy; LLE|HLE" },
+    { NULL, NULL },
+  };
+  core_bind.penviron(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);
+}
+
 void retro_set_video_refresh(retro_video_refresh_t video_refresh) { core_bind.pvideo_refresh = video_refresh; }
 void retro_set_audio_sample(retro_audio_sample_t audio_sample)    { core_bind.paudio_sample  = audio_sample; }
 void retro_set_audio_sample_batch(retro_audio_sample_batch_t)     {}
@@ -500,9 +508,9 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
 }
 
 static bool snes_load_cartridge_normal(
-  const char *rom_xml, const uint8_t *rom_data, unsigned rom_size
+  const char *rom_xml, const uint8_t *rom_data, unsigned rom_size, bool special_chip_hle
 ) {
-  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS_ALSO_RENAME_THIS 0).markup;
+  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, special_chip_hle).markup;
 
   core_bind.rom_data = rom_data;
   core_bind.rom_size = rom_size;
@@ -518,8 +526,8 @@ static bool snes_load_cartridge_bsx_slotted(
   const char *bsx_xml, const uint8_t *bsx_data, unsigned bsx_size
 ) {
 #if 0
-  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS_ALSO_RENAME_THIS 0).markup;
-  string xmlbsx = (bsx_xml && *bsx_xml) ? string(bsx_xml) : SuperFamicomCartridge(bsx_data, bsx_size, USE_HLE_CHIPS_ALSO_RENAME_THIS 0).markup;
+  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS).markup;
+  string xmlbsx = (bsx_xml && *bsx_xml) ? string(bsx_xml) : SuperFamicomCartridge(bsx_data, bsx_size, USE_HLE_CHIPS).markup;
 
   SuperFamicom::bsxflash.memory.copy(memorystream(bsx_data, bsx_size));
   SuperFamicom::cartridge.load(xmlrom, memorystream(rom_data, rom_size));
@@ -535,8 +543,8 @@ static bool snes_load_cartridge_bsx(
   const char *bsx_xml, const uint8_t *bsx_data, unsigned bsx_size
 ) {
 #if 0
-  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS_ALSO_RENAME_THIS 0).markup;
-  string xmlbsx = (bsx_xml && *bsx_xml) ? string(bsx_xml) : SuperFamicomCartridge(bsx_data, bsx_size, USE_HLE_CHIPS_ALSO_RENAME_THIS 0).markup;
+  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS).markup;
+  string xmlbsx = (bsx_xml && *bsx_xml) ? string(bsx_xml) : SuperFamicomCartridge(bsx_data, bsx_size, USE_HLE_CHIPS).markup;
 
   SuperFamicom::bsxflash.memory.copy(memorystream(bsx_data, bsx_size));
   SuperFamicom::cartridge.load(xmlrom, memorystream(rom_data, rom_size));
@@ -553,9 +561,9 @@ static bool snes_load_cartridge_sufami_turbo(
   const char *stb_xml, const uint8_t *stb_data, unsigned stb_size
 ) {
 #if 0
-  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS_ALSO_RENAME_THIS 0).markup;
-  string xmlsta = (sta_xml && *sta_xml) ? string(sta_xml) : SuperFamicomCartridge(sta_data, sta_size, USE_HLE_CHIPS_ALSO_RENAME_THIS 0).markup;
-  string xmlstb = (stb_xml && *stb_xml) ? string(stb_xml) : SuperFamicomCartridge(stb_data, stb_size, USE_HLE_CHIPS_ALSO_RENAME_THIS 0).markup;
+  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS).markup;
+  string xmlsta = (sta_xml && *sta_xml) ? string(sta_xml) : SuperFamicomCartridge(sta_data, sta_size, USE_HLE_CHIPS).markup;
+  string xmlstb = (stb_xml && *stb_xml) ? string(stb_xml) : SuperFamicomCartridge(stb_data, stb_size, USE_HLE_CHIPS).markup;
 
   if(sta_data) SuperFamicom::sufamiturbo.slotA.rom.copy(memorystream(sta_data, sta_size));
   if(stb_data) SuperFamicom::sufamiturbo.slotB.rom.copy(memorystream(stb_data, stb_size));
@@ -571,7 +579,7 @@ static bool snes_load_cartridge_super_game_boy(
   const char *rom_xml, const uint8_t *rom_data, unsigned rom_size,
   const char *dmg_xml, const uint8_t *dmg_data, unsigned dmg_size
 ) {
-  string xmlrom_sgb = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS_ALSO_RENAME_THIS 0).markup;
+  string xmlrom_sgb = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS).markup;
   string xmlrom_gb  = (dmg_xml && *dmg_xml) ? string(dmg_xml) : GameBoyCartridge((uint8_t*)dmg_data, dmg_size).markup;
   fprintf(stderr, "[bSNES]: Markup SGB: %s\n", (const char*)xmlrom_sgb);
   fprintf(stderr, "[bSNES]: Markup GB: %s\n", (const char*)xmlrom_gb);
@@ -592,6 +600,10 @@ static bool snes_load_cartridge_super_game_boy(
 bool retro_load_game(const struct retro_game_info *info) {
   // Support loading a manifest directly.
   core_bind.manifest = info->path && string(info->path).endsWith(".bml");
+
+  struct retro_variable var = {"bsnes_chip_hle", "LLE"};
+  core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)var);
+  bool special_chip_hle = (!strcmp(var.value, "HLE"));
 
   const uint8_t *data = (const uint8_t*)info->data;
   size_t size = info->size;
@@ -620,7 +632,7 @@ bool retro_load_game(const struct retro_game_info *info) {
   std::string manifest;
   if (core_bind.manifest)
     manifest = std::string((const char*)info->data, info->size); // Might not be 0 terminated.
-  return snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size);
+  return snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size, special_chip_hle);
 }
 
 bool retro_load_game_special(unsigned game_type,
