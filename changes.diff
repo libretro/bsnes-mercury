@@ -1,0 +1,470 @@
+diff -r higan_v094-source/ananke/heuristics/super-famicom.hpp bsneshle094/ananke/heuristics/super-famicom.hpp
+11c11
+<   inline SuperFamicomCartridge(const uint8_t *data, unsigned size);
+---
+>   inline SuperFamicomCartridge(const uint8_t *data, unsigned size, bool hlechips);
+109c109
+< SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size) {
+---
+> SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size, bool hlechips = false) {
+143,151c143,162
+<     markup.append(
+<       "  hitachidsp model=HG51B169 frequency=20000000\n"
+<       "    rom id=program name=program.rom size=0x", hex(rom_size), "\n"
+<       "    rom id=data name=cx4.data.rom size=0xc00\n"
+<       "    ram id=data size=0xc00\n"
+<       "    map id=io address=00-3f,80-bf:6000-7fff\n"
+<       "    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
+<       "    map id=ram address=70-77:0000-7fff\n"
+<     );
+---
+>     if(!hlechips) {
+>       markup.append(
+>         "  hitachidsp model=HG51B169 frequency=20000000\n"
+>         "    rom id=program name=program.rom size=0x", hex(rom_size), "\n"
+>         "    rom id=data name=cx4.data.rom size=0xc00\n"
+>         "    ram id=data size=0xc00\n"
+>         "    map id=io address=00-3f,80-bf:6000-7fff\n"
+>         "    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
+>         "    map id=ram address=70-77:0000-7fff\n"
+>       );
+>     } else {
+>       markup.append(
+>         "  rom name=program.rom size=0x", hex(rom_size), "\n"
+>         "  ram name=save.ram size=0x", hex(ram_size), "\n"
+>         "  map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
+>         "  map id=ram address=70-77:0000-7fff\n"
+>         "  hlecx4\n"
+>         "    map id=io address=00-3f,80-bf:6000-7fff\n"
+>       );
+>     }
+379,384c390,401
+<     markup.append(
+<       "  necdsp model=uPD7725 frequency=8000000\n"
+<       "    rom id=program name=dsp1b.program.rom size=0x1800\n"
+<       "    rom id=data name=dsp1b.data.rom size=0x800\n"
+<       "    ram id=data size=0x200\n"
+<     );
+---
+>     if(!hlechips) {
+>       markup.append(
+>         "  necdsp model=uPD7725 frequency=8000000\n"
+>         "    rom id=program name=dsp1b.program.rom size=0x1800\n"
+>         "    rom id=data name=dsp1b.data.rom size=0x800\n"
+>         "    ram id=data size=0x200\n"
+>       );
+>     } else {
+>       markup.append(
+>         "  hledsp model=DSP-1\n"
+>       );
+>     }
+401,407c418,431
+<     markup.append(
+<       "  necdsp model=uPD7725 frequency=8000000\n"
+<       "    rom id=program name=dsp2.program.rom size=0x1800\n"
+<       "    rom id=data name=dsp2.data.rom size=0x800\n"
+<       "    ram id=data size=0x200\n"
+<       "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
+<     );
+---
+>     if(!hlechips) {
+>       markup.append(
+>         "  necdsp model=uPD7725 frequency=8000000\n"
+>         "    rom id=program name=dsp2.program.rom size=0x1800\n"
+>         "    rom id=data name=dsp2.data.rom size=0x800\n"
+>         "    ram id=data size=0x200\n"
+>         "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
+>       );
+>     } else {
+>       markup.append(
+>         "  hledsp model=DSP-2\n"
+>         "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
+>       );
+>     }
+415,421c439,452
+<     markup.append(
+<       "  necdsp model=uPD7725 frequency=8000000\n"
+<       "    rom id=program name=dsp3.program.rom size=0x1800\n"
+<       "    rom id=data name=dsp3.data.rom size=0x800\n"
+<       "    ram id=data size=0x200\n"
+<       "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
+<     );
+---
+>     if(!hlechips) {
+>       markup.append(
+>         "  necdsp model=uPD7725 frequency=8000000\n"
+>         "    rom id=program name=dsp3.program.rom size=0x1800\n"
+>         "    rom id=data name=dsp3.data.rom size=0x800\n"
+>         "    ram id=data size=0x200\n"
+>         "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
+>       );
+>     } else {
+>       markup.append(
+>         "  hledsp model=DSP-3\n"
+>         "    map id=io address=20-3f,a0-bf:8000-ffff\n"
+>       );
+>     }
+429,435c460,473
+<     markup.append(
+<       "  necdsp model=uPD7725 frequency=8000000\n"
+<       "    rom id=program name=dsp4.program.rom size=0x1800\n"
+<       "    rom id=data name=dsp4.data.rom size=0x800\n"
+<       "    ram id=data size=0x200\n"
+<       "    map id=io address=30-3f,b0-bf:8000-ffff select=0x4000\n"
+<     );
+---
+>     if(!hlechips) {
+>       markup.append(
+>         "  necdsp model=uPD7725 frequency=8000000\n"
+>         "    rom id=program name=dsp4.program.rom size=0x1800\n"
+>         "    rom id=data name=dsp4.data.rom size=0x800\n"
+>         "    ram id=data size=0x200\n"
+>         "    map id=io address=30-3f,b0-bf:8000-ffff select=0x4000\n"
+>       );
+>     } else {
+>       markup.append(
+>         "  hledsp model=DSP-4\n"
+>         "    map id=io address=30-3f,b0-bf:8000-ffff\n"
+>       );
+>     }
+443,450c481,497
+<     markup.append(
+<       "  necdsp model=uPD96050 frequency=11000000\n"
+<       "    rom id=program name=st010.program.rom size=0xc000\n"
+<       "    rom id=data name=st010.data.rom size=0x1000\n"
+<       "    ram id=data name=save.ram size=0x1000\n"
+<       "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
+<       "    map id=ram address=68-6f,e8-ef:0000-7fff\n"
+<     );
+---
+>     if(!hlechips) {
+>       markup.append(
+>         "  necdsp model=uPD96050 frequency=11000000\n"
+>         "    rom id=program name=st010.program.rom size=0xc000\n"
+>         "    rom id=data name=st010.data.rom size=0x1000\n"
+>         "    ram id=data name=save.ram size=0x1000\n"
+>         "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
+>         "    map id=ram address=68-6f,e8-ef:0000-7fff\n"
+>       );
+>     } else {
+>       markup.append(
+>         "  ram name=save.ram size=0x1000\n"
+>         "  map id=ram address=68-6f,e8-ef:0000-7fff\n"
+>         "  hlest0010\n"
+>         "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
+>       );
+>     }
+Only in bsneshle094/ananke/obj: .gitignore
+Only in bsneshle094/: changes.diff
+diff -r higan_v094-source/emulator/emulator.hpp bsneshle094/emulator/emulator.hpp
+146c146
+< typedef uint_t<33> uint33;
+---
+> typedef nall::uint_t<33> uint33;
+Only in bsneshle094/: .git
+Only in bsneshle094/libco: armeabi.c
+diff -r higan_v094-source/libco/libco.c bsneshle094/libco/libco.c
+12a13,14
+> #elif defined(__GNUC__) && (defined(__ARM_EABI__) || defined(__arm__))
+>   #include "armeabi.c"
+Only in bsneshle094/: LICENSE
+diff -r higan_v094-source/Makefile bsneshle094/Makefile
+16,17c16,25
+< flags   += -I. -O3 -fomit-frame-pointer
+< link    +=
+---
+> 
+> ifneq ($(debug),)
+>   flags := -I. -O0 -g
+> else
+>   flags := -I. -O3 -fomit-frame-pointer
+> endif
+> 
+> cflags := -std=gnu99 -xc
+> cppflags := -std=gnu++0x
+> 
+29a38,41
+>  
+> ifeq ($(compiler),)
+>   compiler := g++
+> endif
+32,38c44,66
+< ifeq ($(platform),windows)
+<   ifeq ($(arch),x86)
+<     flags += -m32
+<     link += -m32
+<   endif
+<   ifeq ($(console),true)
+<     link += -mconsole
+---
+> ui := target-$(target)
+> 
+> ifeq ($(findstring libretro,$(ui)),)
+>   ifeq ($(platform),windows)
+>     ifeq ($(arch),x86)
+>       flags += -m32
+>       link += -m32
+>     endif
+>     ifeq ($(console),true)
+>       link += -mconsole
+>     else
+>       link += -mwindows
+>     endif
+>     link += -s -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lws2_32
+>     link += -Wl,-enable-auto-import -Wl,-enable-runtime-pseudo-reloc
+>   else ifeq ($(platform),macosx)
+>     flags += -march=native
+>   else ifeq ($(platform),linux)
+>     flags += -march=native
+>     link += -s -Wl,-export-dynamic -lX11 -lXext -ldl
+>   else ifeq ($(platform),bsd)
+>     flags += -march=native
+>     link += -s -Wl,-export-dynamic -lX11 -lXext
+40c68
+<     link += -mwindows
+---
+>     $(error unsupported platform.)
+42,53d69
+<   link += -s -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lws2_32
+<   link += -Wl,-enable-auto-import -Wl,-enable-runtime-pseudo-reloc
+< else ifeq ($(platform),macosx)
+<   flags += -march=native
+< else ifeq ($(platform),linux)
+<   flags += -march=native
+<   link += -s -Wl,-export-dynamic -lX11 -lXext -ldl
+< else ifeq ($(platform),bsd)
+<   flags += -march=native
+<   link += -s -Wl,-export-dynamic -lX11 -lXext
+< else
+<   $(error unsupported platform.)
+55,56d70
+< 
+< ui := target-$(target)
+diff -r higan_v094-source/nall/file.hpp bsneshle094/nall/file.hpp
+11a12,15
+> #ifdef __APPLE__
+> #include "TargetConditionals.h"
+> #endif
+> 
+235c239,242
+<     #if !defined(_WIN32)
+---
+>     #if defined(__APPLE__) && TARGET_OS_IPHONE
+>     struct stat data;
+>     if(stat(filename, &data) != 0) return false;
+>     #elif !defined(_WIN32)
+247c254,257
+<     #if !defined(_WIN32)
+---
+>     #if defined(__APPLE__) && TARGET_OS_IPHONE
+>     struct stat data;
+>     if(stat(filename, &data) != 0) return false;
+>     #elif !defined(_WIN32)
+258c268,271
+<     #if !defined(_WIN32)
+---
+>     #if defined(__APPLE__) && TARGET_OS_IPHONE
+>     struct stat data;
+>     if(stat(filename, &data) != 0) return false;
+>     #elif !defined(_WIN32)
+diff -r higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
+68c68
+< #if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__amd64__) || defined(_M_IX86) || defined(_M_AMD64)
+---
+> #if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__ARM_EABI__) || defined(__arm__)
+diff -r higan_v094-source/nall/serializer.hpp bsneshle094/nall/serializer.hpp
+120c120
+<   serializer(serializer&& s) { operator=(std::move(s)); }
+---
+>   serializer(serializer&& s) { _data = nullptr; operator=(std::move(s)); }
+Only in bsneshle094/obj: .gitignore
+Only in bsneshle094/out: bsnes_libretro.so
+Only in bsneshle094/out: .gitignore
+diff -r higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge/cartridge.hpp
+41a42,47
+>   readonly<bool> has_dsp1;
+>   readonly<bool> has_dsp2;
+>   readonly<bool> has_dsp3;
+>   readonly<bool> has_dsp4;
+>   readonly<bool> has_cx4;
+>   readonly<bool> has_st0010;
+118a125,127
+>   void parse_markup_hledsp(Markup::Node);
+>   void parse_markup_hlecx4(Markup::Node);
+>   void parse_markup_hlest0010(Markup::Node);
+diff -r higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/markup.cpp
+30a31,33
+>   parse_markup_hledsp(cartridge["hledsp"]);
+>   parse_markup_hlecx4(cartridge["hlecx4"]);
+>   parse_markup_hlest0010(cartridge["hlest0010"]);
+585a589,653
+>   }
+> }
+> 
+> void Cartridge::parse_markup_hledsp(Markup::Node root) {
+>   if(root.exists() == false) return;
+> 
+>   string revision = root["model"].data;
+> 
+>   for(auto& node : root) {
+>     if(node.name != "map") continue;
+> 
+>     if(node["id"].data == "io") {
+>       if(revision == "DSP-1") {
+>         has_dsp1 = true;
+>         Mapping m({&DSP1::read, &dsp1}, {&DSP1::write, &dsp1});
+>         parse_markup_map(m, node);
+>         mapping.append(m);
+>         dsp1.Select = numeral(node["select"].data);
+>       }
+>       if(revision == "DSP-2") {
+>         has_dsp2 = true;
+>         Mapping m({&DSP2::read, &dsp2}, {&DSP2::write, &dsp2});
+>         parse_markup_map(m, node);
+>         mapping.append(m);
+>         dsp2.Select = numeral(node["select"].data);
+>       }
+>       if(revision == "DSP-3") {
+>         has_dsp3 = true;
+>         Mapping m({&DSP3::read, &dsp3}, {&DSP3::write, &dsp3});
+>         parse_markup_map(m, node);
+>         mapping.append(m);
+>       }
+>       if(revision == "DSP-4") {
+>         has_dsp4 = true;
+>         Mapping m({&DSP4::read, &dsp4}, {&DSP4::write, &dsp4});
+>         parse_markup_map(m, node);
+>         mapping.append(m);
+>       }
+>     }
+>   }
+> }
+> 
+> void Cartridge::parse_markup_hlecx4(Markup::Node root) {
+>   if(root.exists() == false) return;
+>   
+>   has_cx4 = true;
+>   
+>   for(auto& node : root) {
+>     if(node.name != "map") continue;
+>     Mapping m({&Cx4::read, &cx4}, {&Cx4::write, &cx4});
+>     parse_markup_map(m, node);
+>     mapping.append(m);
+>   }
+> }
+> 
+> void Cartridge::parse_markup_hlest0010(Markup::Node root) {
+>   if(root.exists() == false) return;
+>   
+>   has_st0010 = true;
+>   
+>   for(auto& node : root) {
+>     if(node.name != "map") continue;
+>     Mapping m({&ST0010::read, &st0010}, {&ST0010::write, &st0010});
+>     parse_markup_map(m, node);
+>     mapping.append(m);
+diff -r higan_v094-source/sfc/chip/chip.hpp bsneshle094/sfc/chip/chip.hpp
+27a28,35
+> #include <sfc/chip/dsp1/dsp1.hpp>
+> #include <sfc/chip/dsp2/dsp2.hpp>
+> #include <sfc/chip/dsp3/dsp3.hpp>
+> #include <sfc/chip/dsp4/dsp4.hpp>
+> 
+> #include <sfc/chip/cx4/cx4.hpp>
+> #include <sfc/chip/st0010/st0010.hpp>
+> 
+Only in bsneshle094/sfc/chip: cx4
+Only in bsneshle094/sfc/chip: dsp1
+Only in bsneshle094/sfc/chip: dsp2
+Only in bsneshle094/sfc/chip: dsp3
+Only in bsneshle094/sfc/chip: dsp4
+Only in bsneshle094/sfc/chip: st0010
+diff -r higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
+11a12,13
+> sfc_objects += sfc-hledsp1 sfc-hledsp2 sfc-hledsp3 sfc-hledsp4
+> sfc_objects += sfc-hlecx4 sfc-hlest0010
+72a75,82
+> 
+> obj/sfc-hledsp1.o:         $(sfc)/chip/dsp1/dsp1.cpp $(sfc)/chip/dsp1/*
+> obj/sfc-hledsp2.o:         $(sfc)/chip/dsp2/dsp2.cpp $(sfc)/chip/dsp2/*
+> obj/sfc-hledsp3.o:         $(sfc)/chip/dsp3/dsp3.cpp $(sfc)/chip/dsp3/*
+> obj/sfc-hledsp4.o:         $(sfc)/chip/dsp4/dsp4.cpp $(sfc)/chip/dsp4/*
+> 
+> obj/sfc-hlecx4.o:          $(sfc)/chip/cx4/cx4.cpp $(sfc)/chip/cx4/*
+> obj/sfc-hlest0010.o:       $(sfc)/chip/st0010/st0010.cpp $(sfc)/chip/st0010/*
+diff -r higan_v094-source/sfc/memory/memory-inline.hpp bsneshle094/sfc/memory/memory-inline.hpp
+76,83c76,90
+< unsigned Bus::reduce(unsigned addr, unsigned mask) {
+<   unsigned result = 0, length = 0;
+<   for(unsigned n = 0; n < 24; n++) {
+<     unsigned bit = 1 << n;
+<     if(mask & bit) continue;
+<     result |= (bool)(addr & bit) << length++;
+<   }
+<   return result;
+---
+> unsigned Bus::reduce(unsigned addr, unsigned mask)
+> {
+> 	while (mask)
+> 	{
+> 		//extract the bits to keep
+> 		//set everything below the lowest set bit; 0x018000 -> 0x007FFF
+> 		unsigned tmp=((mask-1)&(~mask));
+> 		
+> 		//shift everything above that
+> 		addr=(addr&tmp)|((addr>>1)&~tmp);
+> 		
+> 		//adjust the mask
+> 		mask=(mask&(mask-1))>>1;
+> 	}
+> 	return addr;
+diff -r higan_v094-source/sfc/system/serialization.cpp bsneshle094/sfc/system/serialization.cpp
+75a76,79
+>   if(cartridge.has_dsp1()) dsp1.serialize(s);
+>   if(cartridge.has_dsp2()) dsp2.serialize(s);
+>   //if(cartridge.has_dsp3()) dsp3.serialize(s);
+>   //if(cartridge.has_dsp4()) dsp4.serialize(s);
+diff -r higan_v094-source/sfc/system/system.cpp bsneshle094/sfc/system/system.cpp
+84a85,90
+>   dsp1.init();
+>   dsp2.init();
+>   dsp3.init();
+>   dsp4.init();
+>   cx4.init();
+>   st0010.init();
+96a103,105
+> #ifdef __LIBRETRO__
+>   interface->loadRequest(ID::IPLROM, "");
+> #else
+103a113
+> #endif
+140a151,156
+>   if(cartridge.has_dsp1()) dsp1.load();
+>   if(cartridge.has_dsp2()) dsp2.load();
+>   if(cartridge.has_dsp3()) dsp3.load();
+>   if(cartridge.has_dsp4()) dsp4.load();
+>   if(cartridge.has_cx4()) cx4.load();
+>   if(cartridge.has_st0010()) st0010.load();
+164a181,186
+>   if(cartridge.has_dsp1()) dsp1.unload();
+>   if(cartridge.has_dsp2()) dsp2.unload();
+>   if(cartridge.has_dsp3()) dsp3.unload();
+>   if(cartridge.has_dsp4()) dsp4.unload();
+>   if(cartridge.has_cx4()) cx4.unload();
+>   if(cartridge.has_st0010()) st0010.unload();
+192a215,220
+>   if(cartridge.has_dsp1()) dsp1.power();
+>   if(cartridge.has_dsp2()) dsp2.power();
+>   if(cartridge.has_dsp3()) dsp3.power();
+>   if(cartridge.has_dsp4()) dsp4.power();
+>   if(cartridge.has_cx4()) cx4.power();
+>   if(cartridge.has_st0010()) st0010.power();
+232a261,267
+> 
+>   if(cartridge.has_dsp1()) dsp1.reset();
+>   if(cartridge.has_dsp2()) dsp2.reset();
+>   if(cartridge.has_dsp3()) dsp3.reset();
+>   if(cartridge.has_dsp4()) dsp4.reset();
+>   if(cartridge.has_cx4()) cx4.reset();
+>   if(cartridge.has_st0010()) st0010.reset();
+Only in bsneshle094/: target-libretro
