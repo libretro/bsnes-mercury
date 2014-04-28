@@ -1,465 +1,671 @@
-diff -r higan_v094-source/ananke/heuristics/super-famicom.hpp bsneshle094/ananke/heuristics/super-famicom.hpp
-11c11
-<   inline SuperFamicomCartridge(const uint8_t *data, unsigned size);
----
->   inline SuperFamicomCartridge(const uint8_t *data, unsigned size, bool hlechips);
-109c109
-< SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size) {
----
-> SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size, bool hlechips = false) {
-143,151c143,162
-<     markup.append(
-<       "  hitachidsp model=HG51B169 frequency=20000000\n"
-<       "    rom id=program name=program.rom size=0x", hex(rom_size), "\n"
-<       "    rom id=data name=cx4.data.rom size=0xc00\n"
-<       "    ram id=data size=0xc00\n"
-<       "    map id=io address=00-3f,80-bf:6000-7fff\n"
-<       "    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
-<       "    map id=ram address=70-77:0000-7fff\n"
-<     );
----
->     if(!hlechips) {
->       markup.append(
->         "  hitachidsp model=HG51B169 frequency=20000000\n"
->         "    rom id=program name=program.rom size=0x", hex(rom_size), "\n"
->         "    rom id=data name=cx4.data.rom size=0xc00\n"
->         "    ram id=data size=0xc00\n"
->         "    map id=io address=00-3f,80-bf:6000-7fff\n"
->         "    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
->         "    map id=ram address=70-77:0000-7fff\n"
->       );
->     } else {
->       markup.append(
->         "  rom name=program.rom size=0x", hex(rom_size), "\n"
->         "  ram name=save.ram size=0x", hex(ram_size), "\n"
->         "  map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
->         "  map id=ram address=70-77:0000-7fff\n"
->         "  hlecx4\n"
->         "    map id=io address=00-3f,80-bf:6000-7fff\n"
->       );
->     }
-379,384c390,401
-<     markup.append(
-<       "  necdsp model=uPD7725 frequency=8000000\n"
-<       "    rom id=program name=dsp1b.program.rom size=0x1800\n"
-<       "    rom id=data name=dsp1b.data.rom size=0x800\n"
-<       "    ram id=data size=0x200\n"
-<     );
----
->     if(!hlechips) {
->       markup.append(
->         "  necdsp model=uPD7725 frequency=8000000\n"
->         "    rom id=program name=dsp1b.program.rom size=0x1800\n"
->         "    rom id=data name=dsp1b.data.rom size=0x800\n"
->         "    ram id=data size=0x200\n"
->       );
->     } else {
->       markup.append(
->         "  hledsp model=DSP-1\n"
->       );
->     }
-401,407c418,431
-<     markup.append(
-<       "  necdsp model=uPD7725 frequency=8000000\n"
-<       "    rom id=program name=dsp2.program.rom size=0x1800\n"
-<       "    rom id=data name=dsp2.data.rom size=0x800\n"
-<       "    ram id=data size=0x200\n"
-<       "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
-<     );
----
->     if(!hlechips) {
->       markup.append(
->         "  necdsp model=uPD7725 frequency=8000000\n"
->         "    rom id=program name=dsp2.program.rom size=0x1800\n"
->         "    rom id=data name=dsp2.data.rom size=0x800\n"
->         "    ram id=data size=0x200\n"
->         "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
->       );
->     } else {
->       markup.append(
->         "  hledsp model=DSP-2\n"
->         "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
->       );
->     }
-415,421c439,452
-<     markup.append(
-<       "  necdsp model=uPD7725 frequency=8000000\n"
-<       "    rom id=program name=dsp3.program.rom size=0x1800\n"
-<       "    rom id=data name=dsp3.data.rom size=0x800\n"
-<       "    ram id=data size=0x200\n"
-<       "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
-<     );
----
->     if(!hlechips) {
->       markup.append(
->         "  necdsp model=uPD7725 frequency=8000000\n"
->         "    rom id=program name=dsp3.program.rom size=0x1800\n"
->         "    rom id=data name=dsp3.data.rom size=0x800\n"
->         "    ram id=data size=0x200\n"
->         "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
->       );
->     } else {
->       markup.append(
->         "  hledsp model=DSP-3\n"
->         "    map id=io address=20-3f,a0-bf:8000-ffff\n"
->       );
->     }
-429,435c460,473
-<     markup.append(
-<       "  necdsp model=uPD7725 frequency=8000000\n"
-<       "    rom id=program name=dsp4.program.rom size=0x1800\n"
-<       "    rom id=data name=dsp4.data.rom size=0x800\n"
-<       "    ram id=data size=0x200\n"
-<       "    map id=io address=30-3f,b0-bf:8000-ffff select=0x4000\n"
-<     );
----
->     if(!hlechips) {
->       markup.append(
->         "  necdsp model=uPD7725 frequency=8000000\n"
->         "    rom id=program name=dsp4.program.rom size=0x1800\n"
->         "    rom id=data name=dsp4.data.rom size=0x800\n"
->         "    ram id=data size=0x200\n"
->         "    map id=io address=30-3f,b0-bf:8000-ffff select=0x4000\n"
->       );
->     } else {
->       markup.append(
->         "  hledsp model=DSP-4\n"
->         "    map id=io address=30-3f,b0-bf:8000-ffff\n"
->       );
->     }
-443,450c481,497
-<     markup.append(
-<       "  necdsp model=uPD96050 frequency=11000000\n"
-<       "    rom id=program name=st010.program.rom size=0xc000\n"
-<       "    rom id=data name=st010.data.rom size=0x1000\n"
-<       "    ram id=data name=save.ram size=0x1000\n"
-<       "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
-<       "    map id=ram address=68-6f,e8-ef:0000-7fff\n"
-<     );
----
->     if(!hlechips) {
->       markup.append(
->         "  necdsp model=uPD96050 frequency=11000000\n"
->         "    rom id=program name=st010.program.rom size=0xc000\n"
->         "    rom id=data name=st010.data.rom size=0x1000\n"
->         "    ram id=data name=save.ram size=0x1000\n"
->         "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
->         "    map id=ram address=68-6f,e8-ef:0000-7fff\n"
->       );
->     } else {
->       markup.append(
->         "  ram name=save.ram size=0x1000\n"
->         "  map id=ram address=68-6f,e8-ef:0000-7fff\n"
->         "  hlest0010\n"
->         "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
->       );
->     }
+diff -ru higan_v094-source/ananke/heuristics/super-famicom.hpp bsneshle094/ananke/heuristics/super-famicom.hpp
+--- higan_v094-source/ananke/heuristics/super-famicom.hpp	2013-01-17 01:54:10.000000000 +0100
++++ bsneshle094/ananke/heuristics/super-famicom.hpp	2014-04-26 16:20:16.498065832 +0200
+@@ -8,7 +8,7 @@
+ 
+ struct SuperFamicomCartridge {
+   string markup;
+-  inline SuperFamicomCartridge(const uint8_t *data, unsigned size);
++  inline SuperFamicomCartridge(const uint8_t *data, unsigned size, bool hlechips);
+ 
+ //private:
+   inline void read_header(const uint8_t *data, unsigned size);
+@@ -106,7 +106,7 @@
+   bool has_st018;
+ };
+ 
+-SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size) {
++SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size, bool hlechips = false) {
+   firmware_appended = false;
+ 
+   //skip copier header
+@@ -140,15 +140,26 @@
+   }
+ 
+   else if(has_cx4) {
+-    markup.append(
+-      "  hitachidsp model=HG51B169 frequency=20000000\n"
+-      "    rom id=program name=program.rom size=0x", hex(rom_size), "\n"
+-      "    rom id=data name=cx4.data.rom size=0xc00\n"
+-      "    ram id=data size=0xc00\n"
+-      "    map id=io address=00-3f,80-bf:6000-7fff\n"
+-      "    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
+-      "    map id=ram address=70-77:0000-7fff\n"
+-    );
++    if(!hlechips) {
++      markup.append(
++        "  hitachidsp model=HG51B169 frequency=20000000\n"
++        "    rom id=program name=program.rom size=0x", hex(rom_size), "\n"
++        "    rom id=data name=cx4.data.rom size=0xc00\n"
++        "    ram id=data size=0xc00\n"
++        "    map id=io address=00-3f,80-bf:6000-7fff\n"
++        "    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
++        "    map id=ram address=70-77:0000-7fff\n"
++      );
++    } else {
++      markup.append(
++        "  rom name=program.rom size=0x", hex(rom_size), "\n"
++        "  ram name=save.ram size=0x", hex(ram_size), "\n"
++        "  map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
++        "  map id=ram address=70-77:0000-7fff\n"
++        "  hlecx4\n"
++        "    map id=io address=00-3f,80-bf:6000-7fff\n"
++      );
++    }
+     if((rom_size & 0x7fff) == 0xc00) {
+       firmware_appended = true;
+       rom_size -= 0xc00;
+@@ -376,12 +387,18 @@
+   }
+ 
+   if(has_dsp1) {
+-    markup.append(
+-      "  necdsp model=uPD7725 frequency=8000000\n"
+-      "    rom id=program name=dsp1b.program.rom size=0x1800\n"
+-      "    rom id=data name=dsp1b.data.rom size=0x800\n"
+-      "    ram id=data size=0x200\n"
+-    );
++    if(!hlechips) {
++      markup.append(
++        "  necdsp model=uPD7725 frequency=8000000\n"
++        "    rom id=program name=dsp1b.program.rom size=0x1800\n"
++        "    rom id=data name=dsp1b.data.rom size=0x800\n"
++        "    ram id=data size=0x200\n"
++      );
++    } else {
++      markup.append(
++        "  hledsp model=DSP-1\n"
++      );
++    }
+     if(dsp1_mapper == DSP1LoROM1MB) markup.append(
+       "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
+     );
+@@ -398,13 +415,20 @@
+   }
+ 
+   if(has_dsp2) {
+-    markup.append(
+-      "  necdsp model=uPD7725 frequency=8000000\n"
+-      "    rom id=program name=dsp2.program.rom size=0x1800\n"
+-      "    rom id=data name=dsp2.data.rom size=0x800\n"
+-      "    ram id=data size=0x200\n"
+-      "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
+-    );
++    if(!hlechips) {
++      markup.append(
++        "  necdsp model=uPD7725 frequency=8000000\n"
++        "    rom id=program name=dsp2.program.rom size=0x1800\n"
++        "    rom id=data name=dsp2.data.rom size=0x800\n"
++        "    ram id=data size=0x200\n"
++        "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
++      );
++    } else {
++      markup.append(
++        "  hledsp model=DSP-2\n"
++        "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
++      );
++    }
+     if((size & 0x7fff) == 0x2000) {
+       firmware_appended = true;
+       rom_size -= 0x2000;
+@@ -412,13 +436,20 @@
+   }
+ 
+   if(has_dsp3) {
+-    markup.append(
+-      "  necdsp model=uPD7725 frequency=8000000\n"
+-      "    rom id=program name=dsp3.program.rom size=0x1800\n"
+-      "    rom id=data name=dsp3.data.rom size=0x800\n"
+-      "    ram id=data size=0x200\n"
+-      "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
+-    );
++    if(!hlechips) {
++      markup.append(
++        "  necdsp model=uPD7725 frequency=8000000\n"
++        "    rom id=program name=dsp3.program.rom size=0x1800\n"
++        "    rom id=data name=dsp3.data.rom size=0x800\n"
++        "    ram id=data size=0x200\n"
++        "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
++      );
++    } else {
++      markup.append(
++        "  hledsp model=DSP-3\n"
++        "    map id=io address=20-3f,a0-bf:8000-ffff\n"
++      );
++    }
+     if((size & 0x7fff) == 0x2000) {
+       firmware_appended = true;
+       rom_size -= 0x2000;
+@@ -426,13 +457,20 @@
+   }
+ 
+   if(has_dsp4) {
+-    markup.append(
+-      "  necdsp model=uPD7725 frequency=8000000\n"
+-      "    rom id=program name=dsp4.program.rom size=0x1800\n"
+-      "    rom id=data name=dsp4.data.rom size=0x800\n"
+-      "    ram id=data size=0x200\n"
+-      "    map id=io address=30-3f,b0-bf:8000-ffff select=0x4000\n"
+-    );
++    if(!hlechips) {
++      markup.append(
++        "  necdsp model=uPD7725 frequency=8000000\n"
++        "    rom id=program name=dsp4.program.rom size=0x1800\n"
++        "    rom id=data name=dsp4.data.rom size=0x800\n"
++        "    ram id=data size=0x200\n"
++        "    map id=io address=30-3f,b0-bf:8000-ffff select=0x4000\n"
++      );
++    } else {
++      markup.append(
++        "  hledsp model=DSP-4\n"
++        "    map id=io address=30-3f,b0-bf:8000-ffff\n"
++      );
++    }
+     if((size & 0x7fff) == 0x2000) {
+       firmware_appended = true;
+       rom_size -= 0x2000;
+@@ -440,14 +478,23 @@
+   }
+ 
+   if(has_st010) {
+-    markup.append(
+-      "  necdsp model=uPD96050 frequency=11000000\n"
+-      "    rom id=program name=st010.program.rom size=0xc000\n"
+-      "    rom id=data name=st010.data.rom size=0x1000\n"
+-      "    ram id=data name=save.ram size=0x1000\n"
+-      "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
+-      "    map id=ram address=68-6f,e8-ef:0000-7fff\n"
+-    );
++    if(!hlechips) {
++      markup.append(
++        "  necdsp model=uPD96050 frequency=11000000\n"
++        "    rom id=program name=st010.program.rom size=0xc000\n"
++        "    rom id=data name=st010.data.rom size=0x1000\n"
++        "    ram id=data name=save.ram size=0x1000\n"
++        "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
++        "    map id=ram address=68-6f,e8-ef:0000-7fff\n"
++      );
++    } else {
++      markup.append(
++        "  ram name=save.ram size=0x1000\n"
++        "  map id=ram address=68-6f,e8-ef:0000-7fff\n"
++        "  hlest0010\n"
++        "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
++      );
++    }
+     if((size & 0xffff) == 0xd000) {
+       firmware_appended = true;
+       rom_size -= 0xd000;
 Only in bsneshle094/ananke/obj: .gitignore
 Only in bsneshle094/: changes.diff
-diff -r higan_v094-source/emulator/emulator.hpp bsneshle094/emulator/emulator.hpp
-146c146
-< typedef uint_t<33> uint33;
----
-> typedef nall::uint_t<33> uint33;
+diff -ru higan_v094-source/emulator/emulator.hpp bsneshle094/emulator/emulator.hpp
+--- higan_v094-source/emulator/emulator.hpp	2014-01-20 07:36:22.000000000 +0100
++++ bsneshle094/emulator/emulator.hpp	2014-04-26 16:20:16.498065832 +0200
+@@ -143,7 +143,7 @@
+ typedef uint30_t uint30;
+ typedef uint31_t uint31;
+ typedef uint32_t uint32;
+-typedef uint_t<33> uint33;
++typedef nall::uint_t<33> uint33;
+ typedef uint64_t uint64;
+ 
+ typedef varuint_t<unsigned> varuint;
 Only in bsneshle094/: .git
 Only in bsneshle094/libco: armeabi.c
-diff -r higan_v094-source/libco/libco.c bsneshle094/libco/libco.c
-12a13,14
-> #elif defined(__GNUC__) && (defined(__ARM_EABI__) || defined(__arm__))
->   #include "armeabi.c"
+diff -ru higan_v094-source/libco/libco.c bsneshle094/libco/libco.c
+--- higan_v094-source/libco/libco.c	2014-01-20 07:37:11.000000000 +0100
++++ bsneshle094/libco/libco.c	2014-04-26 16:20:16.498065832 +0200
+@@ -10,6 +10,8 @@
+   #include "amd64.c"
+ #elif defined(__GNUC__) && defined(_ARCH_PPC)
+   #include "ppc.c"
++#elif defined(__GNUC__) && (defined(__ARM_EABI__) || defined(__arm__))
++  #include "armeabi.c"
+ #elif defined(__GNUC__)
+   #include "sjlj.c"
+ #elif defined(_MSC_VER) && defined(_M_IX86)
 Only in bsneshle094/: LICENSE
-diff -r higan_v094-source/Makefile bsneshle094/Makefile
-16,17c16,25
-< flags   += -I. -O3 -fomit-frame-pointer
-< link    +=
----
-> 
-> ifneq ($(debug),)
->   flags := -I. -O0 -g
-> else
->   flags := -I. -O3 -fomit-frame-pointer
-> endif
-> 
-> cflags := -std=gnu99 -xc
-> cppflags := -std=gnu++0x
-> 
-29a38,41
->  
-> ifeq ($(compiler),)
->   compiler := g++
-> endif
-32,38c44,66
-< ifeq ($(platform),windows)
-<   ifeq ($(arch),x86)
-<     flags += -m32
-<     link += -m32
-<   endif
-<   ifeq ($(console),true)
-<     link += -mconsole
----
-> ui := target-$(target)
-> 
-> ifeq ($(findstring libretro,$(ui)),)
->   ifeq ($(platform),windows)
->     ifeq ($(arch),x86)
->       flags += -m32
->       link += -m32
->     endif
->     ifeq ($(console),true)
->       link += -mconsole
->     else
->       link += -mwindows
->     endif
->     link += -s -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lws2_32
->     link += -Wl,-enable-auto-import -Wl,-enable-runtime-pseudo-reloc
->   else ifeq ($(platform),macosx)
->     flags += -march=native
->   else ifeq ($(platform),linux)
->     flags += -march=native
->     link += -s -Wl,-export-dynamic -lX11 -lXext -ldl
->   else ifeq ($(platform),bsd)
->     flags += -march=native
->     link += -s -Wl,-export-dynamic -lX11 -lXext
-40c68
-<     link += -mwindows
----
->     $(error unsupported platform.)
-42,53d69
-<   link += -s -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lws2_32
-<   link += -Wl,-enable-auto-import -Wl,-enable-runtime-pseudo-reloc
-< else ifeq ($(platform),macosx)
-<   flags += -march=native
-< else ifeq ($(platform),linux)
-<   flags += -march=native
-<   link += -s -Wl,-export-dynamic -lX11 -lXext -ldl
-< else ifeq ($(platform),bsd)
-<   flags += -march=native
-<   link += -s -Wl,-export-dynamic -lX11 -lXext
-< else
-<   $(error unsupported platform.)
-55,56d70
-< 
-< ui := target-$(target)
-diff -r higan_v094-source/nall/file.hpp bsneshle094/nall/file.hpp
-11a12,15
-> #ifdef __APPLE__
-> #include "TargetConditionals.h"
-> #endif
-> 
-235c239,242
-<     #if !defined(_WIN32)
----
->     #if defined(__APPLE__) && TARGET_OS_IPHONE
->     struct stat data;
->     if(stat(filename, &data) != 0) return false;
->     #elif !defined(_WIN32)
-247c254,257
-<     #if !defined(_WIN32)
----
->     #if defined(__APPLE__) && TARGET_OS_IPHONE
->     struct stat data;
->     if(stat(filename, &data) != 0) return false;
->     #elif !defined(_WIN32)
-258c268,271
-<     #if !defined(_WIN32)
----
->     #if defined(__APPLE__) && TARGET_OS_IPHONE
->     struct stat data;
->     if(stat(filename, &data) != 0) return false;
->     #elif !defined(_WIN32)
-diff -r higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
-68c68
-< #if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__amd64__) || defined(_M_IX86) || defined(_M_AMD64)
----
-> #if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__ARM_EABI__) || defined(__arm__)
+diff -ru higan_v094-source/Makefile bsneshle094/Makefile
+--- higan_v094-source/Makefile	2013-10-20 14:39:14.000000000 +0200
++++ bsneshle094/Makefile	2014-04-26 16:32:03.214079100 +0200
+@@ -13,8 +13,16 @@
+ # console := true
+ 
+ # compiler
+-flags   += -I. -O3 -fomit-frame-pointer
+-link    +=
++
++ifneq ($(debug),)
++  flags := -I. -O0 -g
++else
++  flags := -I. -O3 -fomit-frame-pointer
++endif
++
++cflags := -std=gnu99 -xc
++cppflags := -std=gnu++0x
++
+ objects := libco
+ 
+ # profile-guided optimization mode
+@@ -27,34 +35,40 @@
+ else ifeq ($(pgo),optimize)
+   flags += -fprofile-use
+ endif
++ 
++ifeq ($(compiler),)
++  compiler := g++
++endif
+ 
+ # platform
+-ifeq ($(platform),windows)
+-  ifeq ($(arch),x86)
+-    flags += -m32
+-    link += -m32
+-  endif
+-  ifeq ($(console),true)
+-    link += -mconsole
++ui := target-$(target)
++
++ifeq ($(findstring libretro,$(ui)),)
++  ifeq ($(platform),windows)
++    ifeq ($(arch),x86)
++      flags += -m32
++      link += -m32
++    endif
++    ifeq ($(console),true)
++      link += -mconsole
++    else
++      link += -mwindows
++    endif
++    link += -s -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lws2_32
++    link += -Wl,-enable-auto-import -Wl,-enable-runtime-pseudo-reloc
++  else ifeq ($(platform),macosx)
++    flags += -march=native
++  else ifeq ($(platform),linux)
++    flags += -march=native
++    link += -s -Wl,-export-dynamic -lX11 -lXext -ldl
++  else ifeq ($(platform),bsd)
++    flags += -march=native
++    link += -s -Wl,-export-dynamic -lX11 -lXext
+   else
+-    link += -mwindows
++    $(error unsupported platform.)
+   endif
+-  link += -s -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lws2_32
+-  link += -Wl,-enable-auto-import -Wl,-enable-runtime-pseudo-reloc
+-else ifeq ($(platform),macosx)
+-  flags += -march=native
+-else ifeq ($(platform),linux)
+-  flags += -march=native
+-  link += -s -Wl,-export-dynamic -lX11 -lXext -ldl
+-else ifeq ($(platform),bsd)
+-  flags += -march=native
+-  link += -s -Wl,-export-dynamic -lX11 -lXext
+-else
+-  $(error unsupported platform.)
+ endif
+ 
+-ui := target-$(target)
+-
+ # implicit rules
+ compile = \
+   $(strip \
+diff -ru higan_v094-source/nall/file.hpp bsneshle094/nall/file.hpp
+--- higan_v094-source/nall/file.hpp	2014-01-20 07:37:12.000000000 +0100
++++ bsneshle094/nall/file.hpp	2014-04-26 17:34:50.338149822 +0200
+@@ -9,6 +9,10 @@
+ #include <nall/windows/utf8.hpp>
+ #include <nall/stream/memory.hpp>
+ 
++#ifdef __APPLE__
++#include "TargetConditionals.h"
++#endif
++
+ namespace nall {
+ 
+ inline FILE* fopen_utf8(const string& filename, const string& mode) {
+@@ -232,7 +236,10 @@
+   }
+ 
+   static bool exists(const string& filename) {
+-    #if !defined(_WIN32)
++    #if defined(__APPLE__) && TARGET_OS_IPHONE
++    struct stat data;
++    if(stat(filename, &data) != 0) return false;
++    #elif !defined(_WIN32)
+     struct stat data;
+     if(stat(filename, &data) != 0) return false;
+     #else
+@@ -244,7 +251,10 @@
+   }
+ 
+   static uintmax_t size(const string& filename) {
+-    #if !defined(_WIN32)
++    #if defined(__APPLE__) && TARGET_OS_IPHONE
++    struct stat data;
++    if(stat(filename, &data) != 0) return false;
++    #elif !defined(_WIN32)
+     struct stat data;
+     stat(filename, &data);
+     #else
+@@ -255,7 +265,10 @@
+   }
+ 
+   static time_t timestamp(const string& filename, file::time mode = file::time::create) {
+-    #if !defined(_WIN32)
++    #if defined(__APPLE__) && TARGET_OS_IPHONE
++    struct stat data;
++    if(stat(filename, &data) != 0) return false;
++    #elif !defined(_WIN32)
+     struct stat data;
+     stat(filename, &data);
+     #else
+diff -ru higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
+--- higan_v094-source/nall/intrinsics.hpp	2014-01-20 07:37:12.000000000 +0100
++++ bsneshle094/nall/intrinsics.hpp	2014-04-26 17:39:13.486154763 +0200
+@@ -65,7 +65,7 @@
+ 
+ /* Endian detection */
+ 
+-#if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__amd64__) || defined(_M_IX86) || defined(_M_AMD64)
++#if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__ARM_EABI__) || defined(__arm__)
+   #define ENDIAN_LSB
+   Intrinsics::Endian Intrinsics::endian() { return Intrinsics::Endian::LSB; }
+ #elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && __BYTE_ORDER == __BIG_ENDIAN) || defined(__BIG_ENDIAN__) || defined(__powerpc__) || defined(_M_PPC)
 Only in bsneshle094/obj: .gitignore
 Only in bsneshle094/out: bsnes_libretro.so
 Only in bsneshle094/out: .gitignore
-diff -r higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge/cartridge.hpp
-41a42,47
->   readonly<bool> has_dsp1;
->   readonly<bool> has_dsp2;
->   readonly<bool> has_dsp3;
->   readonly<bool> has_dsp4;
->   readonly<bool> has_cx4;
->   readonly<bool> has_st0010;
-118a125,127
->   void parse_markup_hledsp(Markup::Node);
->   void parse_markup_hlecx4(Markup::Node);
->   void parse_markup_hlest0010(Markup::Node);
-diff -r higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/markup.cpp
-30a31,33
->   parse_markup_hledsp(cartridge["hledsp"]);
->   parse_markup_hlecx4(cartridge["hlecx4"]);
->   parse_markup_hlest0010(cartridge["hlest0010"]);
-585a589,653
->   }
-> }
-> 
-> void Cartridge::parse_markup_hledsp(Markup::Node root) {
->   if(root.exists() == false) return;
-> 
->   string revision = root["model"].data;
-> 
->   for(auto& node : root) {
->     if(node.name != "map") continue;
-> 
->     if(node["id"].data == "io") {
->       if(revision == "DSP-1") {
->         has_dsp1 = true;
->         Mapping m({&DSP1::read, &dsp1}, {&DSP1::write, &dsp1});
->         parse_markup_map(m, node);
->         mapping.append(m);
->         dsp1.Select = numeral(node["select"].data);
->       }
->       if(revision == "DSP-2") {
->         has_dsp2 = true;
->         Mapping m({&DSP2::read, &dsp2}, {&DSP2::write, &dsp2});
->         parse_markup_map(m, node);
->         mapping.append(m);
->         dsp2.Select = numeral(node["select"].data);
->       }
->       if(revision == "DSP-3") {
->         has_dsp3 = true;
->         Mapping m({&DSP3::read, &dsp3}, {&DSP3::write, &dsp3});
->         parse_markup_map(m, node);
->         mapping.append(m);
->       }
->       if(revision == "DSP-4") {
->         has_dsp4 = true;
->         Mapping m({&DSP4::read, &dsp4}, {&DSP4::write, &dsp4});
->         parse_markup_map(m, node);
->         mapping.append(m);
->       }
->     }
->   }
-> }
-> 
-> void Cartridge::parse_markup_hlecx4(Markup::Node root) {
->   if(root.exists() == false) return;
->   
->   has_cx4 = true;
->   
->   for(auto& node : root) {
->     if(node.name != "map") continue;
->     Mapping m({&Cx4::read, &cx4}, {&Cx4::write, &cx4});
->     parse_markup_map(m, node);
->     mapping.append(m);
->   }
-> }
-> 
-> void Cartridge::parse_markup_hlest0010(Markup::Node root) {
->   if(root.exists() == false) return;
->   
->   has_st0010 = true;
->   
->   for(auto& node : root) {
->     if(node.name != "map") continue;
->     Mapping m({&ST0010::read, &st0010}, {&ST0010::write, &st0010});
->     parse_markup_map(m, node);
->     mapping.append(m);
-diff -r higan_v094-source/sfc/chip/chip.hpp bsneshle094/sfc/chip/chip.hpp
-27a28,35
-> #include <sfc/chip/dsp1/dsp1.hpp>
-> #include <sfc/chip/dsp2/dsp2.hpp>
-> #include <sfc/chip/dsp3/dsp3.hpp>
-> #include <sfc/chip/dsp4/dsp4.hpp>
-> 
-> #include <sfc/chip/cx4/cx4.hpp>
-> #include <sfc/chip/st0010/st0010.hpp>
-> 
+diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge/cartridge.hpp
+--- higan_v094-source/sfc/cartridge/cartridge.hpp	2013-01-22 23:52:43.000000000 +0100
++++ bsneshle094/sfc/cartridge/cartridge.hpp	2014-04-26 16:20:16.502065832 +0200
+@@ -39,6 +39,12 @@
+   readonly<bool> has_obc1;
+   readonly<bool> has_hsu1;
+   readonly<bool> has_msu1;
++  readonly<bool> has_dsp1;
++  readonly<bool> has_dsp2;
++  readonly<bool> has_dsp3;
++  readonly<bool> has_dsp4;
++  readonly<bool> has_cx4;
++  readonly<bool> has_st0010;
+ 
+   struct Mapping {
+     function<uint8 (unsigned)> reader;
+@@ -116,6 +122,9 @@
+   void parse_markup_obc1(Markup::Node);
+   void parse_markup_hsu1(Markup::Node);
+   void parse_markup_msu1(Markup::Node);
++  void parse_markup_hledsp(Markup::Node);
++  void parse_markup_hlecx4(Markup::Node);
++  void parse_markup_hlest0010(Markup::Node);
+ 
+   friend class Interface;
+ };
+diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/markup.cpp
+--- higan_v094-source/sfc/cartridge/markup.cpp	2013-12-06 21:58:46.000000000 +0100
++++ bsneshle094/sfc/cartridge/markup.cpp	2014-04-26 16:20:16.502065832 +0200
+@@ -28,6 +28,9 @@
+   parse_markup_obc1(cartridge["obc1"]);
+   parse_markup_hsu1(cartridge["hsu1"]);
+   parse_markup_msu1(cartridge["msu1"]);
++  parse_markup_hledsp(cartridge["hledsp"]);
++  parse_markup_hlecx4(cartridge["hlecx4"]);
++  parse_markup_hlest0010(cartridge["hlest0010"]);
+ }
+ 
+ //
+@@ -586,6 +589,71 @@
+   }
+ }
+ 
++void Cartridge::parse_markup_hledsp(Markup::Node root) {
++  if(root.exists() == false) return;
++
++  string revision = root["model"].data;
++
++  for(auto& node : root) {
++    if(node.name != "map") continue;
++
++    if(node["id"].data == "io") {
++      if(revision == "DSP-1") {
++        has_dsp1 = true;
++        Mapping m({&DSP1::read, &dsp1}, {&DSP1::write, &dsp1});
++        parse_markup_map(m, node);
++        mapping.append(m);
++        dsp1.Select = numeral(node["select"].data);
++      }
++      if(revision == "DSP-2") {
++        has_dsp2 = true;
++        Mapping m({&DSP2::read, &dsp2}, {&DSP2::write, &dsp2});
++        parse_markup_map(m, node);
++        mapping.append(m);
++        dsp2.Select = numeral(node["select"].data);
++      }
++      if(revision == "DSP-3") {
++        has_dsp3 = true;
++        Mapping m({&DSP3::read, &dsp3}, {&DSP3::write, &dsp3});
++        parse_markup_map(m, node);
++        mapping.append(m);
++      }
++      if(revision == "DSP-4") {
++        has_dsp4 = true;
++        Mapping m({&DSP4::read, &dsp4}, {&DSP4::write, &dsp4});
++        parse_markup_map(m, node);
++        mapping.append(m);
++      }
++    }
++  }
++}
++
++void Cartridge::parse_markup_hlecx4(Markup::Node root) {
++  if(root.exists() == false) return;
++  
++  has_cx4 = true;
++  
++  for(auto& node : root) {
++    if(node.name != "map") continue;
++    Mapping m({&Cx4::read, &cx4}, {&Cx4::write, &cx4});
++    parse_markup_map(m, node);
++    mapping.append(m);
++  }
++}
++
++void Cartridge::parse_markup_hlest0010(Markup::Node root) {
++  if(root.exists() == false) return;
++  
++  has_st0010 = true;
++  
++  for(auto& node : root) {
++    if(node.name != "map") continue;
++    Mapping m({&ST0010::read, &st0010}, {&ST0010::write, &st0010});
++    parse_markup_map(m, node);
++    mapping.append(m);
++  }
++}
++
+ Cartridge::Mapping::Mapping() {
+   size = base = mask = 0;
+ }
+diff -ru higan_v094-source/sfc/chip/chip.hpp bsneshle094/sfc/chip/chip.hpp
+--- higan_v094-source/sfc/chip/chip.hpp	2013-01-21 07:09:43.000000000 +0100
++++ bsneshle094/sfc/chip/chip.hpp	2014-04-26 16:20:16.502065832 +0200
+@@ -25,6 +25,14 @@
+ #include <sfc/chip/hsu1/hsu1.hpp>
+ #include <sfc/chip/msu1/msu1.hpp>
+ 
++#include <sfc/chip/dsp1/dsp1.hpp>
++#include <sfc/chip/dsp2/dsp2.hpp>
++#include <sfc/chip/dsp3/dsp3.hpp>
++#include <sfc/chip/dsp4/dsp4.hpp>
++
++#include <sfc/chip/cx4/cx4.hpp>
++#include <sfc/chip/st0010/st0010.hpp>
++
+ void Coprocessor::step(unsigned clocks) {
+   clock += clocks * (uint64)cpu.frequency;
+ }
 Only in bsneshle094/sfc/chip: cx4
 Only in bsneshle094/sfc/chip: dsp1
 Only in bsneshle094/sfc/chip: dsp2
 Only in bsneshle094/sfc/chip: dsp3
 Only in bsneshle094/sfc/chip: dsp4
 Only in bsneshle094/sfc/chip: st0010
-diff -r higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
-11a12,13
-> sfc_objects += sfc-hledsp1 sfc-hledsp2 sfc-hledsp3 sfc-hledsp4
-> sfc_objects += sfc-hlecx4 sfc-hlest0010
-72a75,82
-> 
-> obj/sfc-hledsp1.o:         $(sfc)/chip/dsp1/dsp1.cpp $(sfc)/chip/dsp1/*
-> obj/sfc-hledsp2.o:         $(sfc)/chip/dsp2/dsp2.cpp $(sfc)/chip/dsp2/*
-> obj/sfc-hledsp3.o:         $(sfc)/chip/dsp3/dsp3.cpp $(sfc)/chip/dsp3/*
-> obj/sfc-hledsp4.o:         $(sfc)/chip/dsp4/dsp4.cpp $(sfc)/chip/dsp4/*
-> 
-> obj/sfc-hlecx4.o:          $(sfc)/chip/cx4/cx4.cpp $(sfc)/chip/cx4/*
-> obj/sfc-hlest0010.o:       $(sfc)/chip/st0010/st0010.cpp $(sfc)/chip/st0010/*
-diff -r higan_v094-source/sfc/memory/memory-inline.hpp bsneshle094/sfc/memory/memory-inline.hpp
-76,83c76,90
-< unsigned Bus::reduce(unsigned addr, unsigned mask) {
-<   unsigned result = 0, length = 0;
-<   for(unsigned n = 0; n < 24; n++) {
-<     unsigned bit = 1 << n;
-<     if(mask & bit) continue;
-<     result |= (bool)(addr & bit) << length++;
-<   }
-<   return result;
----
-> unsigned Bus::reduce(unsigned addr, unsigned mask)
-> {
-> 	while (mask)
-> 	{
-> 		//extract the bits to keep
-> 		//set everything below the lowest set bit; 0x018000 -> 0x007FFF
-> 		unsigned tmp=((mask-1)&(~mask));
-> 		
-> 		//shift everything above that
-> 		addr=(addr&tmp)|((addr>>1)&~tmp);
-> 		
-> 		//adjust the mask
-> 		mask=(mask&(mask-1))>>1;
-> 	}
-> 	return addr;
-diff -r higan_v094-source/sfc/system/serialization.cpp bsneshle094/sfc/system/serialization.cpp
-75a76,79
->   if(cartridge.has_dsp1()) dsp1.serialize(s);
->   if(cartridge.has_dsp2()) dsp2.serialize(s);
->   //if(cartridge.has_dsp3()) dsp3.serialize(s);
->   //if(cartridge.has_dsp4()) dsp4.serialize(s);
-diff -r higan_v094-source/sfc/system/system.cpp bsneshle094/sfc/system/system.cpp
-84a85,90
->   dsp1.init();
->   dsp2.init();
->   dsp3.init();
->   dsp4.init();
->   cx4.init();
->   st0010.init();
-96a103,105
-> #ifdef __LIBRETRO__
->   interface->loadRequest(ID::IPLROM, "");
-> #else
-103a113
-> #endif
-140a151,156
->   if(cartridge.has_dsp1()) dsp1.load();
->   if(cartridge.has_dsp2()) dsp2.load();
->   if(cartridge.has_dsp3()) dsp3.load();
->   if(cartridge.has_dsp4()) dsp4.load();
->   if(cartridge.has_cx4()) cx4.load();
->   if(cartridge.has_st0010()) st0010.load();
-164a181,186
->   if(cartridge.has_dsp1()) dsp1.unload();
->   if(cartridge.has_dsp2()) dsp2.unload();
->   if(cartridge.has_dsp3()) dsp3.unload();
->   if(cartridge.has_dsp4()) dsp4.unload();
->   if(cartridge.has_cx4()) cx4.unload();
->   if(cartridge.has_st0010()) st0010.unload();
-192a215,220
->   if(cartridge.has_dsp1()) dsp1.power();
->   if(cartridge.has_dsp2()) dsp2.power();
->   if(cartridge.has_dsp3()) dsp3.power();
->   if(cartridge.has_dsp4()) dsp4.power();
->   if(cartridge.has_cx4()) cx4.power();
->   if(cartridge.has_st0010()) st0010.power();
-232a261,267
-> 
->   if(cartridge.has_dsp1()) dsp1.reset();
->   if(cartridge.has_dsp2()) dsp2.reset();
->   if(cartridge.has_dsp3()) dsp3.reset();
->   if(cartridge.has_dsp4()) dsp4.reset();
->   if(cartridge.has_cx4()) cx4.reset();
->   if(cartridge.has_st0010()) st0010.reset();
+diff -ru higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
+--- higan_v094-source/sfc/Makefile	2013-01-23 00:07:55.000000000 +0100
++++ bsneshle094/sfc/Makefile	2014-04-26 16:20:16.502065832 +0200
+@@ -9,6 +9,8 @@
+ sfc_objects += sfc-spc7110 sfc-sdd1 sfc-obc1
+ sfc_objects += sfc-hsu1 sfc-msu1
+ sfc_objects += sfc-satellaviewcart sfc-sufamiturbo
++sfc_objects += sfc-hledsp1 sfc-hledsp2 sfc-hledsp3 sfc-hledsp4
++sfc_objects += sfc-hlecx4 sfc-hlest0010
+ objects += $(sfc_objects)
+ 
+ ifeq ($(profile),accuracy)
+@@ -70,3 +72,11 @@
+ 
+ obj/sfc-satellaviewcart.o: $(sfc)/slot/satellaview/satellaview.cpp $(call rwildcard,$(sfc)/slot/satellaview/)
+ obj/sfc-sufamiturbo.o:     $(sfc)/slot/sufamiturbo/sufamiturbo.cpp $(call rwildcard,$(sfc)/slot/sufamiturbo/)
++
++obj/sfc-hledsp1.o:         $(sfc)/chip/dsp1/dsp1.cpp $(sfc)/chip/dsp1/*
++obj/sfc-hledsp2.o:         $(sfc)/chip/dsp2/dsp2.cpp $(sfc)/chip/dsp2/*
++obj/sfc-hledsp3.o:         $(sfc)/chip/dsp3/dsp3.cpp $(sfc)/chip/dsp3/*
++obj/sfc-hledsp4.o:         $(sfc)/chip/dsp4/dsp4.cpp $(sfc)/chip/dsp4/*
++
++obj/sfc-hlecx4.o:          $(sfc)/chip/cx4/cx4.cpp $(sfc)/chip/cx4/*
++obj/sfc-hlest0010.o:       $(sfc)/chip/st0010/st0010.cpp $(sfc)/chip/st0010/*
+diff -ru higan_v094-source/sfc/memory/memory-inline.hpp bsneshle094/sfc/memory/memory-inline.hpp
+--- higan_v094-source/sfc/memory/memory-inline.hpp	2014-01-13 07:27:34.000000000 +0100
++++ bsneshle094/sfc/memory/memory-inline.hpp	2014-04-26 16:20:16.502065832 +0200
+@@ -73,14 +73,21 @@
+   return base;
+ }
+ 
+-unsigned Bus::reduce(unsigned addr, unsigned mask) {
+-  unsigned result = 0, length = 0;
+-  for(unsigned n = 0; n < 24; n++) {
+-    unsigned bit = 1 << n;
+-    if(mask & bit) continue;
+-    result |= (bool)(addr & bit) << length++;
+-  }
+-  return result;
++unsigned Bus::reduce(unsigned addr, unsigned mask)
++{
++	while (mask)
++	{
++		//extract the bits to keep
++		//set everything below the lowest set bit; 0x018000 -> 0x007FFF
++		unsigned tmp=((mask-1)&(~mask));
++		
++		//shift everything above that
++		addr=(addr&tmp)|((addr>>1)&~tmp);
++		
++		//adjust the mask
++		mask=(mask&(mask-1))>>1;
++	}
++	return addr;
+ }
+ 
+ uint8 Bus::read(unsigned addr) {
+diff -ru higan_v094-source/sfc/system/serialization.cpp bsneshle094/sfc/system/serialization.cpp
+--- higan_v094-source/sfc/system/serialization.cpp	2013-05-05 09:48:32.000000000 +0200
++++ bsneshle094/sfc/system/serialization.cpp	2014-04-26 16:20:16.502065832 +0200
+@@ -73,6 +73,10 @@
+   if(cartridge.has_hsu1()) hsu1.serialize(s);
+   if(cartridge.has_msu1()) msu1.serialize(s);
+   if(cartridge.has_st_slots()) sufamiturboA.serialize(s), sufamiturboB.serialize(s);
++  if(cartridge.has_dsp1()) dsp1.serialize(s);
++  if(cartridge.has_dsp2()) dsp2.serialize(s);
++  //if(cartridge.has_dsp3()) dsp3.serialize(s);
++  //if(cartridge.has_dsp4()) dsp4.serialize(s);
+ }
+ 
+ //perform dry-run state save:
+diff -ru higan_v094-source/sfc/system/system.cpp bsneshle094/sfc/system/system.cpp
+--- higan_v094-source/sfc/system/system.cpp	2014-01-13 07:06:55.000000000 +0100
++++ bsneshle094/sfc/system/system.cpp	2014-04-26 16:20:16.502065832 +0200
+@@ -82,6 +82,12 @@
+   hsu1.init();
+   msu1.init();
+   satellaviewcartridge.init();
++  dsp1.init();
++  dsp2.init();
++  dsp3.init();
++  dsp4.init();
++  cx4.init();
++  st0010.init();
+ 
+   video.init();
+   audio.init();
+@@ -94,6 +100,9 @@
+ }
+ 
+ void System::load() {
++#ifdef __LIBRETRO__
++  interface->loadRequest(ID::IPLROM, "");
++#else
+   string manifest = string::read({interface->path(ID::System), "manifest.bml"});
+   auto document = Markup::Document(manifest);
+ 
+@@ -101,6 +110,7 @@
+   if(!file::exists({interface->path(ID::System), document["system/smp/rom/name"].data})) {
+     interface->notify("Error: required Super Famicom firmware ipl.rom not found.\n");
+   }
++#endif
+ 
+   region = configuration.region;
+   expansion = configuration.expansion_port;
+@@ -138,6 +148,12 @@
+   if(cartridge.has_msu1()) msu1.load();
+   if(cartridge.has_bs_slot()) satellaviewcartridge.load();
+   if(cartridge.has_st_slots()) sufamiturboA.load(), sufamiturboB.load();
++  if(cartridge.has_dsp1()) dsp1.load();
++  if(cartridge.has_dsp2()) dsp2.load();
++  if(cartridge.has_dsp3()) dsp3.load();
++  if(cartridge.has_dsp4()) dsp4.load();
++  if(cartridge.has_cx4()) cx4.load();
++  if(cartridge.has_st0010()) st0010.load();
+ 
+   serialize_init();
+ }
+@@ -162,6 +178,12 @@
+   if(cartridge.has_msu1()) msu1.unload();
+   if(cartridge.has_bs_slot()) satellaviewcartridge.unload();
+   if(cartridge.has_st_slots()) sufamiturboA.unload(), sufamiturboB.unload();
++  if(cartridge.has_dsp1()) dsp1.unload();
++  if(cartridge.has_dsp2()) dsp2.unload();
++  if(cartridge.has_dsp3()) dsp3.unload();
++  if(cartridge.has_dsp4()) dsp4.unload();
++  if(cartridge.has_cx4()) cx4.unload();
++  if(cartridge.has_st0010()) st0010.unload();
+ }
+ 
+ void System::power() {
+@@ -190,6 +212,12 @@
+   if(cartridge.has_hsu1()) hsu1.power();
+   if(cartridge.has_msu1()) msu1.power();
+   if(cartridge.has_bs_slot()) satellaviewcartridge.power();
++  if(cartridge.has_dsp1()) dsp1.power();
++  if(cartridge.has_dsp2()) dsp2.power();
++  if(cartridge.has_dsp3()) dsp3.power();
++  if(cartridge.has_dsp4()) dsp4.power();
++  if(cartridge.has_cx4()) cx4.power();
++  if(cartridge.has_st0010()) st0010.power();
+ 
+   reset();
+ }
+@@ -231,6 +259,13 @@
+   if(cartridge.has_spc7110()) cpu.coprocessors.append(&spc7110);
+   if(cartridge.has_msu1()) cpu.coprocessors.append(&msu1);
+ 
++  if(cartridge.has_dsp1()) dsp1.reset();
++  if(cartridge.has_dsp2()) dsp2.reset();
++  if(cartridge.has_dsp3()) dsp3.reset();
++  if(cartridge.has_dsp4()) dsp4.reset();
++  if(cartridge.has_cx4()) cx4.reset();
++  if(cartridge.has_st0010()) st0010.reset();
++
+   scheduler.init();
+   input.connect(0, configuration.controller_port1);
+   input.connect(1, configuration.controller_port2);
 Only in bsneshle094/: target-libretro
