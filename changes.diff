@@ -272,11 +272,6 @@ diff -r higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
 < #if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__amd64__) || defined(_M_IX86) || defined(_M_AMD64)
 ---
 > #if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__ARM_EABI__) || defined(__arm__)
-diff -r higan_v094-source/nall/serializer.hpp bsneshle094/nall/serializer.hpp
-120c120
-<   serializer(serializer&& s) { operator=(std::move(s)); }
----
->   serializer(serializer&& s) { _data = nullptr; operator=(std::move(s)); }
 Only in bsneshle094/obj: .gitignore
 Only in bsneshle094/out: bsnes_libretro.so
 Only in bsneshle094/out: .gitignore
