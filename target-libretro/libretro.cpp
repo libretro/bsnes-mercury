@@ -143,7 +143,7 @@ struct Callbacks : Emulator::Interface::Bind {
 
   void saveRequest(unsigned id, string p) {
     if (manifest) {
-      fprintf(stderr, "[bSNES]: [Save]: ID %u, Request \"%s\".\n", id, (const char*)p);
+      fprintf(stderr, "[bsnes]: [Save]: ID %u, Request \"%s\".\n", id, (const char*)p);
       string save_path = {path(0), p};
       filestream stream(save_path, file::mode::write);
       iface->save(id, stream);
@@ -165,11 +165,11 @@ struct Callbacks : Emulator::Interface::Bind {
         mmapstream stream(load_path);
         iface->load(id, stream);
       } else {
-        fprintf(stderr, "[bSNES]: Cannot find requested file in system directory: \"%s\".\n", (const char*)load_path);
+        fprintf(stderr, "[bsnes]: Cannot find requested file in system directory: \"%s\".\n", (const char*)load_path);
         load_request_error = true;
       }
     } else {
-      fprintf(stderr, "[bSNES]: Cannot find requested file: \"%s\" in ROM directory nor system directory.\n", (const char*)p);
+      fprintf(stderr, "[bsnes]: Cannot find requested file: \"%s\" in ROM directory nor system directory.\n", (const char*)p);
       load_request_error = true;
     }
   }
@@ -200,7 +200,7 @@ struct Callbacks : Emulator::Interface::Bind {
   }
 
   void loadRequestManifest(unsigned id, const string& p) {
-    fprintf(stderr, "[bSNES]: [Manifest]: ID %u, Request \"%s\".\n", id, (const char*)p);
+    fprintf(stderr, "[bsnes]: [Manifest]: ID %u, Request \"%s\".\n", id, (const char*)p);
     switch(id) {
       case SuperFamicom::ID::IPLROM:
         loadIPLROM(id);
@@ -217,7 +217,7 @@ struct Callbacks : Emulator::Interface::Bind {
   }
 
   void loadRequestMemory(unsigned id, const string& p) {
-    fprintf(stderr, "[bSNES]: [Memory]: ID %u, Request \"%s\".\n", id, (const char*)p);
+    fprintf(stderr, "[bsnes]: [Memory]: ID %u, Request \"%s\".\n", id, (const char*)p);
     switch(id) {
       case SuperFamicom::ID::Manifest:
         loadManifest(id);
@@ -233,7 +233,7 @@ struct Callbacks : Emulator::Interface::Bind {
       case SuperFamicom::ID::SDD1ROM:
       case SuperFamicom::ID::HitachiDSPROM:
       case SuperFamicom::ID::SPC7110PROM:
-        fprintf(stderr, "[bSNES]: Load ROM.\n");
+        fprintf(stderr, "[bsnes]: Load ROM.\n");
         loadROM(id);
         break;
 
@@ -288,7 +288,7 @@ struct Callbacks : Emulator::Interface::Bind {
         break;
 
       default:
-        fprintf(stderr, "[bSNES]: Load BIOS.\n");
+        fprintf(stderr, "[bsnes]: Load BIOS.\n");
         loadFile(id, p);
         break;
     }
@@ -299,18 +299,18 @@ struct Callbacks : Emulator::Interface::Bind {
        loadRequestManifest(id, p);
     else
        loadRequestMemory(id, p);
-    fprintf(stderr, "[bSNES]: Complete load request.\n");
+    fprintf(stderr, "[bsnes]: Complete load request.\n");
   }
 
   void loadRequest(unsigned id, string p, string manifest) {
     switch (id) {
       case SuperFamicom::ID::SuperGameBoy:
-        fprintf(stderr, "[bSNES]: Loading GB ROM.\n");
+        fprintf(stderr, "[bsnes]: Loading GB ROM.\n");
         loadSGBROMManifest(id);
         break;
 
       default:
-        fprintf(stderr, "[bSNES]: Didn't do anything with loadRequest (3 arg).\n");
+        fprintf(stderr, "[bsnes]: Didn't do anything with loadRequest (3 arg).\n");
     }
   }
 
@@ -483,7 +483,7 @@ void retro_cheat_set(unsigned index, bool enable, const char *code) {
 
 void retro_get_system_info(struct retro_system_info *info) {
   static string version("v", Emulator::Version, " (", Emulator::Profile, ")");
-  info->library_name     = "bSNES";
+  info->library_name     = "bsnes";
   info->library_version  = version;
   info->valid_extensions = "sfc|smc|bml";
   info->need_fullpath    = false;
@@ -515,7 +515,7 @@ static bool snes_load_cartridge_normal(
   core_bind.rom_data = rom_data;
   core_bind.rom_size = rom_size;
   core_bind.xmlrom   = xmlrom;
-  fprintf(stderr, "[bSNES]: XML map:\n%s\n", (const char*)xmlrom);
+  fprintf(stderr, "[bsnes]: XML map:\n%s\n", (const char*)xmlrom);
   core_bind.iface->load(SuperFamicom::ID::SuperFamicom);
   SuperFamicom::system.power();
   return !core_bind.load_request_error;
@@ -581,8 +581,8 @@ static bool snes_load_cartridge_super_game_boy(
 ) {
   string xmlrom_sgb = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, false /* SGB can't be combined with HLE-able chips */).markup;
   string xmlrom_gb  = (dmg_xml && *dmg_xml) ? string(dmg_xml) : GameBoyCartridge((uint8_t*)dmg_data, dmg_size).markup;
-  fprintf(stderr, "[bSNES]: Markup SGB: %s\n", (const char*)xmlrom_sgb);
-  fprintf(stderr, "[bSNES]: Markup GB: %s\n", (const char*)xmlrom_gb);
+  fprintf(stderr, "[bsnes]: Markup SGB: %s\n", (const char*)xmlrom_sgb);
+  fprintf(stderr, "[bsnes]: Markup GB: %s\n", (const char*)xmlrom_gb);
 
   core_bind.rom_data    = rom_data;
   core_bind.rom_size    = rom_size;
@@ -742,7 +742,7 @@ size_t retro_get_memory_size(unsigned id) {
   switch(id) {
     case RETRO_MEMORY_SAVE_RAM:
       size = core_bind.sram_size;
-      fprintf(stderr, "[bSNES]: SRAM memory size: %u.\n", (unsigned)size);
+      fprintf(stderr, "[bsnes]: SRAM memory size: %u.\n", (unsigned)size);
       break;
     case RETRO_MEMORY_RTC:
       size = 0;
