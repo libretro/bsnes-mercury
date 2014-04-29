@@ -530,7 +530,7 @@ static bool snes_load_cartridge_normal(
   core_bind.rom_size = rom_size;
   core_bind.xmlrom   = xmlrom;
   output(RETRO_LOG_INFO, "XML map:\n");
-  char* xmlrom_c = xmlrom();
+  char* xmlrom_c = xmlrom.data();
   while (xmlrom_c)
   {
     char* xmlrom_linebreak=strchr(xmlrom_c, '\n');
