@@ -529,7 +529,17 @@ static bool snes_load_cartridge_normal(
   core_bind.rom_data = rom_data;
   core_bind.rom_size = rom_size;
   core_bind.xmlrom   = xmlrom;
-  output(RETRO_LOG_INFO, "XML map:\n%s\n", (const char*)xmlrom);
+  output(RETRO_LOG_INFO, "XML map:\n");
+  char* xmlrom_c = xmlrom();
+  while (xmlrom_c)
+  {
+    char* xmlrom_linebreak=strchr(xmlrom_c, '\n');
+    if (xmlrom_linebreak) *xmlrom_linebreak='\0';
+    if (*xmlrom_c) output(RETRO_LOG_INFO, "%s\n", xmlrom_c);
+    if (!xmlrom_linebreak) break;
+    *xmlrom_linebreak='\n';
+    xmlrom_c=xmlrom_linebreak+1;
+  }
   core_bind.iface->load(SuperFamicom::ID::SuperFamicom);
   SuperFamicom::system.power();
   return !core_bind.load_request_error;
