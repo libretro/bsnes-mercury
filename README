@@ -1,0 +1,7 @@
+bsnes-mercury
+-------------
+
+bsnes-mercury is a fork of higan, aiming to restore some useful features that have been removed.
+The main one is getting the interface sane, which is accomplished through libretro; however, HLE emulation of some special chips has also been restored, to improve performance.
+
+The name is because metals are shiny, like the accuracy promises of bsnes, and mercury is the fastest metal. It's also poisonous :)
