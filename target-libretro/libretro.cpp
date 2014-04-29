@@ -50,7 +50,7 @@ static void retro_log_default(enum retro_log_level level, const char *fmt, ...)
 {
   fprintf(stderr, "[bsnes]: ");
   va_list args;
-  va_start(args, format);
+  va_start(args, fmt);
   vfprintf(stderr, fmt, args);
   va_end(args);
 }
