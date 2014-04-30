@@ -179,7 +179,7 @@ struct Callbacks : Emulator::Interface::Bind {
         load_request_error = true;
       }
     } else {
-      output(RETRO_LOG_ERROR, "[bsnes]: Cannot find requested file: \"%s\" in ROM directory nor system directory.\n", (const char*)p);
+      output(RETRO_LOG_ERROR, "Cannot find requested file: \"%s\" in ROM directory nor system directory.\n", (const char*)p);
       load_request_error = true;
     }
   }
