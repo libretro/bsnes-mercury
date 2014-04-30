@@ -442,6 +442,7 @@ void retro_init(void) {
 void retro_deinit(void) {
   SuperFamicom::system.term();
   delete[] videodata;
+  videodata=NULL;
 }
 
 void retro_reset(void) {
