@@ -186,7 +186,61 @@ diff -ru higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
    #define ENDIAN_LSB
    Intrinsics::Endian Intrinsics::endian() { return Intrinsics::Endian::LSB; }
  #elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && __BYTE_ORDER == __BIG_ENDIAN) || defined(__BIG_ENDIAN__) || defined(__powerpc__) || defined(_M_PPC)
+Only in bsneshle094/obj: gb-apu.o
+Only in bsneshle094/obj: gb-cartridge.o
+Only in bsneshle094/obj: gb-cheat.o
+Only in bsneshle094/obj: gb-cpu.o
+Only in bsneshle094/obj: gb-interface.o
+Only in bsneshle094/obj: gb-memory.o
+Only in bsneshle094/obj: gb-ppu.o
+Only in bsneshle094/obj: gb-scheduler.o
+Only in bsneshle094/obj: gb-system.o
+Only in bsneshle094/obj: gb-video.o
 Only in bsneshle094/obj: .gitignore
+Only in bsneshle094/obj: libco.o
+Only in bsneshle094/obj: libretro.o
+Only in bsneshle094/obj: processor-arm.o
+Only in bsneshle094/obj: processor-gsu.o
+Only in bsneshle094/obj: processor-hg51b.o
+Only in bsneshle094/obj: processor-lr35902.o
+Only in bsneshle094/obj: processor-r65816.o
+Only in bsneshle094/obj: processor-spc700.o
+Only in bsneshle094/obj: processor-upd96050.o
+Only in bsneshle094/obj: sfc-armdsp.o
+Only in bsneshle094/obj: sfc-bsx.o
+Only in bsneshle094/obj: sfc-cartridge.o
+Only in bsneshle094/obj: sfc-cheat.o
+Only in bsneshle094/obj: sfc-controller.o
+Only in bsneshle094/obj: sfc-cpu.o
+Only in bsneshle094/obj: sfc-dsp.o
+Only in bsneshle094/obj: sfc-epsonrtc.o
+Only in bsneshle094/obj: sfc-event.o
+Only in bsneshle094/obj: sfc-hitachidsp.o
+Only in bsneshle094/obj: sfc-hlecx4.o
+Only in bsneshle094/obj: sfc-hledsp1.o
+Only in bsneshle094/obj: sfc-hledsp2.o
+Only in bsneshle094/obj: sfc-hledsp3.o
+Only in bsneshle094/obj: sfc-hledsp4.o
+Only in bsneshle094/obj: sfc-hlest0010.o
+Only in bsneshle094/obj: sfc-hsu1.o
+Only in bsneshle094/obj: sfc-icd2.o
+Only in bsneshle094/obj: sfc-interface.o
+Only in bsneshle094/obj: sfc-memory.o
+Only in bsneshle094/obj: sfc-msu1.o
+Only in bsneshle094/obj: sfc-necdsp.o
+Only in bsneshle094/obj: sfc-nss.o
+Only in bsneshle094/obj: sfc-obc1.o
+Only in bsneshle094/obj: sfc-ppu.o
+Only in bsneshle094/obj: sfc-sa1.o
+Only in bsneshle094/obj: sfc-satellaviewbase.o
+Only in bsneshle094/obj: sfc-satellaviewcart.o
+Only in bsneshle094/obj: sfc-sdd1.o
+Only in bsneshle094/obj: sfc-sharprtc.o
+Only in bsneshle094/obj: sfc-smp.o
+Only in bsneshle094/obj: sfc-spc7110.o
+Only in bsneshle094/obj: sfc-sufamiturbo.o
+Only in bsneshle094/obj: sfc-superfx.o
+Only in bsneshle094/obj: sfc-system.o
 Only in bsneshle094/out: bsnes_libretro.so
 Only in bsneshle094/out: callgrind.out.31807
 Only in bsneshle094/out: callgrind.out.32032
@@ -525,8 +579,8 @@ diff -ru higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
 +obj/sfc-hlest0010.o:       $(sfc)/chip/st0010/st0010.cpp $(sfc)/chip/st0010/*
 diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.cpp
 --- higan_v094-source/sfc/memory/memory.cpp	2013-05-05 09:29:50.000000000 +0200
-+++ bsneshle094/sfc/memory/memory.cpp	2014-05-03 22:44:55.283292562 +0200
-@@ -10,16 +10,48 @@
++++ bsneshle094/sfc/memory/memory.cpp	2014-05-04 00:00:37.171377829 +0200
+@@ -10,22 +10,55 @@
    const function<void (unsigned, uint8)>& writer,
    unsigned banklo, unsigned bankhi,
    unsigned addrlo, unsigned addrhi,
@@ -559,9 +613,17 @@ diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.c
    this->reader[id] = reader;
    this->writer[id] = writer;
  
-+  if (!(mask & (addrlo^addrhi)) && !size) {//TODO: allow fastpath if size is nonzero
+-  for(unsigned bank = banklo; bank <= bankhi; bank++) {
+-    for(unsigned addr = addrlo; addr <= addrhi; addr++) {
+-      unsigned offset = reduce(bank << 16 | addr, mask);
+-      if(size) offset = base + mirror(offset, size - base);
+-      lookup[bank << 16 | addr] = id;
+-      target[bank << 16 | addr] = offset;
++  if (!(mask & (addrlo^addrhi)) && size%(addrhi+1-addrlo)==0) {
++    //fastpath for common cases
 +    for(unsigned bank = banklo; bank <= bankhi; bank++) {
 +      unsigned offset = reduce(bank << 16 | addrlo, mask);
++      if (size) offset = base + mirror(offset, size - base);
 +      unsigned pos = (bank<<16 | addrlo);
 +      unsigned end = (bank<<16 | addrhi);
 +      while (pos <= end) {
@@ -570,13 +632,18 @@ diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.c
 +        pos++;
 +      }
 +    }
-+    return;
-+  }
-+
-   for(unsigned bank = banklo; bank <= bankhi; bank++) {
-     for(unsigned addr = addrlo; addr <= addrhi; addr++) {
-       unsigned offset = reduce(bank << 16 | addr, mask);
-@@ -51,7 +83,7 @@
++  } else {
++    for(unsigned bank = banklo; bank <= bankhi; bank++) {
++      for(unsigned addr = addrlo; addr <= addrhi; addr++) {
++        unsigned offset = reduce(bank << 16 | addr, mask);
++        if(size) offset = base + mirror(offset, size - base);
++        lookup[bank << 16 | addr] = id;
++        target[bank << 16 | addr] = offset;
++      }
+     }
+   }
+ }
+@@ -51,7 +84,7 @@
          unsigned bankhi = hex(bankpart(1, bankpart(0)));
          unsigned addrlo = hex(addrpart(0));
          unsigned addrhi = hex(addrpart(1, addrpart(0)));
