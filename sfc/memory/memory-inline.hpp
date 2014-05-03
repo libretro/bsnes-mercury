@@ -91,7 +91,9 @@ unsigned Bus::reduce(unsigned addr, unsigned mask)
 }
 
 uint8 Bus::read(unsigned addr) {
-  uint8 data = reader[lookup[addr]](target[addr]);
+  uint8 data;
+  if (fast_read[addr>>fast_page_size_bits]) data = fast_read[addr>>fast_page_size_bits][addr];
+  else data = reader[lookup[addr]](target[addr]);
 
   if(cheat.enable()) {
     if(auto result = cheat.find(addr, data)) return result();
@@ -101,5 +103,6 @@ uint8 Bus::read(unsigned addr) {
 }
 
 void Bus::write(unsigned addr, uint8 data) {
-  return writer[lookup[addr]](target[addr], data);
+  if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data;
+  else writer[lookup[addr]](target[addr], data);
 }
