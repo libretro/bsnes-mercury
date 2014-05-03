@@ -186,64 +186,8 @@ diff -ru higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
    #define ENDIAN_LSB
    Intrinsics::Endian Intrinsics::endian() { return Intrinsics::Endian::LSB; }
  #elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && __BYTE_ORDER == __BIG_ENDIAN) || defined(__BIG_ENDIAN__) || defined(__powerpc__) || defined(_M_PPC)
-Only in bsneshle094/obj: gb-apu.o
-Only in bsneshle094/obj: gb-cartridge.o
-Only in bsneshle094/obj: gb-cheat.o
-Only in bsneshle094/obj: gb-cpu.o
-Only in bsneshle094/obj: gb-interface.o
-Only in bsneshle094/obj: gb-memory.o
-Only in bsneshle094/obj: gb-ppu.o
-Only in bsneshle094/obj: gb-scheduler.o
-Only in bsneshle094/obj: gb-system.o
-Only in bsneshle094/obj: gb-video.o
 Only in bsneshle094/obj: .gitignore
-Only in bsneshle094/obj: libco.o
-Only in bsneshle094/obj: libretro.o
-Only in bsneshle094/obj: processor-arm.o
-Only in bsneshle094/obj: processor-gsu.o
-Only in bsneshle094/obj: processor-hg51b.o
-Only in bsneshle094/obj: processor-lr35902.o
-Only in bsneshle094/obj: processor-r65816.o
-Only in bsneshle094/obj: processor-spc700.o
-Only in bsneshle094/obj: processor-upd96050.o
-Only in bsneshle094/obj: sfc-armdsp.o
-Only in bsneshle094/obj: sfc-bsx.o
-Only in bsneshle094/obj: sfc-cartridge.o
-Only in bsneshle094/obj: sfc-cheat.o
-Only in bsneshle094/obj: sfc-controller.o
-Only in bsneshle094/obj: sfc-cpu.o
-Only in bsneshle094/obj: sfc-dsp.o
-Only in bsneshle094/obj: sfc-epsonrtc.o
-Only in bsneshle094/obj: sfc-event.o
-Only in bsneshle094/obj: sfc-hitachidsp.o
-Only in bsneshle094/obj: sfc-hlecx4.o
-Only in bsneshle094/obj: sfc-hledsp1.o
-Only in bsneshle094/obj: sfc-hledsp2.o
-Only in bsneshle094/obj: sfc-hledsp3.o
-Only in bsneshle094/obj: sfc-hledsp4.o
-Only in bsneshle094/obj: sfc-hlest0010.o
-Only in bsneshle094/obj: sfc-hsu1.o
-Only in bsneshle094/obj: sfc-icd2.o
-Only in bsneshle094/obj: sfc-interface.o
-Only in bsneshle094/obj: sfc-memory.o
-Only in bsneshle094/obj: sfc-msu1.o
-Only in bsneshle094/obj: sfc-necdsp.o
-Only in bsneshle094/obj: sfc-nss.o
-Only in bsneshle094/obj: sfc-obc1.o
-Only in bsneshle094/obj: sfc-ppu.o
-Only in bsneshle094/obj: sfc-sa1.o
-Only in bsneshle094/obj: sfc-satellaviewbase.o
-Only in bsneshle094/obj: sfc-satellaviewcart.o
-Only in bsneshle094/obj: sfc-sdd1.o
-Only in bsneshle094/obj: sfc-sharprtc.o
-Only in bsneshle094/obj: sfc-smp.o
-Only in bsneshle094/obj: sfc-spc7110.o
-Only in bsneshle094/obj: sfc-sufamiturbo.o
-Only in bsneshle094/obj: sfc-superfx.o
-Only in bsneshle094/obj: sfc-system.o
-Only in bsneshle094/out: bb
 Only in bsneshle094/out: bsnes_libretro.so
-Only in bsneshle094/out: e.log
 Only in bsneshle094/out: .gitignore
 Only in bsneshle094/: README
 diff -ru higan_v094-source/sfc/alt/cpu/cpu.cpp bsneshle094/sfc/alt/cpu/cpu.cpp
@@ -552,7 +496,7 @@ diff -ru higan_v094-source/sfc/interface/interface.hpp bsneshle094/sfc/interface
    void save(unsigned id, const stream& stream);
 diff -ru higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
 --- higan_v094-source/sfc/Makefile	2013-01-23 00:07:55.000000000 +0100
-+++ bsneshle094/sfc/Makefile	2014-04-26 16:20:16.502065832 +0200
++++ bsneshle094/sfc/Makefile	2014-05-03 21:21:27.859198554 +0200
 @@ -9,6 +9,8 @@
  sfc_objects += sfc-spc7110 sfc-sdd1 sfc-obc1
  sfc_objects += sfc-hsu1 sfc-msu1
@@ -576,8 +520,8 @@ diff -ru higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
 +obj/sfc-hlest0010.o:       $(sfc)/chip/st0010/st0010.cpp $(sfc)/chip/st0010/*
 diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.cpp
 --- higan_v094-source/sfc/memory/memory.cpp	2013-05-05 09:29:50.000000000 +0200
-+++ bsneshle094/sfc/memory/memory.cpp	2014-05-03 21:13:51.223189981 +0200
-@@ -10,16 +10,58 @@
++++ bsneshle094/sfc/memory/memory.cpp	2014-05-03 22:09:41.391252876 +0200
+@@ -10,16 +10,48 @@
    const function<void (unsigned, uint8)>& writer,
    unsigned banklo, unsigned bankhi,
    unsigned addrlo, unsigned addrhi,
@@ -589,7 +533,7 @@ diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.c
    assert(addrlo <= addrhi && addrlo <= 0xffff);
    assert(idcount < 255);
  
-+  bool do_fast=(size%(addrhi+1-addrlo)==0 && !((mask|addrlo|size)&fast_page_size_mask));
++  bool do_fast=(size%(addrhi+1-addrlo)==0 && !((mask|addrlo|addrhi|size)&fast_page_size_mask));
 +  bool do_fast_read =(fastmode!=Cartridge::Mapping::fastmode_slow      && do_fast);
 +  bool do_fast_write=(fastmode==Cartridge::Mapping::fastmode_readwrite && do_fast);
 +  for(unsigned bank = banklo; bank <= bankhi; bank++) {
@@ -603,16 +547,6 @@ diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.c
 +      else fast_read[fastoffset] = NULL;
 +      if(do_fast_write) fast_write[fastoffset] = fastptr - origpos + accesspos;
 +      else fast_write[fastoffset] = NULL;
-+    }
-+    if (addrlo&fast_page_size_mask)
-+    {
-+      fast_read[(bank<<16|addrlo)>>fast_page_size_bits] = NULL;
-+      fast_write[(bank<<16|addrlo)>>fast_page_size_bits] = NULL;
-+    }
-+    if ((addrhi+1)&fast_page_size_mask)
-+    {
-+      fast_read[(bank<<16|addrhi)>>fast_page_size_bits] = NULL;
-+      fast_write[(bank<<16|addrhi)>>fast_page_size_bits] = NULL;
 +    }
 +  }
 +
@@ -637,7 +571,7 @@ diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.c
    for(unsigned bank = banklo; bank <= bankhi; bank++) {
      for(unsigned addr = addrlo; addr <= addrhi; addr++) {
        unsigned offset = reduce(bank << 16 | addr, mask);
-@@ -51,7 +93,7 @@
+@@ -51,7 +83,7 @@
          unsigned bankhi = hex(bankpart(1, bankpart(0)));
          unsigned addrlo = hex(addrpart(0));
          unsigned addrhi = hex(addrpart(1, addrpart(0)));
@@ -646,7 +580,7 @@ diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.c
        }
      }
    }
-@@ -60,11 +102,17 @@
+@@ -60,11 +92,17 @@
  Bus::Bus() {
    lookup = new uint8 [16 * 1024 * 1024];
    target = new uint32[16 * 1024 * 1024];
@@ -713,7 +647,7 @@ diff -ru higan_v094-source/sfc/memory/memory.hpp bsneshle094/sfc/memory/memory.h
    void map_reset();
 diff -ru higan_v094-source/sfc/memory/memory-inline.hpp bsneshle094/sfc/memory/memory-inline.hpp
 --- higan_v094-source/sfc/memory/memory-inline.hpp	2014-01-13 07:27:34.000000000 +0100
-+++ bsneshle094/sfc/memory/memory-inline.hpp	2014-05-03 21:13:37.911189732 +0200
++++ bsneshle094/sfc/memory/memory-inline.hpp	2014-05-03 21:20:55.731197951 +0200
 @@ -6,6 +6,7 @@
  
  uint8* StaticRAM::data() { return data_; }
@@ -771,7 +705,7 @@ diff -ru higan_v094-source/sfc/memory/memory-inline.hpp bsneshle094/sfc/memory/m
  
  void Bus::write(unsigned addr, uint8 data) {
 -  return writer[lookup[addr]](target[addr], data);
-+  if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data, cache_hits++;
++  if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data;
 +  else writer[lookup[addr]](target[addr], data);
  }
 diff -ru higan_v094-source/sfc/system/serialization.cpp bsneshle094/sfc/system/serialization.cpp
