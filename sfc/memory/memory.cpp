@@ -39,6 +39,7 @@ void Bus::map(
   this->writer[id] = writer;
 
   if (!(mask & (addrlo^addrhi)) && size%(addrhi+1-addrlo)==0) {
+    //fastpath for common cases
     for(unsigned bank = banklo; bank <= bankhi; bank++) {
       unsigned offset = reduce(bank << 16 | addrlo, mask);
       if (size) offset = base + mirror(offset, size - base);
@@ -50,15 +51,14 @@ void Bus::map(
         pos++;
       }
     }
-    return;
-  }
-
-  for(unsigned bank = banklo; bank <= bankhi; bank++) {
-    for(unsigned addr = addrlo; addr <= addrhi; addr++) {
-      unsigned offset = reduce(bank << 16 | addr, mask);
-      if(size) offset = base + mirror(offset, size - base);
-      lookup[bank << 16 | addr] = id;
-      target[bank << 16 | addr] = offset;
+  } else {
+    for(unsigned bank = banklo; bank <= bankhi; bank++) {
+      for(unsigned addr = addrlo; addr <= addrhi; addr++) {
+        unsigned offset = reduce(bank << 16 | addr, mask);
+        if(size) offset = base + mirror(offset, size - base);
+        lookup[bank << 16 | addr] = id;
+        target[bank << 16 | addr] = offset;
+      }
     }
   }
 }
