@@ -9,12 +9,11 @@ Changes to upstream:
 - Another change is the restoration of HLE emulation of some special chips, to improve performance and reduce reliance on those chip ROMs (they're not really easy to find).
 - A seven-line function in sfc/memory/memory-inline.hpp was replaced, which speeds up ROM load by roughly a factor 6 (1.2s -> 0.2s). As far as I know, an equivalent change is also included in bsnes v095.
 - The ROM checksum is not calculated under libretro. This lowers ROM load time by 6-20% depending on the ROM size.
-- A section in sfc/memory/memory.cpp was specialized for the common, easy, case. While this only speeds up ROM loading by about 7% out of 120ms, it trims off 30% of 4700ms under Valgrind.
+- A section in sfc/memory/memory.cpp was specialized for the common, easy, case. This speeds up ROM load time by about a third.
 - A fast path was added to various parts of the CPU bus, improving framerate by about 2.5%.
-- 'inline' was added to a lot of things. Framerate went up about 20% from the PPU alone!
+- 'inline' was added all across the PPU subclasses. Framerate went up by 20% from such a trivial change! (Spamming inline elsewhere does little if anything, so it wasn't done.)
 
 Todo list:
-- Spam alwaysinline across the PPU, and other components. If memory serves, that gave a nice speed boost on v082; probably still does.
 - Is the compat core's DSP identical to that of the accuracy core, but a bit faster?
 
 The name is because metals are shiny, like the accuracy promises of bsnes, and mercury is the fastest metal. And like byuu's constantly changing interfaces, mercury is harmful to your brain :)
