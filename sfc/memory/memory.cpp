@@ -20,6 +20,20 @@ void Bus::map(
   this->reader[id] = reader;
   this->writer[id] = writer;
 
+  if (!(mask & (addrlo^addrhi)) && !size) {
+    for(unsigned bank = banklo; bank <= bankhi; bank++) {
+      unsigned offset = reduce(bank << 16 | addrlo, mask);
+      unsigned pos = (bank<<16 | addrlo);
+      unsigned end = (bank<<16 | addrhi);
+      while (pos <= end) {
+        lookup[pos] = id;
+        target[pos] = offset++;
+        pos++;
+      }
+    }
+    return;
+  }
+
   for(unsigned bank = banklo; bank <= bankhi; bank++) {
     for(unsigned addr = addrlo; addr <= addrhi; addr++) {
       unsigned offset = reduce(bank << 16 | addr, mask);
