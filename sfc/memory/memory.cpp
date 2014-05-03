@@ -17,7 +17,7 @@ void Bus::map(
   assert(addrlo <= addrhi && addrlo <= 0xffff);
   assert(idcount < 255);
 
-  bool do_fast=(size%(addrhi+1-addrlo)==0 && !((mask|addrlo|size)&fast_page_size_mask));
+  bool do_fast=(size%(addrhi+1-addrlo)==0 && !((mask|addrlo|addrhi|size)&fast_page_size_mask));
   bool do_fast_read =(fastmode!=Cartridge::Mapping::fastmode_slow      && do_fast);
   bool do_fast_write=(fastmode==Cartridge::Mapping::fastmode_readwrite && do_fast);
   for(unsigned bank = banklo; bank <= bankhi; bank++) {
@@ -31,16 +31,6 @@ void Bus::map(
       else fast_read[fastoffset] = NULL;
       if(do_fast_write) fast_write[fastoffset] = fastptr - origpos + accesspos;
       else fast_write[fastoffset] = NULL;
-    }
-    if (addrlo&fast_page_size_mask)
-    {
-      fast_read[(bank<<16|addrlo)>>fast_page_size_bits] = NULL;
-      fast_write[(bank<<16|addrlo)>>fast_page_size_bits] = NULL;
-    }
-    if ((addrhi+1)&fast_page_size_mask)
-    {
-      fast_read[(bank<<16|addrhi)>>fast_page_size_bits] = NULL;
-      fast_write[(bank<<16|addrhi)>>fast_page_size_bits] = NULL;
     }
   }
 
