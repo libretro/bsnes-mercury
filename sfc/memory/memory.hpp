@@ -51,6 +51,9 @@ struct Bus {
 
   uint8* lookup;
   uint32* target;
+  uint8** fast_read;
+  uint8** fast_write;
+  uint8* fast_write_discard;
 
   unsigned idcount;
   function<uint8 (unsigned)> reader[256];
