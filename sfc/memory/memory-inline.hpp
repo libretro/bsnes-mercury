@@ -105,6 +105,6 @@ uint8 Bus::read(unsigned addr) {
 }
 
 void Bus::write(unsigned addr, uint8 data) {
-  if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data, cache_hits++;
+  if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data;
   else writer[lookup[addr]](target[addr], data);
 }
