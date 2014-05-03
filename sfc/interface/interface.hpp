@@ -96,7 +96,7 @@ struct Interface : Emulator::Interface {
   bool loaded();
   string sha256();
   unsigned group(unsigned id);
-  void load(unsigned id);
+  void load(unsigned id, bool hlechips);
   void save();
   void load(unsigned id, const stream& stream);
   void save(unsigned id, const stream& stream);

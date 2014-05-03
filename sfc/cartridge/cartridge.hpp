@@ -86,7 +86,7 @@ struct Cartridge : property<Cartridge> {
 
   string title();
 
-  void load();
+  void load(bool);
   void unload();
 
   void serialize(serializer&);
@@ -99,7 +99,7 @@ private:
   void load_sufami_turbo_a();
   void load_sufami_turbo_b();
 
-  void parse_markup(const char*);
+  void parse_markup(const char*, bool);
   void parse_markup_map(Mapping&, Markup::Node);
   void parse_markup_memory(MappedRAM&, Markup::Node, unsigned id, bool writable);
 
@@ -122,9 +122,9 @@ private:
   void parse_markup_obc1(Markup::Node);
   void parse_markup_hsu1(Markup::Node);
   void parse_markup_msu1(Markup::Node);
-  void parse_markup_hledsp(Markup::Node);
-  void parse_markup_hlecx4(Markup::Node);
-  void parse_markup_hlest0010(Markup::Node);
+  
+  void parse_markup_hitachidsp_hle(Markup::Node);
+  void parse_markup_necdsp_hle(Markup::Node);
 
   friend class Interface;
 };

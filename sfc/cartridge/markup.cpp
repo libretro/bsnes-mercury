@@ -1,6 +1,7 @@
 #ifdef CARTRIDGE_CPP
 
-void Cartridge::parse_markup(const char* markup) {
+void Cartridge::parse_markup(const char* markup, bool hlechips) {
+hlechips=true;
   auto document = Markup::Document(markup);
   information.title.cartridge = document["information/title"].text();
 
@@ -19,8 +20,16 @@ void Cartridge::parse_markup(const char* markup) {
   parse_markup_sa1(cartridge["sa1"]);
   parse_markup_superfx(cartridge["superfx"]);
   parse_markup_armdsp(cartridge["armdsp"]);
-  parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
-  parse_markup_necdsp(cartridge["necdsp"]);
+  if (!hlechips)
+  {
+    parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
+    parse_markup_necdsp(cartridge["necdsp"]);
+  }
+  else
+  {
+    parse_markup_hitachidsp_hle(cartridge["hitachidsp"]);
+    parse_markup_necdsp_hle(cartridge["necdsp"]);
+  }
   parse_markup_epsonrtc(cartridge["epsonrtc"]);
   parse_markup_sharprtc(cartridge["sharprtc"]);
   parse_markup_spc7110(cartridge["spc7110"]);
@@ -28,9 +37,6 @@ void Cartridge::parse_markup(const char* markup) {
   parse_markup_obc1(cartridge["obc1"]);
   parse_markup_hsu1(cartridge["hsu1"]);
   parse_markup_msu1(cartridge["msu1"]);
-  parse_markup_hledsp(cartridge["hledsp"]);
-  parse_markup_hlecx4(cartridge["hlecx4"]);
-  parse_markup_hlest0010(cartridge["hlest0010"]);
 }
 
 //
@@ -589,68 +595,68 @@ void Cartridge::parse_markup_msu1(Markup::Node root) {
   }
 }
 
-void Cartridge::parse_markup_hledsp(Markup::Node root) {
+void Cartridge::parse_markup_hitachidsp_hle(Markup::Node root) {
   if(root.exists() == false) return;
 
-  string revision = root["model"].data;
+  parse_markup_cartridge(root);
 
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "io") {
-      if(revision == "DSP-1") {
-        has_dsp1 = true;
-        Mapping m({&DSP1::read, &dsp1}, {&DSP1::write, &dsp1});
-        parse_markup_map(m, node);
-        mapping.append(m);
-        dsp1.Select = numeral(node["select"].data);
-      }
-      if(revision == "DSP-2") {
-        has_dsp2 = true;
-        Mapping m({&DSP2::read, &dsp2}, {&DSP2::write, &dsp2});
-        parse_markup_map(m, node);
-        mapping.append(m);
-        dsp2.Select = numeral(node["select"].data);
-      }
-      if(revision == "DSP-3") {
-        has_dsp3 = true;
-        Mapping m({&DSP3::read, &dsp3}, {&DSP3::write, &dsp3});
-        parse_markup_map(m, node);
-        mapping.append(m);
-      }
-      if(revision == "DSP-4") {
-        has_dsp4 = true;
-        Mapping m({&DSP4::read, &dsp4}, {&DSP4::write, &dsp4});
-        parse_markup_map(m, node);
-        mapping.append(m);
-      }
-    }
-  }
-}
-
-void Cartridge::parse_markup_hlecx4(Markup::Node root) {
-  if(root.exists() == false) return;
-  
   has_cx4 = true;
-  
   for(auto& node : root) {
-    if(node.name != "map") continue;
+    if(node.name != "map" || node["id"].data != "io") continue;
     Mapping m({&Cx4::read, &cx4}, {&Cx4::write, &cx4});
     parse_markup_map(m, node);
     mapping.append(m);
   }
 }
 
-void Cartridge::parse_markup_hlest0010(Markup::Node root) {
+void Cartridge::parse_markup_necdsp_hle(Markup::Node root) {
   if(root.exists() == false) return;
-  
-  has_st0010 = true;
-  
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-    Mapping m({&ST0010::read, &st0010}, {&ST0010::write, &st0010});
-    parse_markup_map(m, node);
+
+  if (root["model"].data == "uPD7725") {
+    Mapping m;
+    unsigned int select=0;
+    unsigned int * selectaddr=NULL;
+    for(auto& node : root) {
+      if (node.name == "rom" && node["id"].data == "program") {
+        if (node["name"].data == "dsp1.program.rom" || node["name"].data == "dsp1b.program.rom") {
+          has_dsp1 = true;
+          m.reader = {&DSP1::read, &dsp1};
+          m.writer = {&DSP1::write, &dsp1};
+          selectaddr = &dsp1.Select;
+        }
+        if (node["name"].data == "dsp2.program.rom") {
+          has_dsp2 = true;
+          m.reader = {&DSP2::read, &dsp2};
+          m.writer = {&DSP2::write, &dsp2};
+          selectaddr = &dsp2.Select;
+        }
+        if (node["name"].data == "dsp3.program.rom") {
+          has_dsp3 = true;
+          m.reader = {&DSP3::read, &dsp3};
+          m.writer = {&DSP3::write, &dsp3};
+          //some of the chips hardcode the Select value
+        }
+        if (node["name"].data == "dsp4.program.rom") {
+          has_dsp4 = true;
+          m.reader = {&DSP4::read, &dsp4};
+          m.writer = {&DSP4::write, &dsp4};
+        }
+      }
+      if (node.name == "map" && node["id"].data == "io") {
+        parse_markup_map(m, node);
+        select = numeral(node["select"].data);
+      }
+    }
+    if (selectaddr) *selectaddr=select;
     mapping.append(m);
+  } else {
+    Mapping m({&ST0010::read, &st0010}, {&ST0010::write, &st0010});
+    for(auto& node : root) {
+      if(node.name != "map") continue;
+
+      parse_markup_map(m, node);
+      mapping.append(m);
+    }
   }
 }
 

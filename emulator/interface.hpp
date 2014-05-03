@@ -85,7 +85,7 @@ struct Interface {
   virtual bool loaded() { return false; }
   virtual string sha256() { return ""; }
   virtual unsigned group(unsigned id) = 0;
-  virtual void load(unsigned id) {}
+  virtual void load(unsigned id, bool hlechips=false) {}
   virtual void save() {}
   virtual void load(unsigned id, const stream& memory) {}
   virtual void save(unsigned id, const stream& memory) {}

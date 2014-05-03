@@ -525,7 +525,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
 static bool snes_load_cartridge_normal(
   const char *rom_xml, const uint8_t *rom_data, unsigned rom_size, bool special_chip_hle
 ) {
-  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, special_chip_hle).markup;
+  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
 
   core_bind.rom_data = rom_data;
   core_bind.rom_size = rom_size;
@@ -541,7 +541,7 @@ static bool snes_load_cartridge_normal(
     *xmlrom_linebreak='\n';
     xmlrom_c=xmlrom_linebreak+1;
   }
-  core_bind.iface->load(SuperFamicom::ID::SuperFamicom);
+  core_bind.iface->load(SuperFamicom::ID::SuperFamicom, special_chip_hle);
   SuperFamicom::system.power();
   return !core_bind.load_request_error;
 }
@@ -604,7 +604,7 @@ static bool snes_load_cartridge_super_game_boy(
   const char *rom_xml, const uint8_t *rom_data, unsigned rom_size,
   const char *dmg_xml, const uint8_t *dmg_data, unsigned dmg_size
 ) {
-  string xmlrom_sgb = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, false /* SGB can't be combined with HLE-able chips */).markup;
+  string xmlrom_sgb = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
   string xmlrom_gb  = (dmg_xml && *dmg_xml) ? string(dmg_xml) : GameBoyCartridge((uint8_t*)dmg_data, dmg_size).markup;
   output(RETRO_LOG_INFO, "Markup SGB: %s\n", (const char*)xmlrom_sgb);
   output(RETRO_LOG_INFO, "Markup GB: %s\n", (const char*)xmlrom_gb);
