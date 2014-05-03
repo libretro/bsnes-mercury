@@ -65,8 +65,6 @@ struct Bus {
   const uint32 fast_page_size_mask = (fast_page_size - 1);
   uint8** fast_read;
   uint8** fast_write;
-//uint32 cache_hits;
-//uint32 cache_misses;
 
   void map(
     const function<uint8 (unsigned)>& reader,

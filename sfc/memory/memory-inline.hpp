@@ -93,20 +93,9 @@ unsigned Bus::reduce(unsigned addr, unsigned mask)
 }
 
 uint8 Bus::read(unsigned addr) {
-  //if (fast_read[addr>>fast_page_size_bits])
-  //{
-    //uint8 data1=fast_read[addr>>fast_page_size_bits][addr];
-    //uint8 data2=reader[lookup[addr]](target[addr]);
-    //if (data1!=data2)
-    //{
-      //puts("halp");
-      //reader[lookup[addr]](target[addr]);
-    //}
-  //}
-  //
   uint8 data;
-  if (fast_read[addr>>fast_page_size_bits]) data = fast_read[addr>>fast_page_size_bits][addr]/*, cache_hits++*/;
-  else data = reader[lookup[addr]](target[addr])/*, cache_misses++*/;
+  if (fast_read[addr>>fast_page_size_bits]) data = fast_read[addr>>fast_page_size_bits][addr];
+  else data = reader[lookup[addr]](target[addr]);
 
   if(cheat.enable()) {
     if(auto result = cheat.find(addr, data)) return result();
@@ -116,6 +105,6 @@ uint8 Bus::read(unsigned addr) {
 }
 
 void Bus::write(unsigned addr, uint8 data) {
-  if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data/*, cache_hits++*/;
-  else writer[lookup[addr]](target[addr], data)/*, cache_misses++*/;
+  if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data, cache_hits++;
+  else writer[lookup[addr]](target[addr], data);
 }

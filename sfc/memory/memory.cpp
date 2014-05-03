@@ -20,11 +20,6 @@ void Bus::map(
   bool do_fast=(size%(addrhi+1-addrlo)==0 && !((mask|addrlo|size)&fast_page_size_mask));
   bool do_fast_read =(fastmode!=Cartridge::Mapping::fastmode_slow      && do_fast);
   bool do_fast_write=(fastmode==Cartridge::Mapping::fastmode_readwrite && do_fast);
-do_fast_write=false;
-//printf("(%i%%%i=%i ", size,addrhi+1-addrlo,size%(addrhi+1-addrlo));
-//printf("%i ", (mask|addrlo|size)&fast_page_size_mask);
-//printf("%i %i%i)",fastmode,do_fast_read,do_fast_write);
-
   for(unsigned bank = banklo; bank <= bankhi; bank++) {
     for(unsigned addr = addrlo&~fast_page_size_mask; addr<=addrhi; addr+=fast_page_size) {
       unsigned origpos = (bank << 16 | addr);
@@ -36,18 +31,6 @@ do_fast_write=false;
       else fast_read[fastoffset] = NULL;
       if(do_fast_write) fast_write[fastoffset] = fastptr - origpos + accesspos;
       else fast_write[fastoffset] = NULL;
-
-//if(fast_read[fastoffset]){
-//unsigned offset = reduce(bank << 16 | addr, mask);
-//if(size) offset = base + mirror(offset, size - base);
-//uint8 test1=reader(offset);
-//uint8 test2=fast_read[fastoffset][origpos];
-//if(test1!=test2)
-//{
-  //puts("halp");
-  //reader(offset);
-  //exit(0);
-//}}
     }
     if (addrlo&fast_page_size_mask)
     {
@@ -122,8 +105,6 @@ Bus::Bus() {
 
   fast_read  = new uint8*[16*1024*1024/fast_page_size];
   fast_write = new uint8*[16*1024*1024/fast_page_size];
-//cache_hits=0;
-//cache_misses=0;
 }
 
 Bus::~Bus() {
@@ -132,7 +113,6 @@ Bus::~Bus() {
 
   delete[] fast_read;
   delete[] fast_write;
-//printf("%u hits, %u misses\n",cache_hits,cache_misses);
 }
 
 }
