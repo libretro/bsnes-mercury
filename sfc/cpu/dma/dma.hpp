@@ -51,29 +51,29 @@ struct {
   uint8 data;
 } pipe;
 
-inline void dma_add_clocks(unsigned clocks);
-inline bool dma_transfer_valid(uint8 bbus, uint32 abus);
-inline bool dma_addr_valid(uint32 abus);
-inline uint8 dma_read(uint32 abus);
-inline void dma_write(bool valid, unsigned addr = 0, uint8 data = 0);
-inline void dma_transfer(bool direction, uint8 bbus, uint32 abus);
+void dma_add_clocks(unsigned clocks);
+bool dma_transfer_valid(uint8 bbus, uint32 abus);
+bool dma_addr_valid(uint32 abus);
+uint8 dma_read(uint32 abus);
+void dma_write(bool valid, unsigned addr = 0, uint8 data = 0);
+void dma_transfer(bool direction, uint8 bbus, uint32 abus);
 
-inline uint8 dma_bbus(unsigned i, unsigned channel);
-inline uint32 dma_addr(unsigned i);
-inline uint32 hdma_addr(unsigned i);
-inline uint32 hdma_iaddr(unsigned i);
+uint8 dma_bbus(unsigned i, unsigned channel);
+uint32 dma_addr(unsigned i);
+uint32 hdma_addr(unsigned i);
+uint32 hdma_iaddr(unsigned i);
 
-inline uint8 dma_enabled_channels();
-inline bool hdma_active(unsigned i);
-inline bool hdma_active_after(unsigned i);
-inline uint8 hdma_enabled_channels();
-inline uint8 hdma_active_channels();
+uint8 dma_enabled_channels();
+bool hdma_active(unsigned i);
+bool hdma_active_after(unsigned i);
+uint8 hdma_enabled_channels();
+uint8 hdma_active_channels();
 
-inline void dma_run();
-inline void hdma_update(unsigned i);
-inline void hdma_run();
-inline void hdma_init_reset();
-inline void hdma_init();
+void dma_run();
+void hdma_update(unsigned i);
+void hdma_run();
+void hdma_init_reset();
+void hdma_init();
 
-inline void dma_power();
-inline void dma_reset();
+void dma_power();
+void dma_reset();
