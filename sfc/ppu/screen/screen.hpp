@@ -29,19 +29,19 @@ struct Screen {
     bool color_halve;
   } math;
 
-  void scanline();
-  void run();
-  void reset();
+  inline void scanline();
+  inline void run();
+  inline void reset();
 
-  uint16 get_pixel_sub(bool hires);
-  uint16 get_pixel_main();
-  uint16 addsub(unsigned x, unsigned y);
-  uint16 get_color(unsigned palette);
-  uint16 get_direct_color(unsigned palette, unsigned tile);
-  uint16 fixed_color() const;
+  inline uint16 get_pixel_sub(bool hires);
+  inline uint16 get_pixel_main();
+  inline uint16 addsub(unsigned x, unsigned y);
+  inline uint16 get_color(unsigned palette);
+  inline uint16 get_direct_color(unsigned palette, unsigned tile);
+  inline uint16 fixed_color() const;
 
-  void serialize(serializer&);
-  Screen(PPU& self);
+  inline void serialize(serializer&);
+  inline Screen(PPU& self);
 
   PPU& self;
   friend class PPU;

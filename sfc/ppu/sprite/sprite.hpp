@@ -60,22 +60,22 @@ struct Sprite {
   } output;
 
   //list.cpp
-  void update(unsigned addr, uint8 data);
-  void synchronize();
+  inline void update(unsigned addr, uint8 data);
+  inline void synchronize();
 
   //sprite.cpp
-  void address_reset();
-  void set_first_sprite();
-  void frame();
-  void scanline();
-  void run();
-  void tilefetch();
-  void reset();
+  inline void address_reset();
+  inline void set_first_sprite();
+  inline void frame();
+  inline void scanline();
+  inline void run();
+  inline void tilefetch();
+  inline void reset();
 
-  bool on_scanline(SpriteItem&);
+  inline bool on_scanline(SpriteItem&);
 
-  void serialize(serializer&);
-  Sprite(PPU& self);
+  inline void serialize(serializer&);
+  inline Sprite(PPU& self);
 
   PPU& self;
   friend class PPU;

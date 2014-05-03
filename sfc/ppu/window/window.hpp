@@ -69,19 +69,19 @@ struct Window {
     bool two;
   };
 
-  void scanline();
-  void run();
-  void reset();
+  inline void scanline();
+  inline void run();
+  inline void reset();
 
-  void test(
+  inline void test(
     bool& main, bool& sub,
     bool one_enable, bool one_invert,
     bool two_enable, bool two_invert,
     uint8 mask, bool main_enable, bool sub_enable
   );
 
-  void serialize(serializer&);
-  Window(PPU& self);
+  inline void serialize(serializer&);
+  inline Window(PPU& self);
 
   PPU& self;
   friend class PPU;

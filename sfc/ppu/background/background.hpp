@@ -60,21 +60,21 @@ struct Background {
     uint8 data[8];
   };
 
-  void frame();
-  void scanline();
-  void begin();
-  void run(bool screen);
-  void reset();
+  inline void frame();
+  inline void scanline();
+  inline void begin();
+  inline void run(bool screen);
+  inline void reset();
 
-  void get_tile();
-  unsigned get_tile_color();
-  unsigned get_tile(unsigned x, unsigned y);
-  signed clip(signed n);
-  void begin_mode7();
-  void run_mode7();
+  inline void get_tile();
+  inline unsigned get_tile_color();
+  inline unsigned get_tile(unsigned x, unsigned y);
+  inline signed clip(signed n);
+  inline void begin_mode7();
+  inline void run_mode7();
 
-  void serialize(serializer&);
-  Background(PPU& self, unsigned id);
+  inline void serialize(serializer&);
+  inline Background(PPU& self, unsigned id);
 
   PPU& self;
   friend class PPU;
