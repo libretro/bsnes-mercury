@@ -6,7 +6,7 @@ Maximum accuracy is still uncompromisable; anything that affects accurcy is opti
 
 Changes to upstream:
 - The biggest change is getting the interface sane, which is accomplished through libretro.
-- Another change is However, HLE emulation of some special chips has also been restored, to improve performance and reduce reliance on those chip ROMs (they're not really easy to find).
+- Another change is the restoration of HLE emulation of some special chips, to improve performance and reduce reliance on those chip ROMs (they're not really easy to find).
 - A seven-line function in sfc/memory/memory-inline.hpp was replaced, which speeds up ROM load by roughly one second. As far as I know, an equivalent change is also included in bsnes v095.
 
 Todo list:
