@@ -188,6 +188,11 @@ diff -ru higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
  #elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && __BYTE_ORDER == __BIG_ENDIAN) || defined(__BIG_ENDIAN__) || defined(__powerpc__) || defined(_M_PPC)
 Only in bsneshle094/obj: .gitignore
 Only in bsneshle094/out: bsnes_libretro.so
+Only in bsneshle094/out: callgrind.out.31807
+Only in bsneshle094/out: callgrind.out.32032
+Only in bsneshle094/out: callgrind.out.32211
+Only in bsneshle094/out: callgrind.out.32419
+Only in bsneshle094/out: callgrind.out.32617
 Only in bsneshle094/out: .gitignore
 Only in bsneshle094/: README
 diff -ru higan_v094-source/sfc/alt/cpu/cpu.cpp bsneshle094/sfc/alt/cpu/cpu.cpp
@@ -520,7 +525,7 @@ diff -ru higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
 +obj/sfc-hlest0010.o:       $(sfc)/chip/st0010/st0010.cpp $(sfc)/chip/st0010/*
 diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.cpp
 --- higan_v094-source/sfc/memory/memory.cpp	2013-05-05 09:29:50.000000000 +0200
-+++ bsneshle094/sfc/memory/memory.cpp	2014-05-03 22:09:41.391252876 +0200
++++ bsneshle094/sfc/memory/memory.cpp	2014-05-03 22:44:55.283292562 +0200
 @@ -10,16 +10,48 @@
    const function<void (unsigned, uint8)>& writer,
    unsigned banklo, unsigned bankhi,
@@ -580,27 +585,9 @@ diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.c
        }
      }
    }
-@@ -60,11 +92,17 @@
- Bus::Bus() {
-   lookup = new uint8 [16 * 1024 * 1024];
-   target = new uint32[16 * 1024 * 1024];
-+
-+  fast_read  = new uint8*[16*1024*1024/fast_page_size];
-+  fast_write = new uint8*[16*1024*1024/fast_page_size];
- }
- 
- Bus::~Bus() {
-   delete[] lookup;
-   delete[] target;
-+
-+  delete[] fast_read;
-+  delete[] fast_write;
- }
- 
- }
 diff -ru higan_v094-source/sfc/memory/memory.hpp bsneshle094/sfc/memory/memory.hpp
 --- higan_v094-source/sfc/memory/memory.hpp	2013-05-05 09:30:28.000000000 +0200
-+++ bsneshle094/sfc/memory/memory.hpp	2014-05-03 21:13:41.111189792 +0200
++++ bsneshle094/sfc/memory/memory.hpp	2014-05-03 22:45:15.587292943 +0200
 @@ -2,11 +2,14 @@
    virtual inline unsigned size() const;
    virtual uint8 read(unsigned addr) = 0;
@@ -628,11 +615,11 @@ diff -ru higan_v094-source/sfc/memory/memory.hpp bsneshle094/sfc/memory/memory.h
    function<uint8 (unsigned)> reader[256];
    function<void (unsigned, uint8)> writer[256];
  
-+  const uint32 fast_page_size_bits = 13;//keep at 13 or lower so the RAM mirrors can be on the fast path
-+  const uint32 fast_page_size = (1 << fast_page_size_bits);
-+  const uint32 fast_page_size_mask = (fast_page_size - 1);
-+  uint8** fast_read;
-+  uint8** fast_write;
++  static const uint32 fast_page_size_bits = 13;//keep at 13 or lower so the RAM mirrors can be on the fast path
++  static const uint32 fast_page_size = (1 << fast_page_size_bits);
++  static const uint32 fast_page_size_mask = (fast_page_size - 1);
++  uint8* fast_read[0x1000000>>fast_page_size_bits];
++  uint8* fast_write[0x1000000>>fast_page_size_bits];
 +
    void map(
      const function<uint8 (unsigned)>& reader,
@@ -647,7 +634,7 @@ diff -ru higan_v094-source/sfc/memory/memory.hpp bsneshle094/sfc/memory/memory.h
    void map_reset();
 diff -ru higan_v094-source/sfc/memory/memory-inline.hpp bsneshle094/sfc/memory/memory-inline.hpp
 --- higan_v094-source/sfc/memory/memory-inline.hpp	2014-01-13 07:27:34.000000000 +0100
-+++ bsneshle094/sfc/memory/memory-inline.hpp	2014-05-03 21:20:55.731197951 +0200
++++ bsneshle094/sfc/memory/memory-inline.hpp	2014-05-03 22:55:50.347304859 +0200
 @@ -6,6 +6,7 @@
  
  uint8* StaticRAM::data() { return data_; }
@@ -664,7 +651,7 @@ diff -ru higan_v094-source/sfc/memory/memory-inline.hpp bsneshle094/sfc/memory/m
  
  uint8 MappedRAM::read(unsigned addr) { return data_[addr]; }
  void MappedRAM::write(unsigned addr, uint8 n) { if(!write_protect_) data_[addr] = n; }
-@@ -73,18 +75,27 @@
+@@ -73,26 +75,38 @@
    return base;
  }
  
@@ -698,9 +685,13 @@ diff -ru higan_v094-source/sfc/memory/memory-inline.hpp bsneshle094/sfc/memory/m
 +  if (fast_read[addr>>fast_page_size_bits]) data = fast_read[addr>>fast_page_size_bits][addr];
 +  else data = reader[lookup[addr]](target[addr]);
  
++#ifndef __LIBRETRO__
    if(cheat.enable()) {
      if(auto result = cheat.find(addr, data)) return result();
-@@ -94,5 +105,6 @@
+   }
++#endif
+ 
+   return data;
  }
  
  void Bus::write(unsigned addr, uint8 data) {
@@ -708,6 +699,145 @@ diff -ru higan_v094-source/sfc/memory/memory-inline.hpp bsneshle094/sfc/memory/m
 +  if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data;
 +  else writer[lookup[addr]](target[addr], data);
  }
+diff -ru higan_v094-source/sfc/ppu/background/background.hpp bsneshle094/sfc/ppu/background/background.hpp
+--- higan_v094-source/sfc/ppu/background/background.hpp	2013-05-05 09:31:28.000000000 +0200
++++ bsneshle094/sfc/ppu/background/background.hpp	2014-05-03 23:18:53.731330831 +0200
+@@ -60,21 +60,21 @@
+     uint8 data[8];
+   };
+ 
+-  void frame();
+-  void scanline();
+-  void begin();
+-  void run(bool screen);
+-  void reset();
++  inline void frame();
++  inline void scanline();
++  inline void begin();
++  inline void run(bool screen);
++  inline void reset();
+ 
+-  void get_tile();
+-  unsigned get_tile_color();
+-  unsigned get_tile(unsigned x, unsigned y);
+-  signed clip(signed n);
+-  void begin_mode7();
+-  void run_mode7();
++  inline void get_tile();
++  inline unsigned get_tile_color();
++  inline unsigned get_tile(unsigned x, unsigned y);
++  inline signed clip(signed n);
++  inline void begin_mode7();
++  inline void run_mode7();
+ 
+-  void serialize(serializer&);
+-  Background(PPU& self, unsigned id);
++  inline void serialize(serializer&);
++  inline Background(PPU& self, unsigned id);
+ 
+   PPU& self;
+   friend class PPU;
+diff -ru higan_v094-source/sfc/ppu/screen/screen.hpp bsneshle094/sfc/ppu/screen/screen.hpp
+--- higan_v094-source/sfc/ppu/screen/screen.hpp	2013-05-05 09:36:42.000000000 +0200
++++ bsneshle094/sfc/ppu/screen/screen.hpp	2014-05-03 23:19:20.659331336 +0200
+@@ -29,19 +29,19 @@
+     bool color_halve;
+   } math;
+ 
+-  void scanline();
+-  void run();
+-  void reset();
++  inline void scanline();
++  inline void run();
++  inline void reset();
+ 
+-  uint16 get_pixel_sub(bool hires);
+-  uint16 get_pixel_main();
+-  uint16 addsub(unsigned x, unsigned y);
+-  uint16 get_color(unsigned palette);
+-  uint16 get_direct_color(unsigned palette, unsigned tile);
+-  uint16 fixed_color() const;
++  inline uint16 get_pixel_sub(bool hires);
++  inline uint16 get_pixel_main();
++  inline uint16 addsub(unsigned x, unsigned y);
++  inline uint16 get_color(unsigned palette);
++  inline uint16 get_direct_color(unsigned palette, unsigned tile);
++  inline uint16 fixed_color() const;
+ 
+-  void serialize(serializer&);
+-  Screen(PPU& self);
++  inline void serialize(serializer&);
++  inline Screen(PPU& self);
+ 
+   PPU& self;
+   friend class PPU;
+diff -ru higan_v094-source/sfc/ppu/sprite/sprite.hpp bsneshle094/sfc/ppu/sprite/sprite.hpp
+--- higan_v094-source/sfc/ppu/sprite/sprite.hpp	2013-05-05 09:37:44.000000000 +0200
++++ bsneshle094/sfc/ppu/sprite/sprite.hpp	2014-05-03 23:18:08.691329985 +0200
+@@ -60,22 +60,22 @@
+   } output;
+ 
+   //list.cpp
+-  void update(unsigned addr, uint8 data);
+-  void synchronize();
++  inline void update(unsigned addr, uint8 data);
++  inline void synchronize();
+ 
+   //sprite.cpp
+-  void address_reset();
+-  void set_first_sprite();
+-  void frame();
+-  void scanline();
+-  void run();
+-  void tilefetch();
+-  void reset();
++  inline void address_reset();
++  inline void set_first_sprite();
++  inline void frame();
++  inline void scanline();
++  inline void run();
++  inline void tilefetch();
++  inline void reset();
+ 
+-  bool on_scanline(SpriteItem&);
++  inline bool on_scanline(SpriteItem&);
+ 
+-  void serialize(serializer&);
+-  Sprite(PPU& self);
++  inline void serialize(serializer&);
++  inline Sprite(PPU& self);
+ 
+   PPU& self;
+   friend class PPU;
+diff -ru higan_v094-source/sfc/ppu/window/window.hpp bsneshle094/sfc/ppu/window/window.hpp
+--- higan_v094-source/sfc/ppu/window/window.hpp	2013-05-05 09:40:42.000000000 +0200
++++ bsneshle094/sfc/ppu/window/window.hpp	2014-05-03 23:19:37.315331649 +0200
+@@ -69,19 +69,19 @@
+     bool two;
+   };
+ 
+-  void scanline();
+-  void run();
+-  void reset();
++  inline void scanline();
++  inline void run();
++  inline void reset();
+ 
+-  void test(
++  inline void test(
+     bool& main, bool& sub,
+     bool one_enable, bool one_invert,
+     bool two_enable, bool two_invert,
+     uint8 mask, bool main_enable, bool sub_enable
+   );
+ 
+-  void serialize(serializer&);
+-  Window(PPU& self);
++  inline void serialize(serializer&);
++  inline Window(PPU& self);
+ 
+   PPU& self;
+   friend class PPU;
 diff -ru higan_v094-source/sfc/system/serialization.cpp bsneshle094/sfc/system/serialization.cpp
 --- higan_v094-source/sfc/system/serialization.cpp	2013-05-05 09:48:32.000000000 +0200
 +++ bsneshle094/sfc/system/serialization.cpp	2014-04-26 16:20:16.502065832 +0200
