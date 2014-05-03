@@ -1,7 +1,6 @@
 #ifdef CARTRIDGE_CPP
 
 void Cartridge::parse_markup(const char* markup, bool hlechips) {
-hlechips=true;
   auto document = Markup::Document(markup);
   information.title.cartridge = document["information/title"].text();
 
@@ -73,6 +72,8 @@ void Cartridge::parse_markup_cartridge(Markup::Node root) {
       Mapping m(rom);
       parse_markup_map(m, node);
       if(m.size == 0) m.size = rom.size();
+      m.read_fast = ram.data();
+      m.write_fast = ram.data();
       mapping.append(m);
     }
 
@@ -80,6 +81,8 @@ void Cartridge::parse_markup_cartridge(Markup::Node root) {
       Mapping m(ram);
       parse_markup_map(m, node);
       if(m.size == 0) m.size = ram.size();
+      m.read_fast = ram.data();
+      m.write_fast = ram.data();
       mapping.append(m);
     }
   }
@@ -662,18 +665,21 @@ void Cartridge::parse_markup_necdsp_hle(Markup::Node root) {
 
 Cartridge::Mapping::Mapping() {
   size = base = mask = 0;
+  write_fast = read_fast = NULL;
 }
 
 Cartridge::Mapping::Mapping(SuperFamicom::Memory& memory) {
   reader = {&SuperFamicom::Memory::read,  &memory};
   writer = {&SuperFamicom::Memory::write, &memory};
   size = base = mask = 0;
+  write_fast = read_fast = NULL;
 }
 
 Cartridge::Mapping::Mapping(const function<uint8 (unsigned)>& reader, const function<void (unsigned, uint8)>& writer) {
   this->reader = reader;
   this->writer = writer;
   size = base = mask = 0;
+  write_fast = read_fast = NULL;
 }
 
 #endif

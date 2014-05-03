@@ -54,6 +54,9 @@ struct Cartridge : property<Cartridge> {
     unsigned base;
     unsigned mask;
 
+    uint8_t* write_fast;
+    uint8_t* read_fast;
+
     Mapping();
     Mapping(const function<uint8 (unsigned)>&, const function<void (unsigned, uint8)>&);
     Mapping(SuperFamicom::Memory&);
