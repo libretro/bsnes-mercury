@@ -67,7 +67,8 @@ struct Bus {
     const function<void (unsigned, uint8)>& writer,
     unsigned banklo, unsigned bankhi,
     unsigned addrlo, unsigned addrhi,
-    unsigned size = 0, unsigned base = 0, unsigned mask = 0
+    unsigned size = 0, unsigned base = 0, unsigned mask = 0,
+    unsigned fastmode = 0, uint8* fast_ptr = NULL
   );
 
   void map_reset();

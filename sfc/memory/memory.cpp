@@ -11,19 +11,24 @@ void Bus::map(
   unsigned banklo, unsigned bankhi,
   unsigned addrlo, unsigned addrhi,
   unsigned size, unsigned base, unsigned mask,
-  Cartridge::Mapping::fastmode_t fastmode, uint8* fast_ptr
+  unsigned fastmode, uint8* fast_ptr
 ) {
   assert(banklo <= bankhi && banklo <= 0xff);
   assert(addrlo <= addrhi && addrlo <= 0xffff);
   assert(idcount < 255);
 
+  bool do_fast_read =(fastmode!=Cartridge::Mapping::fastmode_slow      && size==0 && !(mask&fast_page_size_mask));
+  bool do_fast_write=(fastmode==Cartridge::Mapping::fastmode_readwrite && size==0 && !(mask&fast_page_size_mask));
   for(unsigned bank = banklo; bank <= bankhi; bank++) {
-    for (unsigned addr = addrlo; addr<addrhi; addr+=fast_page_size) {
-      unsigned offset=(bank<<16|addr)>>fast_page_size_bits;
-      if (fastmode!=fastmode_slow) fast_read[offset] = fast_ptr - (bank<<16|addr);
-      else fast_read[offset] = NULL;
-      if (fastmode==fastmode_readwrite) fast_write[offset] = fast_ptr - (bank<<16|addr);
-      else fast_write[offset] = NULL;
+    for (unsigned addr = addrlo&~fast_page_size_mask; addr<addrhi; addr+=fast_page_size) {
+      unsigned fastoffset=(bank<<16|addr)>>fast_page_size_bits;
+      
+      unsigned origpos = (bank << 16 | addr);
+      unsigned accesspos = reduce(origpos, mask);
+      if (do_fast_read)  fast_read[fastoffset] = fast_ptr - origpos + accesspos;
+      else fast_read[fastoffset] = NULL;
+      if (do_fast_write) fast_write[fastoffset] = fast_ptr - origpos + accesspos;
+      else fast_write[fastoffset] = NULL;
     }
     if (addrlo&fast_page_size_mask)
     {
@@ -70,7 +75,7 @@ void Bus::map_reset() {
   function<void (unsigned, uint8)> writer = [](unsigned, uint8) {};
 
   idcount = 0;
-  map(reader, writer, 0x00, 0xff, 0x0000, 0xffff, Cartridge::Mapping::fastmode_slow, NULL);
+  map(reader, writer, 0x00, 0xff, 0x0000, 0xffff);
 }
 
 void Bus::map_xml() {

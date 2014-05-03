@@ -114,9 +114,9 @@ void CPU::enable() {
   reader = [](unsigned addr) { return cpu.wram[addr]; };
   writer = [](unsigned addr, uint8 data) { cpu.wram[addr] = data; };
 
-  bus.map(reader, writer, 0x00, 0x3f, 0x0000, 0x1fff, 0x002000);
-  bus.map(reader, writer, 0x80, 0xbf, 0x0000, 0x1fff, 0x002000);
-  bus.map(reader, writer, 0x7e, 0x7f, 0x0000, 0xffff, 0x020000);
+  bus.map(reader, writer, 0x00, 0x3f, 0x0000, 0x1fff, 0x002000, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
+  bus.map(reader, writer, 0x80, 0xbf, 0x0000, 0x1fff, 0x002000, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
+  bus.map(reader, writer, 0x7e, 0x7f, 0x0000, 0xffff, 0x020000, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
 }
 
 void CPU::power() {
