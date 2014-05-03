@@ -92,17 +92,11 @@ void Bus::map_xml() {
 Bus::Bus() {
   lookup = new uint8 [16 * 1024 * 1024];
   target = new uint32[16 * 1024 * 1024];
-
-  fast_read  = new uint8*[16*1024*1024/fast_page_size];
-  fast_write = new uint8*[16*1024*1024/fast_page_size];
 }
 
 Bus::~Bus() {
   delete[] lookup;
   delete[] target;
-
-  delete[] fast_read;
-  delete[] fast_write;
 }
 
 }

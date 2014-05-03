@@ -60,11 +60,11 @@ struct Bus {
   function<uint8 (unsigned)> reader[256];
   function<void (unsigned, uint8)> writer[256];
 
-  const uint32 fast_page_size_bits = 13;//keep at 13 or lower so the RAM mirrors can be on the fast path
-  const uint32 fast_page_size = (1 << fast_page_size_bits);
-  const uint32 fast_page_size_mask = (fast_page_size - 1);
-  uint8** fast_read;
-  uint8** fast_write;
+  static const uint32 fast_page_size_bits = 13;//keep at 13 or lower so the RAM mirrors can be on the fast path
+  static const uint32 fast_page_size = (1 << fast_page_size_bits);
+  static const uint32 fast_page_size_mask = (fast_page_size - 1);
+  uint8* fast_read[0x1000000>>fast_page_size_bits];
+  uint8* fast_write[0x1000000>>fast_page_size_bits];
 
   void map(
     const function<uint8 (unsigned)>& reader,
