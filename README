@@ -3,8 +3,15 @@ bsnes-mercury
 
 bsnes-mercury is a fork of higan, aiming to restore some useful features that have been removed.
 Maximum accuracy is still uncompromisable; anything that affects accurcy is optional and off by default.
-The biggest new feature is getting the interface sane, which is accomplished through libretro.
-However, HLE emulation of some special chips has also been restored, to improve performance and reduce reliance on those chip ROMs (they're not really easy to find).
-A small change has also been made to sfc/memory/memory-inline.hpp, which speeds up ROM load by roughly one second. As far as I know, an equivalent change is also included in bsnes v095.
+
+Changes to upstream:
+- The biggest change is getting the interface sane, which is accomplished through libretro.
+- Another change is However, HLE emulation of some special chips has also been restored, to improve performance and reduce reliance on those chip ROMs (they're not really easy to find).
+- A seven-line function in sfc/memory/memory-inline.hpp was replaced, which speeds up ROM load by roughly one second. As far as I know, an equivalent change is also included in bsnes v095.
+
+Todo list:
+- Spam alwaysinline across the PPU, and other components. If memory serves, that gave a nice speed boost on v082; probably still does.
+- Is the compat core's DSP identical to that of the accuracy core, but a bit faster?
+- Examine Gambatte-style fast read/write pointers on ROM and RAM in the CPU (ignore SRAM and weird memory types, at least for now). Function pointers probably aren't fast.
 
 The name is because metals are shiny, like the accuracy promises of bsnes, and mercury is the fastest metal. And like byuu's constantly changing interfaces, mercury is harmful to your brain :)
