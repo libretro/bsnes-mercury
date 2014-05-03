@@ -38,9 +38,10 @@ void Bus::map(
   this->reader[id] = reader;
   this->writer[id] = writer;
 
-  if (!(mask & (addrlo^addrhi)) && !size) {//TODO: allow fastpath if size is nonzero
+  if (!(mask & (addrlo^addrhi)) && size%(addrhi+1-addrlo)==0) {
     for(unsigned bank = banklo; bank <= bankhi; bank++) {
       unsigned offset = reduce(bank << 16 | addrlo, mask);
+      if (size) offset = base + mirror(offset, size - base);
       unsigned pos = (bank<<16 | addrlo);
       unsigned end = (bank<<16 | addrhi);
       while (pos <= end) {
