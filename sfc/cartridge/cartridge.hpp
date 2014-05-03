@@ -55,7 +55,7 @@ struct Cartridge : property<Cartridge> {
     unsigned mask;
 
     enum fastmode_t { fastmode_slow, fastmode_readonly, fastmode_readwrite } fastmode;
-    uint8* fast_ptr;
+    uint8* fastptr;
 
     Mapping();
     Mapping(const function<uint8 (unsigned)>&, const function<void (unsigned, uint8)>&);

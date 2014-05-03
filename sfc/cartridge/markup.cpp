@@ -72,8 +72,8 @@ void Cartridge::parse_markup_cartridge(Markup::Node root) {
       Mapping m(rom);
       parse_markup_map(m, node);
       if(m.size == 0) m.size = rom.size();
-      m.fast_ptr = ram.data();
       m.fastmode = Mapping::fastmode_readonly;
+      m.fastptr = rom.data();
       mapping.append(m);
     }
 
@@ -81,8 +81,8 @@ void Cartridge::parse_markup_cartridge(Markup::Node root) {
       Mapping m(ram);
       parse_markup_map(m, node);
       if(m.size == 0) m.size = ram.size();
-      m.fast_ptr = ram.data();
       m.fastmode = Mapping::fastmode_readwrite;
+      m.fastptr = ram.data();
       mapping.append(m);
     }
   }

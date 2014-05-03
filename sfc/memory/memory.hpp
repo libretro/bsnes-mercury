@@ -2,11 +2,14 @@ struct Memory {
   virtual inline unsigned size() const;
   virtual uint8 read(unsigned addr) = 0;
   virtual void write(unsigned addr, uint8 data) = 0;
+  virtual uint8* data() { return NULL; }
+  virtual bool writable() { return false; }
 };
 
 struct StaticRAM : Memory {
   inline uint8* data();
   inline unsigned size() const;
+  inline bool writable();
 
   inline uint8 read(unsigned addr);
   inline void write(unsigned addr, uint8 n);
@@ -30,6 +33,7 @@ struct MappedRAM : Memory {
   inline void write_protect(bool status);
   inline uint8* data();
   inline unsigned size() const;
+  inline bool writable();
 
   inline uint8 read(unsigned addr);
   inline void write(unsigned addr, uint8 n);
@@ -61,6 +65,8 @@ struct Bus {
   const uint32 fast_page_size_mask = (fast_page_size - 1);
   uint8** fast_read;
   uint8** fast_write;
+//uint32 cache_hits;
+//uint32 cache_misses;
 
   void map(
     const function<uint8 (unsigned)>& reader,

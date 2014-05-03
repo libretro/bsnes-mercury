@@ -6,6 +6,7 @@ unsigned Memory::size() const { return 0; }
 
 uint8* StaticRAM::data() { return data_; }
 unsigned StaticRAM::size() const { return size_; }
+bool StaticRAM::writable() { return true; }
 
 uint8 StaticRAM::read(unsigned addr) { return data_[addr]; }
 void StaticRAM::write(unsigned addr, uint8 n) { data_[addr] = n; }
@@ -47,6 +48,7 @@ void MappedRAM::read(const stream& memory) {
 void MappedRAM::write_protect(bool status) { write_protect_ = status; }
 uint8* MappedRAM::data() { return data_; }
 unsigned MappedRAM::size() const { return size_; }
+bool MappedRAM::writable() { return !write_protect_; }
 
 uint8 MappedRAM::read(unsigned addr) { return data_[addr]; }
 void MappedRAM::write(unsigned addr, uint8 n) { if(!write_protect_) data_[addr] = n; }
@@ -75,25 +77,36 @@ unsigned Bus::mirror(unsigned addr, unsigned size) {
 
 unsigned Bus::reduce(unsigned addr, unsigned mask)
 {
-	while (mask)
-	{
-		//extract the bits to keep
-		//set everything below the lowest set bit; 0x018000 -> 0x007FFF
-		unsigned tmp=((mask-1)&(~mask));
-		
-		//shift everything above that
-		addr=(addr&tmp)|((addr>>1)&~tmp);
-		
-		//adjust the mask
-		mask=(mask&(mask-1))>>1;
-	}
-	return addr;
+  while (mask)
+  {
+    //extract the bits to keep
+    //set everything below the lowest set bit; 0x018000 -> 0x007FFF
+    unsigned tmp=((mask-1)&(~mask));
+    
+    //shift everything above that
+    addr=(addr&tmp)|((addr>>1)&~tmp);
+    
+    //adjust the mask
+    mask=(mask&(mask-1))>>1;
+  }
+  return addr;
 }
 
 uint8 Bus::read(unsigned addr) {
+  //if (fast_read[addr>>fast_page_size_bits])
+  //{
+    //uint8 data1=fast_read[addr>>fast_page_size_bits][addr];
+    //uint8 data2=reader[lookup[addr]](target[addr]);
+    //if (data1!=data2)
+    //{
+      //puts("halp");
+      //reader[lookup[addr]](target[addr]);
+    //}
+  //}
+  //
   uint8 data;
-  if (fast_read[addr>>fast_page_size_bits]) data = fast_read[addr>>fast_page_size_bits][addr];
-  else data = reader[lookup[addr]](target[addr]);
+  if (fast_read[addr>>fast_page_size_bits]) data = fast_read[addr>>fast_page_size_bits][addr]/*, cache_hits++*/;
+  else data = reader[lookup[addr]](target[addr])/*, cache_misses++*/;
 
   if(cheat.enable()) {
     if(auto result = cheat.find(addr, data)) return result();
@@ -103,6 +116,6 @@ uint8 Bus::read(unsigned addr) {
 }
 
 void Bus::write(unsigned addr, uint8 data) {
-  if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data;
-  else writer[lookup[addr]](target[addr], data);
+  if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data/*, cache_hits++*/;
+  else writer[lookup[addr]](target[addr], data)/*, cache_misses++*/;
 }
