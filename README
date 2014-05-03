@@ -14,6 +14,5 @@ Changes to upstream:
 Todo list:
 - Spam alwaysinline across the PPU, and other components. If memory serves, that gave a nice speed boost on v082; probably still does.
 - Is the compat core's DSP identical to that of the accuracy core, but a bit faster?
-- Examine Gambatte-style fast read/write pointers on ROM and RAM in the CPU (ignore SRAM and weird memory types, at least for now). Function pointers probably aren't fast.
 
 The name is because metals are shiny, like the accuracy promises of bsnes, and mercury is the fastest metal. And like byuu's constantly changing interfaces, mercury is harmful to your brain :)

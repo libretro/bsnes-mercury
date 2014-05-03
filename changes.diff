@@ -1,5 +1,4 @@
 Only in bsneshle094/ananke/obj: .gitignore
-Only in bsneshle094/: changes2.diff
 Only in bsneshle094/: changes.diff
 diff -ru higan_v094-source/emulator/emulator.hpp bsneshle094/emulator/emulator.hpp
 --- higan_v094-source/emulator/emulator.hpp	2014-01-20 07:36:22.000000000 +0100
@@ -26,7 +25,6 @@ diff -ru higan_v094-source/emulator/interface.hpp bsneshle094/emulator/interface
    virtual void load(unsigned id, const stream& memory) {}
    virtual void save(unsigned id, const stream& memory) {}
 Only in bsneshle094/: .git
-Only in bsneshle094/: hashes.bluh
 Only in bsneshle094/libco: armeabi.c
 diff -ru higan_v094-source/libco/libco.c bsneshle094/libco/libco.c
 --- higan_v094-source/libco/libco.c	2014-01-20 07:37:11.000000000 +0100
@@ -188,13 +186,85 @@ diff -ru higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
    #define ENDIAN_LSB
    Intrinsics::Endian Intrinsics::endian() { return Intrinsics::Endian::LSB; }
  #elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && __BYTE_ORDER == __BIG_ENDIAN) || defined(__BIG_ENDIAN__) || defined(__powerpc__) || defined(_M_PPC)
+Only in bsneshle094/obj: gb-apu.o
+Only in bsneshle094/obj: gb-cartridge.o
+Only in bsneshle094/obj: gb-cheat.o
+Only in bsneshle094/obj: gb-cpu.o
+Only in bsneshle094/obj: gb-interface.o
+Only in bsneshle094/obj: gb-memory.o
+Only in bsneshle094/obj: gb-ppu.o
+Only in bsneshle094/obj: gb-scheduler.o
+Only in bsneshle094/obj: gb-system.o
+Only in bsneshle094/obj: gb-video.o
 Only in bsneshle094/obj: .gitignore
+Only in bsneshle094/obj: libco.o
+Only in bsneshle094/obj: libretro.o
+Only in bsneshle094/obj: processor-arm.o
+Only in bsneshle094/obj: processor-gsu.o
+Only in bsneshle094/obj: processor-hg51b.o
+Only in bsneshle094/obj: processor-lr35902.o
+Only in bsneshle094/obj: processor-r65816.o
+Only in bsneshle094/obj: processor-spc700.o
+Only in bsneshle094/obj: processor-upd96050.o
+Only in bsneshle094/obj: sfc-armdsp.o
+Only in bsneshle094/obj: sfc-bsx.o
+Only in bsneshle094/obj: sfc-cartridge.o
+Only in bsneshle094/obj: sfc-cheat.o
+Only in bsneshle094/obj: sfc-controller.o
+Only in bsneshle094/obj: sfc-cpu.o
+Only in bsneshle094/obj: sfc-dsp.o
+Only in bsneshle094/obj: sfc-epsonrtc.o
+Only in bsneshle094/obj: sfc-event.o
+Only in bsneshle094/obj: sfc-hitachidsp.o
+Only in bsneshle094/obj: sfc-hlecx4.o
+Only in bsneshle094/obj: sfc-hledsp1.o
+Only in bsneshle094/obj: sfc-hledsp2.o
+Only in bsneshle094/obj: sfc-hledsp3.o
+Only in bsneshle094/obj: sfc-hledsp4.o
+Only in bsneshle094/obj: sfc-hlest0010.o
+Only in bsneshle094/obj: sfc-hsu1.o
+Only in bsneshle094/obj: sfc-icd2.o
+Only in bsneshle094/obj: sfc-interface.o
+Only in bsneshle094/obj: sfc-memory.o
+Only in bsneshle094/obj: sfc-msu1.o
+Only in bsneshle094/obj: sfc-necdsp.o
+Only in bsneshle094/obj: sfc-nss.o
+Only in bsneshle094/obj: sfc-obc1.o
+Only in bsneshle094/obj: sfc-ppu.o
+Only in bsneshle094/obj: sfc-sa1.o
+Only in bsneshle094/obj: sfc-satellaviewbase.o
+Only in bsneshle094/obj: sfc-satellaviewcart.o
+Only in bsneshle094/obj: sfc-sdd1.o
+Only in bsneshle094/obj: sfc-sharprtc.o
+Only in bsneshle094/obj: sfc-smp.o
+Only in bsneshle094/obj: sfc-spc7110.o
+Only in bsneshle094/obj: sfc-sufamiturbo.o
+Only in bsneshle094/obj: sfc-superfx.o
+Only in bsneshle094/obj: sfc-system.o
+Only in bsneshle094/out: bb
 Only in bsneshle094/out: bsnes_libretro.so
+Only in bsneshle094/out: e.log
 Only in bsneshle094/out: .gitignore
 Only in bsneshle094/: README
+diff -ru higan_v094-source/sfc/alt/cpu/cpu.cpp bsneshle094/sfc/alt/cpu/cpu.cpp
+--- higan_v094-source/sfc/alt/cpu/cpu.cpp	2013-05-05 08:00:10.000000000 +0200
++++ bsneshle094/sfc/alt/cpu/cpu.cpp	2014-05-03 20:02:34.275109688 +0200
+@@ -99,9 +99,9 @@
+   reader = [](unsigned addr) { return cpu.wram[addr]; };
+   writer = [](unsigned addr, uint8 data) { cpu.wram[addr] = data; };
+ 
+-  bus.map(reader, writer, 0x00, 0x3f, 0x0000, 0x1fff, 0x002000);
+-  bus.map(reader, writer, 0x80, 0xbf, 0x0000, 0x1fff, 0x002000);
+-  bus.map(reader, writer, 0x7e, 0x7f, 0x0000, 0xffff, 0x020000);
++  bus.map(reader, writer, 0x00, 0x3f, 0x0000, 0x1fff, 0x002000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
++  bus.map(reader, writer, 0x80, 0xbf, 0x0000, 0x1fff, 0x002000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
++  bus.map(reader, writer, 0x7e, 0x7f, 0x0000, 0xffff, 0x020000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
+ }
+ 
+ void CPU::power() {
 diff -ru higan_v094-source/sfc/cartridge/cartridge.cpp bsneshle094/sfc/cartridge/cartridge.cpp
 --- higan_v094-source/sfc/cartridge/cartridge.cpp	2013-05-05 08:31:39.000000000 +0200
-+++ bsneshle094/sfc/cartridge/cartridge.cpp	2014-05-03 11:42:46.802546715 +0200
++++ bsneshle094/sfc/cartridge/cartridge.cpp	2014-05-03 18:36:29.303012723 +0200
 @@ -27,7 +27,7 @@
    return information.title.cartridge;
  }
@@ -204,18 +274,28 @@ diff -ru higan_v094-source/sfc/cartridge/cartridge.cpp bsneshle094/sfc/cartridge
    region = Region::NTSC;
  
    has_gb_slot    = false;
-@@ -62,7 +62,7 @@
+@@ -62,8 +62,9 @@
    information.title.sufamiTurboB  = "";
  
    interface->loadRequest(ID::Manifest, "manifest.bml");
 -  parse_markup(information.markup.cartridge);
 +  parse_markup(information.markup.cartridge, hlechips);
  
++#ifndef __LIBRETRO__
    //Super Game Boy
    if(cartridge.has_gb_slot()) {
+     sha256 = nall::sha256(GameBoy::cartridge.romdata, GameBoy::cartridge.romsize);
+@@ -117,6 +118,7 @@
+     for(auto& byte : hash) result.append(hex<2>(byte));
+     sha256 = result;
+   }
++#endif
+ 
+   rom.write_protect(true);
+   ram.write_protect(false);
 diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge/cartridge.hpp
 --- higan_v094-source/sfc/cartridge/cartridge.hpp	2013-01-22 23:52:43.000000000 +0100
-+++ bsneshle094/sfc/cartridge/cartridge.hpp	2014-05-03 11:39:39.190543193 +0200
++++ bsneshle094/sfc/cartridge/cartridge.hpp	2014-05-03 20:45:32.915158098 +0200
 @@ -39,6 +39,12 @@
    readonly<bool> has_obc1;
    readonly<bool> has_hsu1;
@@ -229,7 +309,17 @@ diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge
  
    struct Mapping {
      function<uint8 (unsigned)> reader;
-@@ -80,7 +86,7 @@
+@@ -48,6 +54,9 @@
+     unsigned base;
+     unsigned mask;
+ 
++    enum fastmode_t { fastmode_slow, fastmode_readonly, fastmode_readwrite } fastmode;
++    uint8* fastptr;
++
+     Mapping();
+     Mapping(const function<uint8 (unsigned)>&, const function<void (unsigned, uint8)>&);
+     Mapping(SuperFamicom::Memory&);
+@@ -80,7 +89,7 @@
  
    string title();
  
@@ -238,7 +328,7 @@ diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge
    void unload();
  
    void serialize(serializer&);
-@@ -93,7 +99,7 @@
+@@ -93,7 +102,7 @@
    void load_sufami_turbo_a();
    void load_sufami_turbo_b();
  
@@ -247,7 +337,7 @@ diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge
    void parse_markup_map(Mapping&, Markup::Node);
    void parse_markup_memory(MappedRAM&, Markup::Node, unsigned id, bool writable);
  
-@@ -116,6 +122,9 @@
+@@ -116,6 +125,9 @@
    void parse_markup_obc1(Markup::Node);
    void parse_markup_hsu1(Markup::Node);
    void parse_markup_msu1(Markup::Node);
@@ -259,17 +349,16 @@ diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge
  };
 diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/markup.cpp
 --- higan_v094-source/sfc/cartridge/markup.cpp	2013-12-06 21:58:46.000000000 +0100
-+++ bsneshle094/sfc/cartridge/markup.cpp	2014-05-03 15:26:59.494799270 +0200
-@@ -1,6 +1,7 @@
++++ bsneshle094/sfc/cartridge/markup.cpp	2014-05-03 20:45:05.907157591 +0200
+@@ -1,6 +1,6 @@
  #ifdef CARTRIDGE_CPP
  
 -void Cartridge::parse_markup(const char* markup) {
 +void Cartridge::parse_markup(const char* markup, bool hlechips) {
-+hlechips=true;
    auto document = Markup::Document(markup);
    information.title.cartridge = document["information/title"].text();
  
-@@ -19,8 +20,16 @@
+@@ -19,8 +19,16 @@
    parse_markup_sa1(cartridge["sa1"]);
    parse_markup_superfx(cartridge["superfx"]);
    parse_markup_armdsp(cartridge["armdsp"]);
@@ -288,13 +377,28 @@ diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/ma
    parse_markup_epsonrtc(cartridge["epsonrtc"]);
    parse_markup_sharprtc(cartridge["sharprtc"]);
    parse_markup_spc7110(cartridge["spc7110"]);
-@@ -583,6 +592,71 @@
+@@ -64,6 +72,8 @@
+       Mapping m(rom);
        parse_markup_map(m, node);
+       if(m.size == 0) m.size = rom.size();
++      m.fastmode = Mapping::fastmode_readonly;
++      m.fastptr = rom.data();
        mapping.append(m);
      }
-+  }
-+}
-+
+ 
+@@ -71,6 +81,8 @@
+       Mapping m(ram);
+       parse_markup_map(m, node);
+       if(m.size == 0) m.size = ram.size();
++      m.fastmode = Mapping::fastmode_readwrite;
++      m.fastptr = ram.data();
+       mapping.append(m);
+     }
+   }
+@@ -586,20 +598,88 @@
+   }
+ }
+ 
 +void Cartridge::parse_markup_hitachidsp_hle(Markup::Node root) {
 +  if(root.exists() == false) return;
 +
@@ -357,9 +461,29 @@ diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/ma
 +      parse_markup_map(m, node);
 +      mapping.append(m);
 +    }
-   }
++  }
++}
++
+ Cartridge::Mapping::Mapping() {
+   size = base = mask = 0;
++  fastmode = Mapping::fastmode_slow;
  }
  
+ Cartridge::Mapping::Mapping(SuperFamicom::Memory& memory) {
+   reader = {&SuperFamicom::Memory::read,  &memory};
+   writer = {&SuperFamicom::Memory::write, &memory};
+   size = base = mask = 0;
++  fastmode = Mapping::fastmode_slow;
+ }
+ 
+ Cartridge::Mapping::Mapping(const function<uint8 (unsigned)>& reader, const function<void (unsigned, uint8)>& writer) {
+   this->reader = reader;
+   this->writer = writer;
+   size = base = mask = 0;
++  fastmode = Mapping::fastmode_slow;
+ }
+ 
+ #endif
 diff -ru higan_v094-source/sfc/chip/chip.hpp bsneshle094/sfc/chip/chip.hpp
 --- higan_v094-source/sfc/chip/chip.hpp	2013-01-21 07:09:43.000000000 +0100
 +++ bsneshle094/sfc/chip/chip.hpp	2014-04-26 16:20:16.502065832 +0200
@@ -384,6 +508,22 @@ Only in bsneshle094/sfc/chip: dsp2
 Only in bsneshle094/sfc/chip: dsp3
 Only in bsneshle094/sfc/chip: dsp4
 Only in bsneshle094/sfc/chip: st0010
+diff -ru higan_v094-source/sfc/cpu/cpu.cpp bsneshle094/sfc/cpu/cpu.cpp
+--- higan_v094-source/sfc/cpu/cpu.cpp	2013-11-09 06:38:15.000000000 +0100
++++ bsneshle094/sfc/cpu/cpu.cpp	2014-05-03 20:02:53.027110040 +0200
+@@ -114,9 +114,9 @@
+   reader = [](unsigned addr) { return cpu.wram[addr]; };
+   writer = [](unsigned addr, uint8 data) { cpu.wram[addr] = data; };
+ 
+-  bus.map(reader, writer, 0x00, 0x3f, 0x0000, 0x1fff, 0x002000);
+-  bus.map(reader, writer, 0x80, 0xbf, 0x0000, 0x1fff, 0x002000);
+-  bus.map(reader, writer, 0x7e, 0x7f, 0x0000, 0xffff, 0x020000);
++  bus.map(reader, writer, 0x00, 0x3f, 0x0000, 0x1fff, 0x002000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
++  bus.map(reader, writer, 0x80, 0xbf, 0x0000, 0x1fff, 0x002000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
++  bus.map(reader, writer, 0x7e, 0x7f, 0x0000, 0xffff, 0x020000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
+ }
+ 
+ void CPU::power() {
 diff -ru higan_v094-source/sfc/interface/interface.cpp bsneshle094/sfc/interface/interface.cpp
 --- higan_v094-source/sfc/interface/interface.cpp	2014-01-13 07:34:39.000000000 +0100
 +++ bsneshle094/sfc/interface/interface.cpp	2014-05-03 11:42:51.186546797 +0200
@@ -434,10 +574,163 @@ diff -ru higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
 +
 +obj/sfc-hlecx4.o:          $(sfc)/chip/cx4/cx4.cpp $(sfc)/chip/cx4/*
 +obj/sfc-hlest0010.o:       $(sfc)/chip/st0010/st0010.cpp $(sfc)/chip/st0010/*
+diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.cpp
+--- higan_v094-source/sfc/memory/memory.cpp	2013-05-05 09:29:50.000000000 +0200
++++ bsneshle094/sfc/memory/memory.cpp	2014-05-03 21:13:51.223189981 +0200
+@@ -10,16 +10,58 @@
+   const function<void (unsigned, uint8)>& writer,
+   unsigned banklo, unsigned bankhi,
+   unsigned addrlo, unsigned addrhi,
+-  unsigned size, unsigned base, unsigned mask
++  unsigned size, unsigned base, unsigned mask,
++  unsigned fastmode, uint8* fastptr
+ ) {
+   assert(banklo <= bankhi && banklo <= 0xff);
+   assert(addrlo <= addrhi && addrlo <= 0xffff);
+   assert(idcount < 255);
+ 
++  bool do_fast=(size%(addrhi+1-addrlo)==0 && !((mask|addrlo|size)&fast_page_size_mask));
++  bool do_fast_read =(fastmode!=Cartridge::Mapping::fastmode_slow      && do_fast);
++  bool do_fast_write=(fastmode==Cartridge::Mapping::fastmode_readwrite && do_fast);
++  for(unsigned bank = banklo; bank <= bankhi; bank++) {
++    for(unsigned addr = addrlo&~fast_page_size_mask; addr<=addrhi; addr+=fast_page_size) {
++      unsigned origpos = (bank << 16 | addr);
++      unsigned fastoffset = origpos >> fast_page_size_bits;
++
++      unsigned accesspos = reduce(origpos, mask);
++      if(size) accesspos = base + mirror(accesspos, size - base);
++      if(do_fast_read)  fast_read[fastoffset] = fastptr - origpos + accesspos;
++      else fast_read[fastoffset] = NULL;
++      if(do_fast_write) fast_write[fastoffset] = fastptr - origpos + accesspos;
++      else fast_write[fastoffset] = NULL;
++    }
++    if (addrlo&fast_page_size_mask)
++    {
++      fast_read[(bank<<16|addrlo)>>fast_page_size_bits] = NULL;
++      fast_write[(bank<<16|addrlo)>>fast_page_size_bits] = NULL;
++    }
++    if ((addrhi+1)&fast_page_size_mask)
++    {
++      fast_read[(bank<<16|addrhi)>>fast_page_size_bits] = NULL;
++      fast_write[(bank<<16|addrhi)>>fast_page_size_bits] = NULL;
++    }
++  }
++
+   unsigned id = idcount++;
+   this->reader[id] = reader;
+   this->writer[id] = writer;
+ 
++  if (!(mask & (addrlo^addrhi)) && !size) {//TODO: allow fastpath if size is nonzero
++    for(unsigned bank = banklo; bank <= bankhi; bank++) {
++      unsigned offset = reduce(bank << 16 | addrlo, mask);
++      unsigned pos = (bank<<16 | addrlo);
++      unsigned end = (bank<<16 | addrhi);
++      while (pos <= end) {
++        lookup[pos] = id;
++        target[pos] = offset++;
++        pos++;
++      }
++    }
++    return;
++  }
++
+   for(unsigned bank = banklo; bank <= bankhi; bank++) {
+     for(unsigned addr = addrlo; addr <= addrhi; addr++) {
+       unsigned offset = reduce(bank << 16 | addr, mask);
+@@ -51,7 +93,7 @@
+         unsigned bankhi = hex(bankpart(1, bankpart(0)));
+         unsigned addrlo = hex(addrpart(0));
+         unsigned addrhi = hex(addrpart(1, addrpart(0)));
+-        map(m.reader, m.writer, banklo, bankhi, addrlo, addrhi, m.size, m.base, m.mask);
++        map(m.reader, m.writer, banklo, bankhi, addrlo, addrhi, m.size, m.base, m.mask, m.fastmode, m.fastptr);
+       }
+     }
+   }
+@@ -60,11 +102,17 @@
+ Bus::Bus() {
+   lookup = new uint8 [16 * 1024 * 1024];
+   target = new uint32[16 * 1024 * 1024];
++
++  fast_read  = new uint8*[16*1024*1024/fast_page_size];
++  fast_write = new uint8*[16*1024*1024/fast_page_size];
+ }
+ 
+ Bus::~Bus() {
+   delete[] lookup;
+   delete[] target;
++
++  delete[] fast_read;
++  delete[] fast_write;
+ }
+ 
+ }
+diff -ru higan_v094-source/sfc/memory/memory.hpp bsneshle094/sfc/memory/memory.hpp
+--- higan_v094-source/sfc/memory/memory.hpp	2013-05-05 09:30:28.000000000 +0200
++++ bsneshle094/sfc/memory/memory.hpp	2014-05-03 21:13:41.111189792 +0200
+@@ -2,11 +2,14 @@
+   virtual inline unsigned size() const;
+   virtual uint8 read(unsigned addr) = 0;
+   virtual void write(unsigned addr, uint8 data) = 0;
++  virtual uint8* data() { return NULL; }
++  virtual bool writable() { return false; }
+ };
+ 
+ struct StaticRAM : Memory {
+   inline uint8* data();
+   inline unsigned size() const;
++  inline bool writable();
+ 
+   inline uint8 read(unsigned addr);
+   inline void write(unsigned addr, uint8 n);
+@@ -30,6 +33,7 @@
+   inline void write_protect(bool status);
+   inline uint8* data();
+   inline unsigned size() const;
++  inline bool writable();
+ 
+   inline uint8 read(unsigned addr);
+   inline void write(unsigned addr, uint8 n);
+@@ -56,12 +60,19 @@
+   function<uint8 (unsigned)> reader[256];
+   function<void (unsigned, uint8)> writer[256];
+ 
++  const uint32 fast_page_size_bits = 13;//keep at 13 or lower so the RAM mirrors can be on the fast path
++  const uint32 fast_page_size = (1 << fast_page_size_bits);
++  const uint32 fast_page_size_mask = (fast_page_size - 1);
++  uint8** fast_read;
++  uint8** fast_write;
++
+   void map(
+     const function<uint8 (unsigned)>& reader,
+     const function<void (unsigned, uint8)>& writer,
+     unsigned banklo, unsigned bankhi,
+     unsigned addrlo, unsigned addrhi,
+-    unsigned size = 0, unsigned base = 0, unsigned mask = 0
++    unsigned size = 0, unsigned base = 0, unsigned mask = 0,
++    unsigned fastmode = 0, uint8* fast_ptr = NULL
+   );
+ 
+   void map_reset();
 diff -ru higan_v094-source/sfc/memory/memory-inline.hpp bsneshle094/sfc/memory/memory-inline.hpp
 --- higan_v094-source/sfc/memory/memory-inline.hpp	2014-01-13 07:27:34.000000000 +0100
-+++ bsneshle094/sfc/memory/memory-inline.hpp	2014-04-26 16:20:16.502065832 +0200
-@@ -73,14 +73,21 @@
++++ bsneshle094/sfc/memory/memory-inline.hpp	2014-05-03 21:13:37.911189732 +0200
+@@ -6,6 +6,7 @@
+ 
+ uint8* StaticRAM::data() { return data_; }
+ unsigned StaticRAM::size() const { return size_; }
++bool StaticRAM::writable() { return true; }
+ 
+ uint8 StaticRAM::read(unsigned addr) { return data_[addr]; }
+ void StaticRAM::write(unsigned addr, uint8 n) { data_[addr] = n; }
+@@ -47,6 +48,7 @@
+ void MappedRAM::write_protect(bool status) { write_protect_ = status; }
+ uint8* MappedRAM::data() { return data_; }
+ unsigned MappedRAM::size() const { return size_; }
++bool MappedRAM::writable() { return !write_protect_; }
+ 
+ uint8 MappedRAM::read(unsigned addr) { return data_[addr]; }
+ void MappedRAM::write(unsigned addr, uint8 n) { if(!write_protect_) data_[addr] = n; }
+@@ -73,18 +75,27 @@
    return base;
  }
  
@@ -447,26 +740,40 @@ diff -ru higan_v094-source/sfc/memory/memory-inline.hpp bsneshle094/sfc/memory/m
 -    unsigned bit = 1 << n;
 -    if(mask & bit) continue;
 -    result |= (bool)(addr & bit) << length++;
--  }
--  return result;
 +unsigned Bus::reduce(unsigned addr, unsigned mask)
 +{
-+	while (mask)
-+	{
-+		//extract the bits to keep
-+		//set everything below the lowest set bit; 0x018000 -> 0x007FFF
-+		unsigned tmp=((mask-1)&(~mask));
-+		
-+		//shift everything above that
-+		addr=(addr&tmp)|((addr>>1)&~tmp);
-+		
-+		//adjust the mask
-+		mask=(mask&(mask-1))>>1;
-+	}
-+	return addr;
++  while (mask)
++  {
++    //extract the bits to keep
++    //set everything below the lowest set bit; 0x018000 -> 0x007FFF
++    unsigned tmp=((mask-1)&(~mask));
++    
++    //shift everything above that
++    addr=(addr&tmp)|((addr>>1)&~tmp);
++    
++    //adjust the mask
++    mask=(mask&(mask-1))>>1;
+   }
+-  return result;
++  return addr;
  }
  
  uint8 Bus::read(unsigned addr) {
+-  uint8 data = reader[lookup[addr]](target[addr]);
++  uint8 data;
++  if (fast_read[addr>>fast_page_size_bits]) data = fast_read[addr>>fast_page_size_bits][addr];
++  else data = reader[lookup[addr]](target[addr]);
+ 
+   if(cheat.enable()) {
+     if(auto result = cheat.find(addr, data)) return result();
+@@ -94,5 +105,6 @@
+ }
+ 
+ void Bus::write(unsigned addr, uint8 data) {
+-  return writer[lookup[addr]](target[addr], data);
++  if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data, cache_hits++;
++  else writer[lookup[addr]](target[addr], data);
+ }
 diff -ru higan_v094-source/sfc/system/serialization.cpp bsneshle094/sfc/system/serialization.cpp
 --- higan_v094-source/sfc/system/serialization.cpp	2013-05-05 09:48:32.000000000 +0200
 +++ bsneshle094/sfc/system/serialization.cpp	2014-04-26 16:20:16.502065832 +0200
