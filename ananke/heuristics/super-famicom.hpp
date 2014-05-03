@@ -140,23 +140,15 @@ SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size)
   }
 
   else if(has_cx4) {
-		markup.append(
-			"  hitachidsp model=HG51B169 frequency=20000000\n"
-			"    rom id=program name=program.rom size=0x", hex(rom_size), "\n"
-			"    rom id=data name=cx4.data.rom size=0xc00\n"
-			"    ram id=data size=0xc00\n"
-			"    map id=io address=00-3f,80-bf:6000-7fff\n"
-			"    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
-			"    map id=ram address=70-77:0000-7fff\n"
-		);
-		//markup.append(
-			//"  rom name=program.rom size=0x", hex(rom_size), "\n"
-			//"  ram name=save.ram size=0x", hex(ram_size), "\n"
-			//"  map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
-			//"  map id=ram address=70-77:0000-7fff\n"
-			//"  hlecx4\n"
-			//"    map id=io address=00-3f,80-bf:6000-7fff\n"
-		//);
+    markup.append(
+      "  hitachidsp model=HG51B169 frequency=20000000\n"
+      "    rom id=program name=program.rom size=0x", hex(rom_size), "\n"
+      "    rom id=data name=cx4.data.rom size=0xc00\n"
+      "    ram id=data size=0xc00\n"
+      "    map id=io address=00-3f,80-bf:6000-7fff\n"
+      "    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
+      "    map id=ram address=70-77:0000-7fff\n"
+    );
     if((rom_size & 0x7fff) == 0xc00) {
       firmware_appended = true;
       rom_size -= 0xc00;

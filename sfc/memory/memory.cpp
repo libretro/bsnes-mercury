@@ -39,7 +39,6 @@ void Bus::map_reset() {
 }
 
 void Bus::map_xml() {
-int qq=0;
   for(auto& m : cartridge.mapping) {
     lstring part = m.addr.split<1>(":");
     lstring banks = part(0).split(",");
@@ -52,7 +51,6 @@ int qq=0;
         unsigned bankhi = hex(bankpart(1, bankpart(0)));
         unsigned addrlo = hex(addrpart(0));
         unsigned addrhi = hex(addrpart(1, addrpart(0)));
-printf("%i: %.2X-%.2X:%.4X-%.4X\n",qq++,banklo,bankhi,addrlo,addrhi);
         map(m.reader, m.writer, banklo, bankhi, addrlo, addrhi, m.size, m.base, m.mask);
       }
     }

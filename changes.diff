@@ -1,202 +1,5 @@
-diff -ru higan_v094-source/ananke/heuristics/super-famicom.hpp bsneshle094/ananke/heuristics/super-famicom.hpp
---- higan_v094-source/ananke/heuristics/super-famicom.hpp	2013-01-17 01:54:10.000000000 +0100
-+++ bsneshle094/ananke/heuristics/super-famicom.hpp	2014-04-26 16:20:16.498065832 +0200
-@@ -8,7 +8,7 @@
- 
- struct SuperFamicomCartridge {
-   string markup;
--  inline SuperFamicomCartridge(const uint8_t *data, unsigned size);
-+  inline SuperFamicomCartridge(const uint8_t *data, unsigned size, bool hlechips);
- 
- //private:
-   inline void read_header(const uint8_t *data, unsigned size);
-@@ -106,7 +106,7 @@
-   bool has_st018;
- };
- 
--SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size) {
-+SuperFamicomCartridge::SuperFamicomCartridge(const uint8_t *data, unsigned size, bool hlechips = false) {
-   firmware_appended = false;
- 
-   //skip copier header
-@@ -140,15 +140,26 @@
-   }
- 
-   else if(has_cx4) {
--    markup.append(
--      "  hitachidsp model=HG51B169 frequency=20000000\n"
--      "    rom id=program name=program.rom size=0x", hex(rom_size), "\n"
--      "    rom id=data name=cx4.data.rom size=0xc00\n"
--      "    ram id=data size=0xc00\n"
--      "    map id=io address=00-3f,80-bf:6000-7fff\n"
--      "    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
--      "    map id=ram address=70-77:0000-7fff\n"
--    );
-+    if(!hlechips) {
-+      markup.append(
-+        "  hitachidsp model=HG51B169 frequency=20000000\n"
-+        "    rom id=program name=program.rom size=0x", hex(rom_size), "\n"
-+        "    rom id=data name=cx4.data.rom size=0xc00\n"
-+        "    ram id=data size=0xc00\n"
-+        "    map id=io address=00-3f,80-bf:6000-7fff\n"
-+        "    map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
-+        "    map id=ram address=70-77:0000-7fff\n"
-+      );
-+    } else {
-+      markup.append(
-+        "  rom name=program.rom size=0x", hex(rom_size), "\n"
-+        "  ram name=save.ram size=0x", hex(ram_size), "\n"
-+        "  map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
-+        "  map id=ram address=70-77:0000-7fff\n"
-+        "  hlecx4\n"
-+        "    map id=io address=00-3f,80-bf:6000-7fff\n"
-+      );
-+    }
-     if((rom_size & 0x7fff) == 0xc00) {
-       firmware_appended = true;
-       rom_size -= 0xc00;
-@@ -376,12 +387,18 @@
-   }
- 
-   if(has_dsp1) {
--    markup.append(
--      "  necdsp model=uPD7725 frequency=8000000\n"
--      "    rom id=program name=dsp1b.program.rom size=0x1800\n"
--      "    rom id=data name=dsp1b.data.rom size=0x800\n"
--      "    ram id=data size=0x200\n"
--    );
-+    if(!hlechips) {
-+      markup.append(
-+        "  necdsp model=uPD7725 frequency=8000000\n"
-+        "    rom id=program name=dsp1b.program.rom size=0x1800\n"
-+        "    rom id=data name=dsp1b.data.rom size=0x800\n"
-+        "    ram id=data size=0x200\n"
-+      );
-+    } else {
-+      markup.append(
-+        "  hledsp model=DSP-1\n"
-+      );
-+    }
-     if(dsp1_mapper == DSP1LoROM1MB) markup.append(
-       "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
-     );
-@@ -398,13 +415,20 @@
-   }
- 
-   if(has_dsp2) {
--    markup.append(
--      "  necdsp model=uPD7725 frequency=8000000\n"
--      "    rom id=program name=dsp2.program.rom size=0x1800\n"
--      "    rom id=data name=dsp2.data.rom size=0x800\n"
--      "    ram id=data size=0x200\n"
--      "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
--    );
-+    if(!hlechips) {
-+      markup.append(
-+        "  necdsp model=uPD7725 frequency=8000000\n"
-+        "    rom id=program name=dsp2.program.rom size=0x1800\n"
-+        "    rom id=data name=dsp2.data.rom size=0x800\n"
-+        "    ram id=data size=0x200\n"
-+        "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
-+      );
-+    } else {
-+      markup.append(
-+        "  hledsp model=DSP-2\n"
-+        "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
-+      );
-+    }
-     if((size & 0x7fff) == 0x2000) {
-       firmware_appended = true;
-       rom_size -= 0x2000;
-@@ -412,13 +436,20 @@
-   }
- 
-   if(has_dsp3) {
--    markup.append(
--      "  necdsp model=uPD7725 frequency=8000000\n"
--      "    rom id=program name=dsp3.program.rom size=0x1800\n"
--      "    rom id=data name=dsp3.data.rom size=0x800\n"
--      "    ram id=data size=0x200\n"
--      "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
--    );
-+    if(!hlechips) {
-+      markup.append(
-+        "  necdsp model=uPD7725 frequency=8000000\n"
-+        "    rom id=program name=dsp3.program.rom size=0x1800\n"
-+        "    rom id=data name=dsp3.data.rom size=0x800\n"
-+        "    ram id=data size=0x200\n"
-+        "    map id=io address=20-3f,a0-bf:8000-ffff select=0x4000\n"
-+      );
-+    } else {
-+      markup.append(
-+        "  hledsp model=DSP-3\n"
-+        "    map id=io address=20-3f,a0-bf:8000-ffff\n"
-+      );
-+    }
-     if((size & 0x7fff) == 0x2000) {
-       firmware_appended = true;
-       rom_size -= 0x2000;
-@@ -426,13 +457,20 @@
-   }
- 
-   if(has_dsp4) {
--    markup.append(
--      "  necdsp model=uPD7725 frequency=8000000\n"
--      "    rom id=program name=dsp4.program.rom size=0x1800\n"
--      "    rom id=data name=dsp4.data.rom size=0x800\n"
--      "    ram id=data size=0x200\n"
--      "    map id=io address=30-3f,b0-bf:8000-ffff select=0x4000\n"
--    );
-+    if(!hlechips) {
-+      markup.append(
-+        "  necdsp model=uPD7725 frequency=8000000\n"
-+        "    rom id=program name=dsp4.program.rom size=0x1800\n"
-+        "    rom id=data name=dsp4.data.rom size=0x800\n"
-+        "    ram id=data size=0x200\n"
-+        "    map id=io address=30-3f,b0-bf:8000-ffff select=0x4000\n"
-+      );
-+    } else {
-+      markup.append(
-+        "  hledsp model=DSP-4\n"
-+        "    map id=io address=30-3f,b0-bf:8000-ffff\n"
-+      );
-+    }
-     if((size & 0x7fff) == 0x2000) {
-       firmware_appended = true;
-       rom_size -= 0x2000;
-@@ -440,14 +478,23 @@
-   }
- 
-   if(has_st010) {
--    markup.append(
--      "  necdsp model=uPD96050 frequency=11000000\n"
--      "    rom id=program name=st010.program.rom size=0xc000\n"
--      "    rom id=data name=st010.data.rom size=0x1000\n"
--      "    ram id=data name=save.ram size=0x1000\n"
--      "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
--      "    map id=ram address=68-6f,e8-ef:0000-7fff\n"
--    );
-+    if(!hlechips) {
-+      markup.append(
-+        "  necdsp model=uPD96050 frequency=11000000\n"
-+        "    rom id=program name=st010.program.rom size=0xc000\n"
-+        "    rom id=data name=st010.data.rom size=0x1000\n"
-+        "    ram id=data name=save.ram size=0x1000\n"
-+        "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
-+        "    map id=ram address=68-6f,e8-ef:0000-7fff\n"
-+      );
-+    } else {
-+      markup.append(
-+        "  ram name=save.ram size=0x1000\n"
-+        "  map id=ram address=68-6f,e8-ef:0000-7fff\n"
-+        "  hlest0010\n"
-+        "    map id=io address=60-67,e0-e7:0000-3fff select=0x0001\n"
-+      );
-+    }
-     if((size & 0xffff) == 0xd000) {
-       firmware_appended = true;
-       rom_size -= 0xd000;
 Only in bsneshle094/ananke/obj: .gitignore
+Only in bsneshle094/: changes2.diff
 Only in bsneshle094/: changes.diff
 diff -ru higan_v094-source/emulator/emulator.hpp bsneshle094/emulator/emulator.hpp
 --- higan_v094-source/emulator/emulator.hpp	2014-01-20 07:36:22.000000000 +0100
@@ -210,7 +13,20 @@ diff -ru higan_v094-source/emulator/emulator.hpp bsneshle094/emulator/emulator.h
  typedef uint64_t uint64;
  
  typedef varuint_t<unsigned> varuint;
+diff -ru higan_v094-source/emulator/interface.hpp bsneshle094/emulator/interface.hpp
+--- higan_v094-source/emulator/interface.hpp	2013-12-23 08:39:57.000000000 +0100
++++ bsneshle094/emulator/interface.hpp	2014-05-03 11:49:42.546554520 +0200
+@@ -85,7 +85,7 @@
+   virtual bool loaded() { return false; }
+   virtual string sha256() { return ""; }
+   virtual unsigned group(unsigned id) = 0;
+-  virtual void load(unsigned id) {}
++  virtual void load(unsigned id, bool hlechips=false) {}
+   virtual void save() {}
+   virtual void load(unsigned id, const stream& memory) {}
+   virtual void save(unsigned id, const stream& memory) {}
 Only in bsneshle094/: .git
+Only in bsneshle094/: hashes.bluh
 Only in bsneshle094/libco: armeabi.c
 diff -ru higan_v094-source/libco/libco.c bsneshle094/libco/libco.c
 --- higan_v094-source/libco/libco.c	2014-01-20 07:37:11.000000000 +0100
@@ -375,9 +191,31 @@ diff -ru higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
 Only in bsneshle094/obj: .gitignore
 Only in bsneshle094/out: bsnes_libretro.so
 Only in bsneshle094/out: .gitignore
+Only in bsneshle094/: README
+diff -ru higan_v094-source/sfc/cartridge/cartridge.cpp bsneshle094/sfc/cartridge/cartridge.cpp
+--- higan_v094-source/sfc/cartridge/cartridge.cpp	2013-05-05 08:31:39.000000000 +0200
++++ bsneshle094/sfc/cartridge/cartridge.cpp	2014-05-03 11:42:46.802546715 +0200
+@@ -27,7 +27,7 @@
+   return information.title.cartridge;
+ }
+ 
+-void Cartridge::load() {
++void Cartridge::load(bool hlechips) {
+   region = Region::NTSC;
+ 
+   has_gb_slot    = false;
+@@ -62,7 +62,7 @@
+   information.title.sufamiTurboB  = "";
+ 
+   interface->loadRequest(ID::Manifest, "manifest.bml");
+-  parse_markup(information.markup.cartridge);
++  parse_markup(information.markup.cartridge, hlechips);
+ 
+   //Super Game Boy
+   if(cartridge.has_gb_slot()) {
 diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge/cartridge.hpp
 --- higan_v094-source/sfc/cartridge/cartridge.hpp	2013-01-22 23:52:43.000000000 +0100
-+++ bsneshle094/sfc/cartridge/cartridge.hpp	2014-04-26 16:20:16.502065832 +0200
++++ bsneshle094/sfc/cartridge/cartridge.hpp	2014-05-03 11:39:39.190543193 +0200
 @@ -39,6 +39,12 @@
    readonly<bool> has_obc1;
    readonly<bool> has_hsu1;
@@ -391,101 +229,137 @@ diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge
  
    struct Mapping {
      function<uint8 (unsigned)> reader;
+@@ -80,7 +86,7 @@
+ 
+   string title();
+ 
+-  void load();
++  void load(bool);
+   void unload();
+ 
+   void serialize(serializer&);
+@@ -93,7 +99,7 @@
+   void load_sufami_turbo_a();
+   void load_sufami_turbo_b();
+ 
+-  void parse_markup(const char*);
++  void parse_markup(const char*, bool);
+   void parse_markup_map(Mapping&, Markup::Node);
+   void parse_markup_memory(MappedRAM&, Markup::Node, unsigned id, bool writable);
+ 
 @@ -116,6 +122,9 @@
    void parse_markup_obc1(Markup::Node);
    void parse_markup_hsu1(Markup::Node);
    void parse_markup_msu1(Markup::Node);
-+  void parse_markup_hledsp(Markup::Node);
-+  void parse_markup_hlecx4(Markup::Node);
-+  void parse_markup_hlest0010(Markup::Node);
++  
++  void parse_markup_hitachidsp_hle(Markup::Node);
++  void parse_markup_necdsp_hle(Markup::Node);
  
    friend class Interface;
  };
 diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/markup.cpp
 --- higan_v094-source/sfc/cartridge/markup.cpp	2013-12-06 21:58:46.000000000 +0100
-+++ bsneshle094/sfc/cartridge/markup.cpp	2014-04-26 16:20:16.502065832 +0200
-@@ -28,6 +28,9 @@
-   parse_markup_obc1(cartridge["obc1"]);
-   parse_markup_hsu1(cartridge["hsu1"]);
-   parse_markup_msu1(cartridge["msu1"]);
-+  parse_markup_hledsp(cartridge["hledsp"]);
-+  parse_markup_hlecx4(cartridge["hlecx4"]);
-+  parse_markup_hlest0010(cartridge["hlest0010"]);
- }
++++ bsneshle094/sfc/cartridge/markup.cpp	2014-05-03 15:26:59.494799270 +0200
+@@ -1,6 +1,7 @@
+ #ifdef CARTRIDGE_CPP
  
- //
-@@ -586,6 +589,71 @@
-   }
- }
+-void Cartridge::parse_markup(const char* markup) {
++void Cartridge::parse_markup(const char* markup, bool hlechips) {
++hlechips=true;
+   auto document = Markup::Document(markup);
+   information.title.cartridge = document["information/title"].text();
  
-+void Cartridge::parse_markup_hledsp(Markup::Node root) {
-+  if(root.exists() == false) return;
-+
-+  string revision = root["model"].data;
-+
-+  for(auto& node : root) {
-+    if(node.name != "map") continue;
-+
-+    if(node["id"].data == "io") {
-+      if(revision == "DSP-1") {
-+        has_dsp1 = true;
-+        Mapping m({&DSP1::read, &dsp1}, {&DSP1::write, &dsp1});
-+        parse_markup_map(m, node);
-+        mapping.append(m);
-+        dsp1.Select = numeral(node["select"].data);
-+      }
-+      if(revision == "DSP-2") {
-+        has_dsp2 = true;
-+        Mapping m({&DSP2::read, &dsp2}, {&DSP2::write, &dsp2});
-+        parse_markup_map(m, node);
-+        mapping.append(m);
-+        dsp2.Select = numeral(node["select"].data);
-+      }
-+      if(revision == "DSP-3") {
-+        has_dsp3 = true;
-+        Mapping m({&DSP3::read, &dsp3}, {&DSP3::write, &dsp3});
-+        parse_markup_map(m, node);
-+        mapping.append(m);
-+      }
-+      if(revision == "DSP-4") {
-+        has_dsp4 = true;
-+        Mapping m({&DSP4::read, &dsp4}, {&DSP4::write, &dsp4});
-+        parse_markup_map(m, node);
-+        mapping.append(m);
-+      }
-+    }
+@@ -19,8 +20,16 @@
+   parse_markup_sa1(cartridge["sa1"]);
+   parse_markup_superfx(cartridge["superfx"]);
+   parse_markup_armdsp(cartridge["armdsp"]);
+-  parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
+-  parse_markup_necdsp(cartridge["necdsp"]);
++  if (!hlechips)
++  {
++    parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
++    parse_markup_necdsp(cartridge["necdsp"]);
++  }
++  else
++  {
++    parse_markup_hitachidsp_hle(cartridge["hitachidsp"]);
++    parse_markup_necdsp_hle(cartridge["necdsp"]);
++  }
+   parse_markup_epsonrtc(cartridge["epsonrtc"]);
+   parse_markup_sharprtc(cartridge["sharprtc"]);
+   parse_markup_spc7110(cartridge["spc7110"]);
+@@ -583,6 +592,71 @@
+       parse_markup_map(m, node);
+       mapping.append(m);
+     }
 +  }
 +}
 +
-+void Cartridge::parse_markup_hlecx4(Markup::Node root) {
++void Cartridge::parse_markup_hitachidsp_hle(Markup::Node root) {
 +  if(root.exists() == false) return;
-+  
++
++  parse_markup_cartridge(root);
++
 +  has_cx4 = true;
-+  
 +  for(auto& node : root) {
-+    if(node.name != "map") continue;
++    if(node.name != "map" || node["id"].data != "io") continue;
 +    Mapping m({&Cx4::read, &cx4}, {&Cx4::write, &cx4});
 +    parse_markup_map(m, node);
 +    mapping.append(m);
 +  }
 +}
 +
-+void Cartridge::parse_markup_hlest0010(Markup::Node root) {
++void Cartridge::parse_markup_necdsp_hle(Markup::Node root) {
 +  if(root.exists() == false) return;
-+  
-+  has_st0010 = true;
-+  
-+  for(auto& node : root) {
-+    if(node.name != "map") continue;
-+    Mapping m({&ST0010::read, &st0010}, {&ST0010::write, &st0010});
-+    parse_markup_map(m, node);
-+    mapping.append(m);
-+  }
-+}
 +
- Cartridge::Mapping::Mapping() {
-   size = base = mask = 0;
++  if (root["model"].data == "uPD7725") {
++    Mapping m;
++    unsigned int select=0;
++    unsigned int * selectaddr=NULL;
++    for(auto& node : root) {
++      if (node.name == "rom" && node["id"].data == "program") {
++        if (node["name"].data == "dsp1.program.rom" || node["name"].data == "dsp1b.program.rom") {
++          has_dsp1 = true;
++          m.reader = {&DSP1::read, &dsp1};
++          m.writer = {&DSP1::write, &dsp1};
++          selectaddr = &dsp1.Select;
++        }
++        if (node["name"].data == "dsp2.program.rom") {
++          has_dsp2 = true;
++          m.reader = {&DSP2::read, &dsp2};
++          m.writer = {&DSP2::write, &dsp2};
++          selectaddr = &dsp2.Select;
++        }
++        if (node["name"].data == "dsp3.program.rom") {
++          has_dsp3 = true;
++          m.reader = {&DSP3::read, &dsp3};
++          m.writer = {&DSP3::write, &dsp3};
++          //some of the chips hardcode the Select value
++        }
++        if (node["name"].data == "dsp4.program.rom") {
++          has_dsp4 = true;
++          m.reader = {&DSP4::read, &dsp4};
++          m.writer = {&DSP4::write, &dsp4};
++        }
++      }
++      if (node.name == "map" && node["id"].data == "io") {
++        parse_markup_map(m, node);
++        select = numeral(node["select"].data);
++      }
++    }
++    if (selectaddr) *selectaddr=select;
++    mapping.append(m);
++  } else {
++    Mapping m({&ST0010::read, &st0010}, {&ST0010::write, &st0010});
++    for(auto& node : root) {
++      if(node.name != "map") continue;
++
++      parse_markup_map(m, node);
++      mapping.append(m);
++    }
+   }
  }
+ 
 diff -ru higan_v094-source/sfc/chip/chip.hpp bsneshle094/sfc/chip/chip.hpp
 --- higan_v094-source/sfc/chip/chip.hpp	2013-01-21 07:09:43.000000000 +0100
 +++ bsneshle094/sfc/chip/chip.hpp	2014-04-26 16:20:16.502065832 +0200
@@ -510,6 +384,32 @@ Only in bsneshle094/sfc/chip: dsp2
 Only in bsneshle094/sfc/chip: dsp3
 Only in bsneshle094/sfc/chip: dsp4
 Only in bsneshle094/sfc/chip: st0010
+diff -ru higan_v094-source/sfc/interface/interface.cpp bsneshle094/sfc/interface/interface.cpp
+--- higan_v094-source/sfc/interface/interface.cpp	2014-01-13 07:34:39.000000000 +0100
++++ bsneshle094/sfc/interface/interface.cpp	2014-05-03 11:42:51.186546797 +0200
+@@ -94,8 +94,8 @@
+   throw;
+ }
+ 
+-void Interface::load(unsigned id) {
+-  if(id == ID::SuperFamicom) cartridge.load();
++void Interface::load(unsigned id, bool hlechips) {
++  if(id == ID::SuperFamicom) cartridge.load(hlechips);
+   if(id == ID::SuperGameBoy) cartridge.load_super_game_boy();
+   if(id == ID::Satellaview) cartridge.load_satellaview();
+   if(id == ID::SufamiTurboSlotA) cartridge.load_sufami_turbo_a();
+diff -ru higan_v094-source/sfc/interface/interface.hpp bsneshle094/sfc/interface/interface.hpp
+--- higan_v094-source/sfc/interface/interface.hpp	2013-12-17 05:31:06.000000000 +0100
++++ bsneshle094/sfc/interface/interface.hpp	2014-05-03 11:42:58.918546942 +0200
+@@ -96,7 +96,7 @@
+   bool loaded();
+   string sha256();
+   unsigned group(unsigned id);
+-  void load(unsigned id);
++  void load(unsigned id, bool hlechips);
+   void save();
+   void load(unsigned id, const stream& stream);
+   void save(unsigned id, const stream& stream);
 diff -ru higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
 --- higan_v094-source/sfc/Makefile	2013-01-23 00:07:55.000000000 +0100
 +++ bsneshle094/sfc/Makefile	2014-04-26 16:20:16.502065832 +0200
