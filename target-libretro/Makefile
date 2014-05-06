@@ -26,15 +26,15 @@ obj/libretro.o: $(ui)/libretro.cpp $(ui)/*
 #targets
 build: $(objects)
 ifeq ($(platform),linux)
-	$(compiler) -o out/bsnes_libretro.so -shared $(objects) -ldl -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T
+	$(compiler) -o out/bsnes_libretro.so -shared $(objects) -ldl -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T $(link)
 else ifeq ($(platform),bsd)
-	$(compiler) -o out/bsnes_libretro.so -shared $(objects) -ldl -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T
+	$(compiler) -o out/bsnes_libretro.so -shared $(objects) -ldl -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T $(link)
 else ifeq ($(platform),ios)
-	$(compiler) -o out/bsnes_libretro_ios.dylib -dynamiclib $(objects) -isysroot $(IOSSDK) -arch armv7
+	$(compiler) -o out/bsnes_libretro_ios.dylib -dynamiclib $(objects) -isysroot $(IOSSDK) -arch armv7 $(link)
 else ifeq ($(platform),macosx)
-	$(compiler) -o out/bsnes_libretro.dylib -dynamiclib $(objects)
+	$(compiler) -o out/bsnes_libretro.dylib -dynamiclib $(objects) $(link)
 else ifeq ($(platform),windows)
-	$(compiler) -o out/bsnes_libretro.dll -shared $(objects) -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T -static-libgcc -static-libstdc++ -lws2_32
+	$(compiler) -o out/bsnes_libretro.dll -shared $(objects) -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T -static-libgcc -static-libstdc++ -lws2_32 $(link)
 endif
 
 install:
