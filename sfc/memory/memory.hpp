@@ -3,13 +3,11 @@ struct Memory {
   virtual uint8 read(unsigned addr) = 0;
   virtual void write(unsigned addr, uint8 data) = 0;
   virtual uint8* data() { return NULL; }
-  virtual bool writable() { return false; }
 };
 
 struct StaticRAM : Memory {
   inline uint8* data();
   inline unsigned size() const;
-  inline bool writable();
 
   inline uint8 read(unsigned addr);
   inline void write(unsigned addr, uint8 n);
@@ -33,7 +31,6 @@ struct MappedRAM : Memory {
   inline void write_protect(bool status);
   inline uint8* data();
   inline unsigned size() const;
-  inline bool writable();
 
   inline uint8 read(unsigned addr);
   inline void write(unsigned addr, uint8 n);

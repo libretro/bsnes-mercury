@@ -6,7 +6,6 @@ unsigned Memory::size() const { return 0; }
 
 uint8* StaticRAM::data() { return data_; }
 unsigned StaticRAM::size() const { return size_; }
-bool StaticRAM::writable() { return true; }
 
 uint8 StaticRAM::read(unsigned addr) { return data_[addr]; }
 void StaticRAM::write(unsigned addr, uint8 n) { data_[addr] = n; }
@@ -48,7 +47,6 @@ void MappedRAM::read(const stream& memory) {
 void MappedRAM::write_protect(bool status) { write_protect_ = status; }
 uint8* MappedRAM::data() { return data_; }
 unsigned MappedRAM::size() const { return size_; }
-bool MappedRAM::writable() { return !write_protect_; }
 
 uint8 MappedRAM::read(unsigned addr) { return data_[addr]; }
 void MappedRAM::write(unsigned addr, uint8 n) { if(!write_protect_) data_[addr] = n; }

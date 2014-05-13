@@ -1,5 +1,6 @@
 Only in bsneshle094/ananke/obj: .gitignore
 Only in bsneshle094/: changes.diff
+Only in bsneshle094/: e.log
 diff -ru higan_v094-source/emulator/emulator.hpp bsneshle094/emulator/emulator.hpp
 --- higan_v094-source/emulator/emulator.hpp	2014-01-20 07:36:22.000000000 +0100
 +++ bsneshle094/emulator/emulator.hpp	2014-04-26 16:20:16.498065832 +0200
@@ -41,7 +42,7 @@ diff -ru higan_v094-source/libco/libco.c bsneshle094/libco/libco.c
 Only in bsneshle094/: LICENSE
 diff -ru higan_v094-source/Makefile bsneshle094/Makefile
 --- higan_v094-source/Makefile	2013-10-20 14:39:14.000000000 +0200
-+++ bsneshle094/Makefile	2014-04-26 16:32:03.214079100 +0200
++++ bsneshle094/Makefile	2014-05-06 22:26:32.292903538 +0200
 @@ -13,8 +13,16 @@
  # console := true
  
@@ -61,15 +62,14 @@ diff -ru higan_v094-source/Makefile bsneshle094/Makefile
  objects := libco
  
  # profile-guided optimization mode
-@@ -27,34 +35,40 @@
- else ifeq ($(pgo),optimize)
+@@ -28,33 +36,39 @@
    flags += -fprofile-use
  endif
-+ 
+ 
 +ifeq ($(compiler),)
 +  compiler := g++
 +endif
- 
++
  # platform
 -ifeq ($(platform),windows)
 -  ifeq ($(arch),x86)
@@ -124,6 +124,7 @@ diff -ru higan_v094-source/Makefile bsneshle094/Makefile
  # implicit rules
  compile = \
    $(strip \
+Only in bsneshle094/: make.sh
 diff -ru higan_v094-source/nall/file.hpp bsneshle094/nall/file.hpp
 --- higan_v094-source/nall/file.hpp	2014-01-20 07:37:12.000000000 +0100
 +++ bsneshle094/nall/file.hpp	2014-04-26 17:34:50.338149822 +0200
@@ -186,67 +187,116 @@ diff -ru higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
    #define ENDIAN_LSB
    Intrinsics::Endian Intrinsics::endian() { return Intrinsics::Endian::LSB; }
  #elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && __BYTE_ORDER == __BIG_ENDIAN) || defined(__BIG_ENDIAN__) || defined(__powerpc__) || defined(_M_PPC)
+Only in bsneshle094/obj: gb-apu.gcda
 Only in bsneshle094/obj: gb-apu.o
+Only in bsneshle094/obj: gb-cartridge.gcda
 Only in bsneshle094/obj: gb-cartridge.o
+Only in bsneshle094/obj: gb-cheat.gcda
 Only in bsneshle094/obj: gb-cheat.o
+Only in bsneshle094/obj: gb-cpu.gcda
 Only in bsneshle094/obj: gb-cpu.o
+Only in bsneshle094/obj: gb-interface.gcda
 Only in bsneshle094/obj: gb-interface.o
+Only in bsneshle094/obj: gb-memory.gcda
 Only in bsneshle094/obj: gb-memory.o
+Only in bsneshle094/obj: gb-ppu.gcda
 Only in bsneshle094/obj: gb-ppu.o
+Only in bsneshle094/obj: gb-scheduler.gcda
 Only in bsneshle094/obj: gb-scheduler.o
+Only in bsneshle094/obj: gb-system.gcda
 Only in bsneshle094/obj: gb-system.o
+Only in bsneshle094/obj: gb-video.gcda
 Only in bsneshle094/obj: gb-video.o
 Only in bsneshle094/obj: .gitignore
+Only in bsneshle094/obj: libco.gcda
 Only in bsneshle094/obj: libco.o
+Only in bsneshle094/obj: libretro.gcda
 Only in bsneshle094/obj: libretro.o
+Only in bsneshle094/obj: processor-arm.gcda
 Only in bsneshle094/obj: processor-arm.o
+Only in bsneshle094/obj: processor-gsu.gcda
 Only in bsneshle094/obj: processor-gsu.o
+Only in bsneshle094/obj: processor-hg51b.gcda
 Only in bsneshle094/obj: processor-hg51b.o
+Only in bsneshle094/obj: processor-lr35902.gcda
 Only in bsneshle094/obj: processor-lr35902.o
+Only in bsneshle094/obj: processor-r65816.gcda
 Only in bsneshle094/obj: processor-r65816.o
+Only in bsneshle094/obj: processor-spc700.gcda
 Only in bsneshle094/obj: processor-spc700.o
+Only in bsneshle094/obj: processor-upd96050.gcda
 Only in bsneshle094/obj: processor-upd96050.o
+Only in bsneshle094/obj: sfc-armdsp.gcda
 Only in bsneshle094/obj: sfc-armdsp.o
+Only in bsneshle094/obj: sfc-bsx.gcda
 Only in bsneshle094/obj: sfc-bsx.o
+Only in bsneshle094/obj: sfc-cartridge.gcda
 Only in bsneshle094/obj: sfc-cartridge.o
+Only in bsneshle094/obj: sfc-cheat.gcda
 Only in bsneshle094/obj: sfc-cheat.o
+Only in bsneshle094/obj: sfc-controller.gcda
 Only in bsneshle094/obj: sfc-controller.o
+Only in bsneshle094/obj: sfc-cpu.gcda
 Only in bsneshle094/obj: sfc-cpu.o
+Only in bsneshle094/obj: sfc-dsp.gcda
 Only in bsneshle094/obj: sfc-dsp.o
+Only in bsneshle094/obj: sfc-epsonrtc.gcda
 Only in bsneshle094/obj: sfc-epsonrtc.o
+Only in bsneshle094/obj: sfc-event.gcda
 Only in bsneshle094/obj: sfc-event.o
+Only in bsneshle094/obj: sfc-hitachidsp.gcda
 Only in bsneshle094/obj: sfc-hitachidsp.o
+Only in bsneshle094/obj: sfc-hlecx4.gcda
 Only in bsneshle094/obj: sfc-hlecx4.o
+Only in bsneshle094/obj: sfc-hledsp1.gcda
 Only in bsneshle094/obj: sfc-hledsp1.o
+Only in bsneshle094/obj: sfc-hledsp2.gcda
 Only in bsneshle094/obj: sfc-hledsp2.o
+Only in bsneshle094/obj: sfc-hledsp3.gcda
 Only in bsneshle094/obj: sfc-hledsp3.o
+Only in bsneshle094/obj: sfc-hledsp4.gcda
 Only in bsneshle094/obj: sfc-hledsp4.o
+Only in bsneshle094/obj: sfc-hlest0010.gcda
 Only in bsneshle094/obj: sfc-hlest0010.o
+Only in bsneshle094/obj: sfc-hsu1.gcda
 Only in bsneshle094/obj: sfc-hsu1.o
+Only in bsneshle094/obj: sfc-icd2.gcda
 Only in bsneshle094/obj: sfc-icd2.o
+Only in bsneshle094/obj: sfc-interface.gcda
 Only in bsneshle094/obj: sfc-interface.o
+Only in bsneshle094/obj: sfc-memory.gcda
 Only in bsneshle094/obj: sfc-memory.o
+Only in bsneshle094/obj: sfc-msu1.gcda
 Only in bsneshle094/obj: sfc-msu1.o
+Only in bsneshle094/obj: sfc-necdsp.gcda
 Only in bsneshle094/obj: sfc-necdsp.o
+Only in bsneshle094/obj: sfc-nss.gcda
 Only in bsneshle094/obj: sfc-nss.o
+Only in bsneshle094/obj: sfc-obc1.gcda
 Only in bsneshle094/obj: sfc-obc1.o
+Only in bsneshle094/obj: sfc-ppu.gcda
 Only in bsneshle094/obj: sfc-ppu.o
+Only in bsneshle094/obj: sfc-sa1.gcda
 Only in bsneshle094/obj: sfc-sa1.o
+Only in bsneshle094/obj: sfc-satellaviewbase.gcda
 Only in bsneshle094/obj: sfc-satellaviewbase.o
+Only in bsneshle094/obj: sfc-satellaviewcart.gcda
 Only in bsneshle094/obj: sfc-satellaviewcart.o
+Only in bsneshle094/obj: sfc-sdd1.gcda
 Only in bsneshle094/obj: sfc-sdd1.o
+Only in bsneshle094/obj: sfc-sharprtc.gcda
 Only in bsneshle094/obj: sfc-sharprtc.o
+Only in bsneshle094/obj: sfc-smp.gcda
 Only in bsneshle094/obj: sfc-smp.o
+Only in bsneshle094/obj: sfc-spc7110.gcda
 Only in bsneshle094/obj: sfc-spc7110.o
+Only in bsneshle094/obj: sfc-sufamiturbo.gcda
 Only in bsneshle094/obj: sfc-sufamiturbo.o
+Only in bsneshle094/obj: sfc-superfx.gcda
 Only in bsneshle094/obj: sfc-superfx.o
+Only in bsneshle094/obj: sfc-system.gcda
 Only in bsneshle094/obj: sfc-system.o
 Only in bsneshle094/out: bsnes_libretro.so
-Only in bsneshle094/out: callgrind.out.31807
-Only in bsneshle094/out: callgrind.out.32032
-Only in bsneshle094/out: callgrind.out.32211
-Only in bsneshle094/out: callgrind.out.32419
-Only in bsneshle094/out: callgrind.out.32617
 Only in bsneshle094/out: .gitignore
 Only in bsneshle094/: README
 diff -ru higan_v094-source/sfc/alt/cpu/cpu.cpp bsneshle094/sfc/alt/cpu/cpu.cpp
@@ -579,7 +629,7 @@ diff -ru higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
 +obj/sfc-hlest0010.o:       $(sfc)/chip/st0010/st0010.cpp $(sfc)/chip/st0010/*
 diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.cpp
 --- higan_v094-source/sfc/memory/memory.cpp	2013-05-05 09:29:50.000000000 +0200
-+++ bsneshle094/sfc/memory/memory.cpp	2014-05-04 00:00:37.171377829 +0200
++++ bsneshle094/sfc/memory/memory.cpp	2014-05-04 00:04:34.463382284 +0200
 @@ -10,22 +10,55 @@
    const function<void (unsigned, uint8)>& writer,
    unsigned banklo, unsigned bankhi,
@@ -654,31 +704,16 @@ diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.c
    }
 diff -ru higan_v094-source/sfc/memory/memory.hpp bsneshle094/sfc/memory/memory.hpp
 --- higan_v094-source/sfc/memory/memory.hpp	2013-05-05 09:30:28.000000000 +0200
-+++ bsneshle094/sfc/memory/memory.hpp	2014-05-03 22:45:15.587292943 +0200
-@@ -2,11 +2,14 @@
++++ bsneshle094/sfc/memory/memory.hpp	2014-05-13 17:48:24.155765480 +0200
+@@ -2,6 +2,7 @@
    virtual inline unsigned size() const;
    virtual uint8 read(unsigned addr) = 0;
    virtual void write(unsigned addr, uint8 data) = 0;
 +  virtual uint8* data() { return NULL; }
-+  virtual bool writable() { return false; }
  };
  
  struct StaticRAM : Memory {
-   inline uint8* data();
-   inline unsigned size() const;
-+  inline bool writable();
- 
-   inline uint8 read(unsigned addr);
-   inline void write(unsigned addr, uint8 n);
-@@ -30,6 +33,7 @@
-   inline void write_protect(bool status);
-   inline uint8* data();
-   inline unsigned size() const;
-+  inline bool writable();
- 
-   inline uint8 read(unsigned addr);
-   inline void write(unsigned addr, uint8 n);
-@@ -56,12 +60,19 @@
+@@ -56,12 +57,19 @@
    function<uint8 (unsigned)> reader[256];
    function<void (unsigned, uint8)> writer[256];
  
@@ -701,24 +736,8 @@ diff -ru higan_v094-source/sfc/memory/memory.hpp bsneshle094/sfc/memory/memory.h
    void map_reset();
 diff -ru higan_v094-source/sfc/memory/memory-inline.hpp bsneshle094/sfc/memory/memory-inline.hpp
 --- higan_v094-source/sfc/memory/memory-inline.hpp	2014-01-13 07:27:34.000000000 +0100
-+++ bsneshle094/sfc/memory/memory-inline.hpp	2014-05-03 22:55:50.347304859 +0200
-@@ -6,6 +6,7 @@
- 
- uint8* StaticRAM::data() { return data_; }
- unsigned StaticRAM::size() const { return size_; }
-+bool StaticRAM::writable() { return true; }
- 
- uint8 StaticRAM::read(unsigned addr) { return data_[addr]; }
- void StaticRAM::write(unsigned addr, uint8 n) { data_[addr] = n; }
-@@ -47,6 +48,7 @@
- void MappedRAM::write_protect(bool status) { write_protect_ = status; }
- uint8* MappedRAM::data() { return data_; }
- unsigned MappedRAM::size() const { return size_; }
-+bool MappedRAM::writable() { return !write_protect_; }
- 
- uint8 MappedRAM::read(unsigned addr) { return data_[addr]; }
- void MappedRAM::write(unsigned addr, uint8 n) { if(!write_protect_) data_[addr] = n; }
-@@ -73,26 +75,38 @@
++++ bsneshle094/sfc/memory/memory-inline.hpp	2014-05-13 17:48:18.379765481 +0200
+@@ -73,26 +73,38 @@
    return base;
  }
  
