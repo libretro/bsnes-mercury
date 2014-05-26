@@ -111,11 +111,11 @@ struct Callbacks : Emulator::Interface::Bind {
     }
   }
 
-  virtual uint32_t videoColor(unsigned source, uint16_t alpha, uint16_t red, uint16_t green, uint16_t blue) {
+  uint32_t videoColor(unsigned source, uint16_t alpha, uint16_t red, uint16_t green, uint16_t blue) override {
     return ((red&0xFF00)<<8) | ((green&0xFF00)) | ((blue&0xFF00)>>8);
   }
 
-  void videoRefresh(const uint32_t* palette, const uint32_t* data, unsigned pitch, unsigned width, unsigned height) {
+  void videoRefresh(const uint32_t* palette, const uint32_t* data, unsigned pitch, unsigned width, unsigned height) override {
     if (!overscan) {
       data += 8 * 1024;
 
@@ -142,16 +142,16 @@ struct Callbacks : Emulator::Interface::Bind {
     pinput_poll();
   }
 
-  void audioSample(int16_t left, int16_t right) {
+  void audioSample(int16_t left, int16_t right) override {
     paudio_sample(left, right);
   }
 
-  int16_t inputPoll(unsigned port, unsigned device, unsigned id) {
+  int16_t inputPoll(unsigned port, unsigned device, unsigned id) override {
     if(id >= 12) return 0;
     return pinput_state(port, snes_to_retro(device), 0, snes_to_retro(device, id));
   }
 
-  void saveRequest(unsigned id, string p) {
+  void saveRequest(unsigned id, string p) override {
     if (manifest) {
       output(RETRO_LOG_INFO, "[Save]: ID %u, Request \"%s\".\n", id, (const char*)p);
       string save_path = {path(0), p};
@@ -304,7 +304,7 @@ struct Callbacks : Emulator::Interface::Bind {
     }
   }
 
-  void loadRequest(unsigned id, string p) {
+  void loadRequest(unsigned id, string p) override {
     if (manifest)
        loadRequestManifest(id, p);
     else
@@ -312,7 +312,7 @@ struct Callbacks : Emulator::Interface::Bind {
     output(RETRO_LOG_INFO, "Complete load request.\n");
   }
 
-  void loadRequest(unsigned id, string p, string manifest) {
+  void loadRequest(unsigned id, string p, string manifest) override {
     switch (id) {
       case SuperFamicom::ID::SuperGameBoy:
         output(RETRO_LOG_INFO, "Loading GB ROM.\n");
@@ -324,15 +324,8 @@ struct Callbacks : Emulator::Interface::Bind {
     }
   }
 
-  string path(unsigned) {
+  string path(unsigned) override {
     return string(basename);
-  }
-
-  uint32_t videoColor(unsigned, uint16_t r, uint16_t g, uint16_t b) {
-    r >>= 8;
-    g >>= 8;
-    b >>= 8;
-    return (r << 16) | (g << 8) | (b << 0);
   }
 };
 
