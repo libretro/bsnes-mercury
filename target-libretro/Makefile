@@ -12,7 +12,11 @@ else ifeq ($(platform),bsd)
 else ifeq ($(platform),macosx)
   flags += -fPIC
 else ifeq ($(platform),ios)
-  flags += -arch armv7 -marm -fPIC -isysroot $(IOSSDK) -DHAVE_POSIX_MEMALIGN=1 -w
+  flags += -arch armv7 -fPIC -isysroot $(IOSSDK) -DHAVE_POSIX_MEMALIGN=1 -w
+  OSXVER := $(shell sw_vers -productVersion | cut -c 1-4)
+  ifneq ($(OSXVER),10.9)
+    flags += -miphoneos-version-min=5.0
+  endif
 endif
 
 flags += -D__LIBRETRO__
