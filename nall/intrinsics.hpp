@@ -6,7 +6,7 @@ namespace nall {
 struct Intrinsics {
   enum class Compiler : unsigned { Clang, GCC, VisualCPP, Unknown };
   enum class Platform : unsigned { Windows, MacOSX, X, Unknown };  //X = Linux, BSD, etc
-  enum class Architecture : unsigned { x86, amd64, Unknown };
+  enum class Architecture : unsigned { x86, amd64, ARM, Unknown };
   enum class Endian : unsigned { LSB, MSB, Unknown };
 
   static inline Compiler compiler();
@@ -57,6 +57,9 @@ struct Intrinsics {
 #elif defined(__amd64__) || defined(_M_AMD64)
   #define ARCH_AMD64
   Intrinsics::Architecture Intrinsics::architecture() { return Intrinsics::Architecture::amd64; }
+#elif defined(__arm__) || defined(__ARM_EABI__)
+  #define ARCH_ARM
+  Intrinsics::Architecture Intrinsics::architecture() { return Intrinsics::Architecture::ARM; }
 #else
   #warning "unable to detect architecture"
   #define ARCH_UNKNOWN

@@ -5,6 +5,22 @@
 #include "../ananke/heuristics/super-famicom.hpp"
 #include "../ananke/heuristics/game-boy.hpp"
 #include <string>
+
+// Special memory types.
+#define RETRO_MEMORY_SNES_BSX_RAM             ((1 << 8) | RETRO_MEMORY_SAVE_RAM)
+#define RETRO_MEMORY_SNES_BSX_PRAM            ((2 << 8) | RETRO_MEMORY_SAVE_RAM)
+#define RETRO_MEMORY_SNES_SUFAMI_TURBO_A_RAM  ((3 << 8) | RETRO_MEMORY_SAVE_RAM)
+#define RETRO_MEMORY_SNES_SUFAMI_TURBO_B_RAM  ((4 << 8) | RETRO_MEMORY_SAVE_RAM)
+#define RETRO_MEMORY_SNES_GAME_BOY_RAM        ((5 << 8) | RETRO_MEMORY_SAVE_RAM)
+#define RETRO_MEMORY_SNES_GAME_BOY_RTC        ((6 << 8) | RETRO_MEMORY_RTC)
+
+// Special game types passed into retro_load_game_special().
+// Only used when multiple ROMs are required.
+#define RETRO_GAME_TYPE_BSX             0x101
+#define RETRO_GAME_TYPE_BSX_SLOTTED     0x102
+#define RETRO_GAME_TYPE_SUFAMI_TURBO    0x103
+#define RETRO_GAME_TYPE_SUPER_GAME_BOY  0x104
+
 using namespace nall;
 
 const uint8 iplrom[64] = {
@@ -407,6 +423,51 @@ void retro_set_environment(retro_environment_t environ_cb)
   static struct retro_log_callback log={retro_log_default};
   core_bind.penviron(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, (void*)&log);
   output=log.log;
+  
+   static const retro_subsystem_memory_info sgb_memory[] = {
+      { "srm", RETRO_MEMORY_SNES_GAME_BOY_RAM },
+      { "rtc", RETRO_MEMORY_SNES_GAME_BOY_RTC },
+   };
+
+   static const struct retro_subsystem_rom_info sgb_roms[] = {
+      { "GameBoy", "gb|gbc", false, false, true, sgb_memory, 2 },
+      { "Super GameBoy BIOS", "sfc|smc", false, false, true, NULL, 0 },
+   };
+
+   static const retro_subsystem_memory_info sufami_a_memory[] = {
+      { "srm", RETRO_MEMORY_SNES_SUFAMI_TURBO_A_RAM },
+   };
+
+   static const retro_subsystem_memory_info sufami_b_memory[] = {
+      { "srm", RETRO_MEMORY_SNES_SUFAMI_TURBO_B_RAM },
+   };
+
+   static const struct retro_subsystem_rom_info sufami_roms[] = {
+      { "Sufami A", "sfc|smc", false, false, false, sufami_a_memory, 1 },
+      { "Sufami B", "sfc|smc", false, false, false, sufami_b_memory, 1 },
+      { "Sufami BIOS", "sfc|smc", false, false, true, NULL, 0 },
+   };
+
+   static const retro_subsystem_memory_info bsx_memory[] = {
+      { "srm", RETRO_MEMORY_SNES_BSX_RAM },
+      { "psrm", RETRO_MEMORY_SNES_BSX_PRAM },
+   };
+
+   static const struct retro_subsystem_rom_info bsx_roms[] = {
+      { "BSX ROM", "bs", false, false, true, bsx_memory, 2 },
+      { "BSX BIOS", "sfc|smc", false, false, true, NULL, 0 },
+   };
+
+   // OR in 0x1000 on types to remain ABI compat with the older-style retro_load_game_special().
+   static const struct retro_subsystem_info subsystems[] = {
+      { "Super GameBoy", "sgb", sgb_roms, 2, RETRO_GAME_TYPE_SUPER_GAME_BOY | 0x1000 }, // Super Gameboy
+      { "Sufami Turbo", "sufami", sufami_roms, 3, RETRO_GAME_TYPE_SUFAMI_TURBO | 0x1000 }, // Sufami Turbo
+      { "BSX", "bsx", bsx_roms, 2, RETRO_GAME_TYPE_BSX | 0x1000 }, // BSX
+      { "BSX slotted", "bsxslot", bsx_roms, 2, RETRO_GAME_TYPE_BSX_SLOTTED | 0x1000 }, // BSX slotted
+      { NULL },
+   };
+
+   environ_cb(RETRO_ENVIRONMENT_SET_SUBSYSTEM_INFO, (void*)subsystems);
 }
 
 void retro_set_video_refresh(retro_video_refresh_t video_refresh) { core_bind.pvideo_refresh = video_refresh; }
@@ -653,59 +714,80 @@ bool retro_load_game(const struct retro_game_info *info) {
   return snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size, special_chip_hle);
 }
 
+
 bool retro_load_game_special(unsigned game_type,
       const struct retro_game_info *info, size_t num_info) {
-  return false;
-  //core_bind.manifest = false;
-  //const uint8_t *data = (const uint8_t*)info[0].data;
-  //size_t size = info[0].size;
-  //if ((size & 0x7ffff) == 512) {
-  //  size -= 512;
-  //  data += 512;
-  //}
-  //
-  //retro_cheat_reset();
-  //if (info[0].path) {
-  //  core_bind.load_request_error = false;
-  //  core_bind.basename = info[0].path;
-  //
-  //  char *posix_slash = (char*)strrchr(core_bind.basename, '/');
-  //  char *win_slash = (char*)strrchr(core_bind.basename, '\\');
-  //  if (posix_slash && !win_slash)
-  //     posix_slash[1] = '\0';
-  //  else if (win_slash && !posix_slash)
-  //     win_slash = '\0';
-  //  else if (posix_slash && win_slash)
-  //     max(posix_slash, win_slash)[1] = '\0';
-  //  else
-  //    core_bind.basename = "./";
-  //}
-  //
-  //switch (game_type) {
-  //   case RETRO_GAME_TYPE_BSX:
-  //     core_interface.mode = SuperFamicomCartridge::ModeBsx;
-  //     return num_info == 2 && snes_load_cartridge_bsx(info[0].meta, data, size,
-  //           info[1].meta, (const uint8_t*)info[1].data, info[1].size);
-  //     
-  //   case RETRO_GAME_TYPE_BSX_SLOTTED:
-  //     core_interface.mode = SuperFamicomCartridge::ModeBsxSlotted;
-  //     return num_info == 2 && snes_load_cartridge_bsx_slotted(info[0].meta, data, size,
-  //           info[1].meta, (const uint8_t*)info[1].data, info[1].size);
-  //
-  //   case RETRO_GAME_TYPE_SUPER_GAME_BOY:
-  //     core_interface.mode = SuperFamicomCartridge::ModeSuperGameBoy;
-  //     return num_info == 2 && snes_load_cartridge_super_game_boy(info[0].meta, data, size,
-  //           info[1].meta, (const uint8_t*)info[1].data, info[1].size);
-  //
-  //   case RETRO_GAME_TYPE_SUFAMI_TURBO:
-  //     core_interface.mode = SuperFamicomCartridge::ModeSufamiTurbo;
-  //     return num_info == 3 && snes_load_cartridge_sufami_turbo(info[0].meta, data, size,
-  //           info[1].meta, (const uint8_t*)info[1].data, info[1].size,
-  //           info[2].meta, (const uint8_t*)info[2].data, info[2].size);
-  //
-  //   default:
-  //     return false;
-  //}
+  core_bind.manifest = false;
+  const uint8_t *data = (const uint8_t*)info[0].data;
+  size_t size = info[0].size;
+  if ((size & 0x7ffff) == 512) {
+    size -= 512;
+    data += 512;
+  }
+
+  retro_cheat_reset();
+  if (info[0].path) {
+    core_bind.load_request_error = false;
+    core_bind.basename = info[0].path;
+
+    char *posix_slash = (char*)strrchr(core_bind.basename, '/');
+    char *win_slash = (char*)strrchr(core_bind.basename, '\\');
+    if (posix_slash && !win_slash)
+       posix_slash[1] = '\0';
+    else if (win_slash && !posix_slash)
+       win_slash = '\0';
+    else if (posix_slash && win_slash)
+       max(posix_slash, win_slash)[1] = '\0';
+    else
+      core_bind.basename = "./";
+  }
+
+  switch (game_type) {
+     case RETRO_GAME_TYPE_BSX:
+        core_interface.mode = SuperFamicomCartridge::ModeBsx;
+        return num_info == 2 && snes_load_cartridge_bsx(info[0].meta, data, size,
+              info[1].meta, (const uint8_t*)info[1].data, info[1].size);
+
+     case RETRO_GAME_TYPE_BSX | 0x1000:
+        core_interface.mode = SuperFamicomCartridge::ModeBsx;
+        return num_info == 2 && snes_load_cartridge_bsx(info[1].meta, (const uint8_t*)info[1].data, info[1].size,
+              info[0].meta, (const uint8_t*)info[0].data, info[0].size);
+
+     case RETRO_GAME_TYPE_BSX_SLOTTED:
+        core_interface.mode = SuperFamicomCartridge::ModeBsxSlotted;
+        return num_info == 2 && snes_load_cartridge_bsx_slotted(info[0].meta, data, size,
+              info[1].meta, (const uint8_t*)info[1].data, info[1].size);
+
+     case RETRO_GAME_TYPE_BSX_SLOTTED | 0x1000:
+        core_interface.mode = SuperFamicomCartridge::ModeBsxSlotted;
+        return num_info == 2 && snes_load_cartridge_bsx(info[1].meta, (const uint8_t*)info[1].data, info[1].size,
+              info[0].meta, (const uint8_t*)info[0].data, info[0].size);
+
+     case RETRO_GAME_TYPE_SUPER_GAME_BOY:
+        core_interface.mode = SuperFamicomCartridge::ModeSuperGameBoy;
+        return num_info == 2 && snes_load_cartridge_super_game_boy(info[0].meta, data, size,
+              info[1].meta, (const uint8_t*)info[1].data, info[1].size);
+
+     case RETRO_GAME_TYPE_SUPER_GAME_BOY | 0x1000:
+        core_interface.mode = SuperFamicomCartridge::ModeSuperGameBoy;
+        return num_info == 2 && snes_load_cartridge_super_game_boy(info[1].meta, (const uint8_t*)info[1].data, info[1].size,
+              info[0].meta, (const uint8_t*)info[0].data, info[0].size);
+
+     case RETRO_GAME_TYPE_SUFAMI_TURBO:
+        core_interface.mode = SuperFamicomCartridge::ModeSufamiTurbo;
+        return num_info == 3 && snes_load_cartridge_sufami_turbo(info[0].meta, (const uint8_t*)info[0].data, info[0].size,
+              info[1].meta, (const uint8_t*)info[1].data, info[1].size,
+              info[2].meta, (const uint8_t*)info[2].data, info[2].size);
+
+     case RETRO_GAME_TYPE_SUFAMI_TURBO | 0x1000:
+        core_interface.mode = SuperFamicomCartridge::ModeSufamiTurbo;
+        return num_info == 3 && snes_load_cartridge_sufami_turbo(info[2].meta, (const uint8_t*)info[2].data, info[2].size,
+              info[0].meta, (const uint8_t*)info[0].data, info[0].size,
+              info[1].meta, (const uint8_t*)info[1].data, info[1].size);
+
+     default:
+        return false;
+  }
 }
 
 void retro_unload_game(void) {
@@ -728,20 +810,20 @@ void* retro_get_memory_data(unsigned id) {
       return core_bind.sram;
     case RETRO_MEMORY_RTC:
       return nullptr;
-    //case RETRO_MEMORY_SNES_BSX_RAM:
-    //  return nullptr;
-    //case RETRO_MEMORY_SNES_BSX_PRAM:
-    //  if(core_interface.mode != SuperFamicomCartridge::ModeBsx) break;
-    //  return SuperFamicom::bsxcartridge.psram.data();
-    //case RETRO_MEMORY_SNES_SUFAMI_TURBO_A_RAM:
-    //  if(core_interface.mode != SuperFamicomCartridge::ModeSufamiTurbo) break;
-    //  return SuperFamicom::sufamiturboA.ram.data();
-    //case RETRO_MEMORY_SNES_SUFAMI_TURBO_B_RAM:
-    //  if(core_interface.mode != SuperFamicomCartridge::ModeSufamiTurbo) break;
-    //  return SuperFamicom::sufamiturboB.ram.data();
-    //case RETRO_MEMORY_SNES_GAME_BOY_RAM:
-    //  if(core_interface.mode != SuperFamicomCartridge::ModeSuperGameBoy) break;
-    //  return GameBoy::cartridge.ramdata;
+    case RETRO_MEMORY_SNES_BSX_RAM:
+      return nullptr;
+    case RETRO_MEMORY_SNES_BSX_PRAM:
+      if(core_interface.mode != SuperFamicomCartridge::ModeBsx) break;
+      return SuperFamicom::bsxcartridge.psram.data();
+    case RETRO_MEMORY_SNES_SUFAMI_TURBO_A_RAM:
+      if(core_interface.mode != SuperFamicomCartridge::ModeSufamiTurbo) break;
+      return SuperFamicom::sufamiturboA.ram.data();
+    case RETRO_MEMORY_SNES_SUFAMI_TURBO_B_RAM:
+      if(core_interface.mode != SuperFamicomCartridge::ModeSufamiTurbo) break;
+      return SuperFamicom::sufamiturboB.ram.data();
+    case RETRO_MEMORY_SNES_GAME_BOY_RAM:
+      if(core_interface.mode != SuperFamicomCartridge::ModeSuperGameBoy) break;
+      return GameBoy::cartridge.ramdata;
 
     case RETRO_MEMORY_SYSTEM_RAM:
       return SuperFamicom::cpu.wram;
@@ -765,25 +847,25 @@ size_t retro_get_memory_size(unsigned id) {
     case RETRO_MEMORY_RTC:
       size = 0;
       break;
-    //case RETRO_MEMORY_SNES_BSX_RAM:
-    //  size = 0;
-    //  break;
-    //case RETRO_MEMORY_SNES_BSX_PRAM:
-    //  if(core_interface.mode != SuperFamicomCartridge::ModeBsx) break;
-    //  size = SuperFamicom::bsxcartridge.psram.size();
-    //  break;
-    //case RETRO_MEMORY_SNES_SUFAMI_TURBO_A_RAM:
-    //  if(core_interface.mode != SuperFamicomCartridge::ModeSufamiTurbo) break;
-    //  size = SuperFamicom::sufamiturboA.ram.size();
-    //  break;
-    //case RETRO_MEMORY_SNES_SUFAMI_TURBO_B_RAM:
-    //  if(core_interface.mode != SuperFamicomCartridge::ModeSufamiTurbo) break;
-    //  size = SuperFamicom::sufamiturboB.ram.size();
-    //  break;
-    //case RETRO_MEMORY_SNES_GAME_BOY_RAM:
-    //  if(core_interface.mode != SuperFamicomCartridge::ModeSuperGameBoy) break;
-    //  size = GameBoy::cartridge.ramsize;
-    //  break;
+    case RETRO_MEMORY_SNES_BSX_RAM:
+      size = 0;
+      break;
+    case RETRO_MEMORY_SNES_BSX_PRAM:
+      if(core_interface.mode != SuperFamicomCartridge::ModeBsx) break;
+      size = SuperFamicom::bsxcartridge.psram.size();
+      break;
+    case RETRO_MEMORY_SNES_SUFAMI_TURBO_A_RAM:
+      if(core_interface.mode != SuperFamicomCartridge::ModeSufamiTurbo) break;
+      size = SuperFamicom::sufamiturboA.ram.size();
+      break;
+    case RETRO_MEMORY_SNES_SUFAMI_TURBO_B_RAM:
+      if(core_interface.mode != SuperFamicomCartridge::ModeSufamiTurbo) break;
+      size = SuperFamicom::sufamiturboB.ram.size();
+      break;
+    case RETRO_MEMORY_SNES_GAME_BOY_RAM:
+      if(core_interface.mode != SuperFamicomCartridge::ModeSuperGameBoy) break;
+      size = GameBoy::cartridge.ramsize;
+      break;
 
     case RETRO_MEMORY_SYSTEM_RAM:
       size = 128 * 1024;
