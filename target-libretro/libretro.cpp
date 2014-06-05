@@ -738,7 +738,12 @@ bool retro_load_game(const struct retro_game_info *info) {
   std::string manifest;
   if (core_bind.manifest)
     manifest = std::string((const char*)info->data, info->size); // Might not be 0 terminated.
-  return snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size, special_chip_hle);
+  
+  bool ret=snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size, special_chip_hle);
+  SuperFamicom::bus.libretro_mem_map.reverse();
+  retro_memory_map map={SuperFamicom::bus.libretro_mem_map.data(), SuperFamicom::bus.libretro_mem_map.size()};
+  core_bind.penviron(RETRO_ENVIRONMENT_SET_MEMORY_MAPS, (void*)&map);
+  return ret;
 }
 
 
