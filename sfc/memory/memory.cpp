@@ -36,17 +36,9 @@ void Bus::map(
   }
 
 #ifdef __LIBRETRO__
-printf("bl=%.2X bh=%.2X al=%.4X ah=%.4X ",banklo,bankhi,addrlo,addrhi);
-printf("m1=%.2X>%.2X m2=%.2X ",(banklo&-banklo),(bankhi-banklo),(bankhi&(bankhi+1)&~banklo));
-printf("m3=%.4X>%.4X m4=%.4X ",(addrlo&-addrlo),(addrhi-addrlo),(addrhi&(addrhi+1)&~addrlo));
-//7d,7f not ok
-//7e,7f ok
-//lo&-lo > hi-lo && hi&(hi+1)&~lo=0
-printf("ok=");
   if (((banklo&-banklo)|0x01000000)>(bankhi-banklo) && (bankhi&(bankhi+1)&~banklo)==0 &&
       ((addrlo&-addrlo)|0x01000000)>(addrhi-addrlo) && (addrhi&(addrhi+1)&~addrlo)==0)
   {
-printf("1");
     retro_memory_descriptor desc;
     desc.flags=(fastmode==Cartridge::Mapping::fastmode_readwrite ? 0 : RETRO_MEMDESC_CONST);
     desc.ptr=fastptr;
@@ -55,11 +47,10 @@ printf("1");
     desc.select=(banklo<<16 | addrlo) ^ (bankhi<<16 | addrhi) ^ 0xFFFFFF;
     desc.disconnect=mask;
     desc.len=size;
+    if (!size) desc.len=0x01000000;
     desc.addrspace=NULL;
     libretro_mem_map.append(desc);
   }
-else printf("0");
-printf(" p=%p\n",fastptr);
 #endif
 
   unsigned id = idcount++;
