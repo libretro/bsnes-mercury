@@ -1,6 +1,7 @@
 #include <sfc/sfc.hpp>
 
 #define MEMORY_CPP
+
 namespace SuperFamicom {
 
 Bus bus;
@@ -34,6 +35,23 @@ void Bus::map(
     }
   }
 
+#ifdef __LIBRETRO__
+  if ((banklo&(banklo-1))==0 && (bankhi&(bankhi+1))==0 &&
+      (addrlo&(addrlo-1))==0 && (addrhi&(addrhi+1))==0)
+  {
+    retro_memory_descriptor desc;
+    desc.flags=(fastmode==Cartridge::Mapping::fastmode_readwrite ? 0 : RETRO_MEMDESC_CONST);
+    desc.ptr=fastptr;
+    desc.offset=0;
+    desc.start=banklo<<16 | addrlo;
+    desc.select=(banklo<<16 | addrlo) ^ (bankhi<<16 | addrhi) ^ 0xFFFFFF;
+    desc.disconnect=mask;
+    desc.len=size;
+    desc.addrspace=NULL;
+    libretro_mem_map.append(desc);
+  }
+#endif
+
   unsigned id = idcount++;
   this->reader[id] = reader;
   this->writer[id] = writer;
@@ -66,6 +84,10 @@ void Bus::map(
 void Bus::map_reset() {
   function<uint8 (unsigned)> reader = [](unsigned) { return cpu.regs.mdr; };
   function<void (unsigned, uint8)> writer = [](unsigned, uint8) {};
+
+#ifdef __LIBRETRO__
+  libretro_mem_map.reset();
+#endif
 
   idcount = 0;
   map(reader, writer, 0x00, 0xff, 0x0000, 0xffff);

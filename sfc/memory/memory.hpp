@@ -1,3 +1,7 @@
+#ifdef __LIBRETRO__
+#include "../../target-libretro/libretro.h"
+#endif
+
 struct Memory {
   virtual inline unsigned size() const;
   virtual uint8 read(unsigned addr) = 0;
@@ -77,6 +81,10 @@ struct Bus {
 
   Bus();
   ~Bus();
+
+#ifdef __LIBRETRO__
+  vector<retro_memory_descriptor> libretro_mem_map;
+#endif
 };
 
 extern Bus bus;
