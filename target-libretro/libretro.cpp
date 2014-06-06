@@ -64,9 +64,6 @@ const uint8 iplrom[64] = {
 /*fffe*/  0xc0, 0xff         //reset vector location ($ffc0)
 };
 
-static uint32_t* videodata=NULL;
-static unsigned videodatalen=0;
-
 static void retro_log_default(enum retro_log_level level, const char *fmt, ...)
 {
   fprintf(stderr, "[bsnes]: ");
