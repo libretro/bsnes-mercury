@@ -25,6 +25,7 @@ diff -ru higan_v094-source/emulator/interface.hpp bsneshle094/emulator/interface
    virtual void load(unsigned id, const stream& memory) {}
    virtual void save(unsigned id, const stream& memory) {}
 Only in bsneshle094/: .git
+Only in bsneshle094/: install.sh
 Only in bsneshle094/libco: armeabi.c
 diff -ru higan_v094-source/libco/libco.c bsneshle094/libco/libco.c
 --- higan_v094-source/libco/libco.c	2014-01-20 07:37:11.000000000 +0100
@@ -176,16 +177,91 @@ diff -ru higan_v094-source/nall/file.hpp bsneshle094/nall/file.hpp
      #else
 diff -ru higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
 --- higan_v094-source/nall/intrinsics.hpp	2014-01-20 07:37:12.000000000 +0100
-+++ bsneshle094/nall/intrinsics.hpp	2014-04-26 17:39:13.486154763 +0200
-@@ -65,7 +65,7 @@
++++ bsneshle094/nall/intrinsics.hpp	2014-05-27 22:37:16.697326984 +0200
+@@ -6,7 +6,7 @@
+ struct Intrinsics {
+   enum class Compiler : unsigned { Clang, GCC, VisualCPP, Unknown };
+   enum class Platform : unsigned { Windows, MacOSX, X, Unknown };  //X = Linux, BSD, etc
+-  enum class Architecture : unsigned { x86, amd64, Unknown };
++  enum class Architecture : unsigned { x86, amd64, ARM, Unknown };
+   enum class Endian : unsigned { LSB, MSB, Unknown };
+ 
+   static inline Compiler compiler();
+@@ -57,6 +57,9 @@
+ #elif defined(__amd64__) || defined(_M_AMD64)
+   #define ARCH_AMD64
+   Intrinsics::Architecture Intrinsics::architecture() { return Intrinsics::Architecture::amd64; }
++#elif defined(__arm__) || defined(__ARM_EABI__)
++  #define ARCH_ARM
++  Intrinsics::Architecture Intrinsics::architecture() { return Intrinsics::Architecture::ARM; }
+ #else
+   #warning "unable to detect architecture"
+   #define ARCH_UNKNOWN
+@@ -65,7 +68,7 @@
  
  /* Endian detection */
  
 -#if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__amd64__) || defined(_M_IX86) || defined(_M_AMD64)
-+#if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__ARM_EABI__) || defined(__arm__)
++#if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__amd64__) || defined(_M_IX86) || defined(_M_AMD64) || defined(__ARM_EABI__) || defined(__arm__)
    #define ENDIAN_LSB
    Intrinsics::Endian Intrinsics::endian() { return Intrinsics::Endian::LSB; }
  #elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && __BYTE_ORDER == __BIG_ENDIAN) || defined(__BIG_ENDIAN__) || defined(__powerpc__) || defined(_M_PPC)
+Only in bsneshle094/obj: gb-apu.o
+Only in bsneshle094/obj: gb-cartridge.o
+Only in bsneshle094/obj: gb-cheat.o
+Only in bsneshle094/obj: gb-cpu.o
+Only in bsneshle094/obj: gb-interface.o
+Only in bsneshle094/obj: gb-memory.o
+Only in bsneshle094/obj: gb-ppu.o
+Only in bsneshle094/obj: gb-scheduler.o
+Only in bsneshle094/obj: gb-system.o
+Only in bsneshle094/obj: gb-video.o
+Only in bsneshle094/obj: .gitignore
+Only in bsneshle094/obj: libco.o
+Only in bsneshle094/obj: libretro.o
+Only in bsneshle094/obj: processor-arm.o
+Only in bsneshle094/obj: processor-gsu.o
+Only in bsneshle094/obj: processor-hg51b.o
+Only in bsneshle094/obj: processor-lr35902.o
+Only in bsneshle094/obj: processor-r65816.o
+Only in bsneshle094/obj: processor-spc700.o
+Only in bsneshle094/obj: processor-upd96050.o
+Only in bsneshle094/obj: sfc-armdsp.o
+Only in bsneshle094/obj: sfc-bsx.o
+Only in bsneshle094/obj: sfc-cartridge.o
+Only in bsneshle094/obj: sfc-cheat.o
+Only in bsneshle094/obj: sfc-controller.o
+Only in bsneshle094/obj: sfc-cpu.o
+Only in bsneshle094/obj: sfc-dsp.o
+Only in bsneshle094/obj: sfc-epsonrtc.o
+Only in bsneshle094/obj: sfc-event.o
+Only in bsneshle094/obj: sfc-hitachidsp.o
+Only in bsneshle094/obj: sfc-hlecx4.o
+Only in bsneshle094/obj: sfc-hledsp1.o
+Only in bsneshle094/obj: sfc-hledsp2.o
+Only in bsneshle094/obj: sfc-hledsp3.o
+Only in bsneshle094/obj: sfc-hledsp4.o
+Only in bsneshle094/obj: sfc-hlest0010.o
+Only in bsneshle094/obj: sfc-hsu1.o
+Only in bsneshle094/obj: sfc-icd2.o
+Only in bsneshle094/obj: sfc-interface.o
+Only in bsneshle094/obj: sfc-memory.o
+Only in bsneshle094/obj: sfc-msu1.o
+Only in bsneshle094/obj: sfc-necdsp.o
+Only in bsneshle094/obj: sfc-nss.o
+Only in bsneshle094/obj: sfc-obc1.o
+Only in bsneshle094/obj: sfc-ppu.o
+Only in bsneshle094/obj: sfc-sa1.o
+Only in bsneshle094/obj: sfc-satellaviewbase.o
+Only in bsneshle094/obj: sfc-satellaviewcart.o
+Only in bsneshle094/obj: sfc-sdd1.o
+Only in bsneshle094/obj: sfc-sharprtc.o
+Only in bsneshle094/obj: sfc-smp.o
+Only in bsneshle094/obj: sfc-spc7110.o
+Only in bsneshle094/obj: sfc-sufamiturbo.o
+Only in bsneshle094/obj: sfc-superfx.o
+Only in bsneshle094/obj: sfc-system.o
+Only in bsneshle094/out: bsnes_libretro.so
 Only in bsneshle094/out: .gitignore
 Only in bsneshle094/: README
 diff -ru higan_v094-source/sfc/alt/cpu/cpu.cpp bsneshle094/sfc/alt/cpu/cpu.cpp
@@ -466,6 +542,18 @@ diff -ru higan_v094-source/sfc/cpu/cpu.cpp bsneshle094/sfc/cpu/cpu.cpp
  }
  
  void CPU::power() {
+diff -ru higan_v094-source/sfc/cpu/timing/timing.hpp bsneshle094/sfc/cpu/timing/timing.hpp
+--- higan_v094-source/sfc/cpu/timing/timing.hpp	2010-12-26 16:16:47.000000000 +0100
++++ bsneshle094/sfc/cpu/timing/timing.hpp	2014-05-26 23:52:03.147625704 +0200
+@@ -1,7 +1,7 @@
+ //timing.cpp
+ unsigned dma_counter();
+ 
+-void add_clocks(unsigned clocks);
++alwaysinline void add_clocks(unsigned clocks);
+ void scanline();
+ 
+ alwaysinline void alu_edge();
 diff -ru higan_v094-source/sfc/interface/interface.cpp bsneshle094/sfc/interface/interface.cpp
 --- higan_v094-source/sfc/interface/interface.cpp	2014-01-13 07:34:39.000000000 +0100
 +++ bsneshle094/sfc/interface/interface.cpp	2014-05-03 11:42:51.186546797 +0200
@@ -518,8 +606,16 @@ diff -ru higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
 +obj/sfc-hlest0010.o:       $(sfc)/chip/st0010/st0010.cpp $(sfc)/chip/st0010/*
 diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.cpp
 --- higan_v094-source/sfc/memory/memory.cpp	2013-05-05 09:29:50.000000000 +0200
-+++ bsneshle094/sfc/memory/memory.cpp	2014-05-04 00:04:34.463382284 +0200
-@@ -10,22 +10,55 @@
++++ bsneshle094/sfc/memory/memory.cpp	2014-06-05 22:10:02.955293881 +0200
+@@ -1,6 +1,7 @@
+ #include <sfc/sfc.hpp>
+ 
+ #define MEMORY_CPP
++
+ namespace SuperFamicom {
+ 
+ Bus bus;
+@@ -10,22 +11,73 @@
    const function<void (unsigned, uint8)>& writer,
    unsigned banklo, unsigned bankhi,
    unsigned addrlo, unsigned addrhi,
@@ -547,6 +643,24 @@ diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.c
 +      else fast_write[fastoffset] = NULL;
 +    }
 +  }
++
++#ifdef __LIBRETRO__
++  if (((banklo&-banklo)|0x01000000)>(bankhi-banklo) && (bankhi&(bankhi+1)&~banklo)==0 &&
++      ((addrlo&-addrlo)|0x01000000)>(addrhi-addrlo) && (addrhi&(addrhi+1)&~addrlo)==0)
++  {
++    retro_memory_descriptor desc;
++    desc.flags=(fastmode==Cartridge::Mapping::fastmode_readwrite ? 0 : RETRO_MEMDESC_CONST);
++    desc.ptr=fastptr;
++    desc.offset=0;
++    desc.start=banklo<<16 | addrlo;
++    desc.select=(banklo<<16 | addrlo) ^ (bankhi<<16 | addrhi) ^ 0xFFFFFF;
++    desc.disconnect=mask;
++    desc.len=size;
++    if (!size) desc.len=0x01000000;
++    desc.addrspace=NULL;
++    libretro_mem_map.append(desc);
++  }
++#endif
 +
    unsigned id = idcount++;
    this->reader[id] = reader;
@@ -582,7 +696,18 @@ diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.c
      }
    }
  }
-@@ -51,7 +84,7 @@
+@@ -34,6 +86,10 @@
+   function<uint8 (unsigned)> reader = [](unsigned) { return cpu.regs.mdr; };
+   function<void (unsigned, uint8)> writer = [](unsigned, uint8) {};
+ 
++#ifdef __LIBRETRO__
++  libretro_mem_map.reset();
++#endif
++
+   idcount = 0;
+   map(reader, writer, 0x00, 0xff, 0x0000, 0xffff);
+ }
+@@ -51,7 +107,7 @@
          unsigned bankhi = hex(bankpart(1, bankpart(0)));
          unsigned addrlo = hex(addrpart(0));
          unsigned addrhi = hex(addrpart(1, addrpart(0)));
@@ -593,8 +718,13 @@ diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.c
    }
 diff -ru higan_v094-source/sfc/memory/memory.hpp bsneshle094/sfc/memory/memory.hpp
 --- higan_v094-source/sfc/memory/memory.hpp	2013-05-05 09:30:28.000000000 +0200
-+++ bsneshle094/sfc/memory/memory.hpp	2014-05-13 17:48:24.155765480 +0200
-@@ -2,6 +2,7 @@
++++ bsneshle094/sfc/memory/memory.hpp	2014-06-05 21:25:47.259294198 +0200
+@@ -1,7 +1,12 @@
++#ifdef __LIBRETRO__
++#include "../../target-libretro/libretro.h"
++#endif
++
+ struct Memory {
    virtual inline unsigned size() const;
    virtual uint8 read(unsigned addr) = 0;
    virtual void write(unsigned addr, uint8 data) = 0;
@@ -602,7 +732,7 @@ diff -ru higan_v094-source/sfc/memory/memory.hpp bsneshle094/sfc/memory/memory.h
  };
  
  struct StaticRAM : Memory {
-@@ -56,12 +57,19 @@
+@@ -56,12 +61,19 @@
    function<uint8 (unsigned)> reader[256];
    function<void (unsigned, uint8)> writer[256];
  
@@ -623,6 +753,17 @@ diff -ru higan_v094-source/sfc/memory/memory.hpp bsneshle094/sfc/memory/memory.h
    );
  
    void map_reset();
+@@ -69,6 +81,10 @@
+ 
+   Bus();
+   ~Bus();
++
++#ifdef __LIBRETRO__
++  vector<retro_memory_descriptor> libretro_mem_map;
++#endif
+ };
+ 
+ extern Bus bus;
 diff -ru higan_v094-source/sfc/memory/memory-inline.hpp bsneshle094/sfc/memory/memory-inline.hpp
 --- higan_v094-source/sfc/memory/memory-inline.hpp	2014-01-13 07:27:34.000000000 +0100
 +++ bsneshle094/sfc/memory/memory-inline.hpp	2014-05-13 17:48:18.379765481 +0200
