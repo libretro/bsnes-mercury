@@ -105,11 +105,11 @@ struct Callbacks : Emulator::Interface::Bind {
        default:
        case SuperFamicom::Input::Device::None:       return RETRO_DEVICE_NONE;
        case SuperFamicom::Input::Device::Joypad:     return RETRO_DEVICE_JOYPAD;
-       //case SuperFamicom::Input::Device::Multitap:   return RETRO_DEVICE_JOYPAD_MULTITAP;
+       case SuperFamicom::Input::Device::Multitap:   return RETRO_DEVICE_JOYPAD_MULTITAP;
        case SuperFamicom::Input::Device::Mouse:      return RETRO_DEVICE_MOUSE;
-       //case SuperFamicom::Input::Device::SuperScope: return RETRO_DEVICE_LIGHTGUN_SUPER_SCOPE;
-       //case SuperFamicom::Input::Device::Justifier:  return RETRO_DEVICE_LIGHTGUN_JUSTIFIER;
-       //case SuperFamicom::Input::Device::Justifiers: return RETRO_DEVICE_LIGHTGUN_JUSTIFIERS;
+       case SuperFamicom::Input::Device::SuperScope: return RETRO_DEVICE_LIGHTGUN_SUPER_SCOPE;
+       case SuperFamicom::Input::Device::Justifier:  return RETRO_DEVICE_LIGHTGUN_JUSTIFIER;
+       case SuperFamicom::Input::Device::Justifiers: return RETRO_DEVICE_LIGHTGUN_JUSTIFIERS;
     }
   }
 
@@ -124,17 +124,15 @@ struct Callbacks : Emulator::Interface::Bind {
        case RETRO_DEVICE_NONE:                 return SuperFamicom::Input::Device::None;
        case RETRO_DEVICE_JOYPAD:               return SuperFamicom::Input::Device::Joypad;
        case RETRO_DEVICE_ANALOG:               return SuperFamicom::Input::Device::Joypad;
-       //case RETRO_DEVICE_JOYPAD_MULTITAP:      return SuperFamicom::Input::Device::Multitap;
+       case RETRO_DEVICE_JOYPAD_MULTITAP:      return SuperFamicom::Input::Device::Multitap;
        case RETRO_DEVICE_MOUSE:                return SuperFamicom::Input::Device::Mouse;
-       //case RETRO_DEVICE_LIGHTGUN_SUPER_SCOPE: return SuperFamicom::Input::Device::SuperScope;
-       //case RETRO_DEVICE_LIGHTGUN_JUSTIFIER:   return SuperFamicom::Input::Device::Justifier;
-       //case RETRO_DEVICE_LIGHTGUN_JUSTIFIERS:  return SuperFamicom::Input::Device::Justifiers;
+       case RETRO_DEVICE_LIGHTGUN_SUPER_SCOPE: return SuperFamicom::Input::Device::SuperScope;
+       case RETRO_DEVICE_LIGHTGUN_JUSTIFIER:   return SuperFamicom::Input::Device::Justifier;
+       case RETRO_DEVICE_LIGHTGUN_JUSTIFIERS:  return SuperFamicom::Input::Device::Justifiers;
     }
   }
 
-  uint32_t videoColor(unsigned source, uint16_t alpha, uint16_t red, uint16_t green, uint16_t blue) override {
-    return ((red&0xFF00)<<8) | ((green&0xFF00)) | ((blue&0xFF00)>>8);
-  }
+  uint32_t video_buffer[512 * 480];
 
   void videoRefresh(const uint32_t* palette, const uint32_t* data, unsigned pitch, unsigned width, unsigned height) override {
     if (!overscan) {
@@ -146,20 +144,12 @@ struct Callbacks : Emulator::Interface::Bind {
         height = 448;
     }
 
-    if (width*height > videodatalen)
-    {
-      delete[] videodata;
-      videodatalen = width*height;
-      videodata = new uint32_t[videodatalen];
-    }
+    uint32_t *ptr = video_buffer;
+    for (unsigned y = 0; y < height; y++, data += pitch >> 2, ptr += width)
+       for (unsigned x = 0; x < width; x++)
+          ptr[x] = palette[data[x]];
 
-    for (unsigned y=0;y<height;y++)
-    for (unsigned x=0;x<width;x++)
-    {
-      videodata[y*width + x] = palette[data[y*pitch/sizeof(uint32_t) + x]];
-    }
-
-    pvideo_refresh(videodata, width, height, width*sizeof(uint32_t));
+    pvideo_refresh(video_buffer, width, height, width*sizeof(uint32_t));
     pinput_poll();
   }
 
@@ -168,7 +158,7 @@ struct Callbacks : Emulator::Interface::Bind {
   }
 
   int16_t inputPoll(unsigned port, unsigned device, unsigned id) override {
-    if(id >= 12) return 0;
+    if(id > 11) return 0;
     return pinput_state(port, snes_to_retro(device), 0, snes_to_retro(device, id));
   }
 
@@ -348,6 +338,13 @@ struct Callbacks : Emulator::Interface::Bind {
   string path(unsigned) override {
     return string(basename);
   }
+
+  uint32_t videoColor(unsigned, uint16_t, uint16_t r, uint16_t g, uint16_t b) override {
+    r >>= 8;
+    g >>= 8;
+    b >>= 8;
+    return (r << 16) | (g << 8) | (b << 0);
+  }
 };
 
 static Callbacks core_bind;
@@ -357,7 +354,7 @@ struct Interface : public SuperFamicom::Interface {
 
   void setCheats(const lstring &list = lstring());
 
-  Interface(); 
+  Interface();
 
   void init() {
      SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard);
@@ -379,36 +376,38 @@ Interface::Interface() {
   core_bind.iface = &core_interface;
 }
 
-void Interface::setCheats(const lstring &list) {
-  //if(core_interface.mode == SuperFamicomCartridge::ModeSuperGameBoy) {
-  //  GameBoy::cheat.reset();
-  //  for(auto &code : list) {
-  //    lstring codelist;
-  //    codelist.split("+", code);
-  //    for(auto &part : codelist) {
-  //      unsigned addr, data, comp;
-  //      if(GameBoy::Cheat::decode(part, addr, data, comp)) {
-  //        GameBoy::cheat.append({addr, data, comp});
-  //      }
-  //    }
-  //  }
-  //  GameBoy::cheat.synchronize();
-  //  return;
-  //}
-  //
-  //SuperFamicom::cheat.reset();
-  //for(auto &code : list) {
-  //  lstring codelist;
-  //  codelist.split("+", code);
-  //  for(auto &part : codelist) {
-  //    unsigned addr, data;
-  //    if(SuperFamicom::Cheat::decode(part, addr, data)) {
-  //      SuperFamicom::cheat.append({addr, data});
-  //    }
-  //  }
-  //}
-  //
-  //SuperFamicom::cheat.synchronize();
+void Interface::setCheats(const lstring &) {
+#if 0
+  if(core_interface.mode == SuperFamicomCartridge::ModeSuperGameBoy) {
+    GameBoy::cheat.reset();
+    for(auto &code : list) {
+      lstring codelist;
+      codelist.split("+", code);
+      for(auto &part : codelist) {
+        unsigned addr, data, comp;
+        if(GameBoy::Cheat::decode(part, addr, data, comp)) {
+          GameBoy::cheat.append({addr, data, comp});
+        }
+      }
+    }
+    GameBoy::cheat.synchronize();
+    return;
+  }
+
+  SuperFamicom::cheat.reset();
+  for(auto &code : list) {
+    lstring codelist;
+    codelist.split("+", code);
+    for(auto &part : codelist) {
+      unsigned addr, data;
+      if(SuperFamicom::Cheat::decode(part, addr, data)) {
+        SuperFamicom::cheat.append({addr, data});
+      }
+    }
+  }
+
+  SuperFamicom::cheat.synchronize();
+#endif
 }
 
 unsigned retro_api_version(void) {
@@ -417,18 +416,18 @@ unsigned retro_api_version(void) {
 
 void retro_set_environment(retro_environment_t environ_cb)
 {
-  core_bind.penviron = environ_cb;
-  
-  static const struct retro_variable vars[] = {
-    { "bsnes_chip_hle", "Special Chip Accuracy; LLE|HLE" },
-    { NULL, NULL },
-  };
-  core_bind.penviron(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);
-  
-  static struct retro_log_callback log={retro_log_default};
-  core_bind.penviron(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, (void*)&log);
-  output=log.log;
-  
+   core_bind.penviron = environ_cb;
+
+   static const struct retro_variable vars[] = {
+     { "bsnes_chip_hle", "Special Chip Accuracy; LLE|HLE" },
+     { NULL, NULL },
+   };
+   core_bind.penviron(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);
+
+   static struct retro_log_callback log={retro_log_default};
+   core_bind.penviron(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, (void*)&log);
+   output=log.log;
+
    static const retro_subsystem_memory_info sgb_memory[] = {
       { "srm", RETRO_MEMORY_SNES_GAME_BOY_RAM },
       { "rtc", RETRO_MEMORY_SNES_GAME_BOY_RTC },
@@ -522,8 +521,6 @@ void retro_init(void) {
 
 void retro_deinit(void) {
   SuperFamicom::system.term();
-  delete[] videodata;
-  videodata=NULL;
 }
 
 void retro_reset(void) {
@@ -551,30 +548,36 @@ bool retro_unserialize(const void *data, size_t size) {
   return SuperFamicom::system.unserialize(s);
 }
 
-//struct CheatList {
-//  bool enable;
-//  string code;
-//  CheatList() : enable(false) {}
-//};
+#if 0
+struct CheatList {
+  bool enable;
+  string code;
+  CheatList() : enable(false) {}
+};
 
-//static vector<CheatList> cheatList;
+static vector<CheatList> cheatList;
+#endif
 
 void retro_cheat_reset(void) {
-  //cheatList.reset();
-  //core_interface.setCheats();
+#if 0
+  cheatList.reset();
+  core_interface.setCheats();
+#endif
 }
 
 void retro_cheat_set(unsigned index, bool enable, const char *code) {
-  //cheatList.reserve(index+1);
-  //cheatList[index].enable = enable;
-  //cheatList[index].code = code;
-  //lstring list;
-  //
-  //for(unsigned n = 0; n < cheatList.size(); n++) {
-  //  if(cheatList[n].enable) list.append(cheatList[n].code);
-  //}
-  //
-  //core_interface.setCheats(list);
+#if 0
+  cheatList.reserve(index+1);
+  cheatList[index].enable = enable;
+  cheatList[index].code = code;
+  lstring list;
+  
+  for(unsigned n = 0; n < cheatList.size(); n++) {
+    if(cheatList[n].enable) list.append(cheatList[n].code);
+  }
+  
+  core_interface.setCheats(list);
+#endif
 }
 
 void retro_get_system_info(struct retro_system_info *info) {
