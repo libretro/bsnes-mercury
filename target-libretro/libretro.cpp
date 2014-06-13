@@ -632,8 +632,8 @@ static bool snes_load_cartridge_bsx_slotted(
   const char *bsx_xml, const uint8_t *bsx_data, unsigned bsx_size
 ) {
 #if 0
-  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS).markup;
-  string xmlbsx = (bsx_xml && *bsx_xml) ? string(bsx_xml) : SuperFamicomCartridge(bsx_data, bsx_size, USE_HLE_CHIPS).markup;
+  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
+  string xmlbsx = (bsx_xml && *bsx_xml) ? string(bsx_xml) : SuperFamicomCartridge(bsx_data, bsx_size).markup;
 
   SuperFamicom::bsxflash.memory.copy(memorystream(bsx_data, bsx_size));
   SuperFamicom::cartridge.load(xmlrom, memorystream(rom_data, rom_size));
@@ -649,8 +649,8 @@ static bool snes_load_cartridge_bsx(
   const char *bsx_xml, const uint8_t *bsx_data, unsigned bsx_size
 ) {
 #if 0
-  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS).markup;
-  string xmlbsx = (bsx_xml && *bsx_xml) ? string(bsx_xml) : SuperFamicomCartridge(bsx_data, bsx_size, USE_HLE_CHIPS).markup;
+  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
+  string xmlbsx = (bsx_xml && *bsx_xml) ? string(bsx_xml) : SuperFamicomCartridge(bsx_data, bsx_size).markup;
 
   SuperFamicom::bsxflash.memory.copy(memorystream(bsx_data, bsx_size));
   SuperFamicom::cartridge.load(xmlrom, memorystream(rom_data, rom_size));
@@ -667,9 +667,9 @@ static bool snes_load_cartridge_sufami_turbo(
   const char *stb_xml, const uint8_t *stb_data, unsigned stb_size
 ) {
 #if 0
-  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size, USE_HLE_CHIPS).markup;
-  string xmlsta = (sta_xml && *sta_xml) ? string(sta_xml) : SuperFamicomCartridge(sta_data, sta_size, USE_HLE_CHIPS).markup;
-  string xmlstb = (stb_xml && *stb_xml) ? string(stb_xml) : SuperFamicomCartridge(stb_data, stb_size, USE_HLE_CHIPS).markup;
+  string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
+  string xmlsta = (sta_xml && *sta_xml) ? string(sta_xml) : SuperFamicomCartridge(sta_data, sta_size).markup;
+  string xmlstb = (stb_xml && *stb_xml) ? string(stb_xml) : SuperFamicomCartridge(stb_data, stb_size).markup;
 
   if(sta_data) SuperFamicom::sufamiturbo.slotA.rom.copy(memorystream(sta_data, sta_size));
   if(stb_data) SuperFamicom::sufamiturbo.slotB.rom.copy(memorystream(stb_data, stb_size));
