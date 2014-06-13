@@ -697,8 +697,8 @@ static bool snes_load_cartridge_super_game_boy(
   core_bind.xmlrom      = xmlrom_sgb;
   core_bind.xmlrom_gb   = xmlrom_gb;
 
-  core_bind.iface->load(SuperFamicom::ID::SuperGameBoy);
   core_bind.iface->load(SuperFamicom::ID::SuperFamicom);
+  core_bind.iface->load(SuperFamicom::ID::SuperGameBoy);
   SuperFamicom::system.power();
   return !core_bind.load_request_error;
 }
