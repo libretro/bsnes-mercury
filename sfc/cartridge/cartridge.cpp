@@ -64,7 +64,6 @@ void Cartridge::load(bool hlechips) {
   interface->loadRequest(ID::Manifest, "manifest.bml");
   parse_markup(information.markup.cartridge, hlechips);
 
-#ifndef __LIBRETRO__
   //Super Game Boy
   if(cartridge.has_gb_slot()) {
     sha256 = nall::sha256(GameBoy::cartridge.romdata, GameBoy::cartridge.romsize);
@@ -118,7 +117,6 @@ void Cartridge::load(bool hlechips) {
     for(auto& byte : hash) result.append(hex<2>(byte));
     sha256 = result;
   }
-#endif
 
   rom.write_protect(true);
   ram.write_protect(false);
