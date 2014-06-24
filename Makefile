@@ -6,7 +6,7 @@ gb  := gb
 gba := gba
 
 profile := accuracy
-target  := ethos
+target  := libretro
 
 # options += debugger
 # arch := x86
