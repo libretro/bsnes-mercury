@@ -411,13 +411,17 @@ unsigned retro_api_version(void) {
   return RETRO_API_VERSION;
 }
 
+static unsigned superfx_freq_orig;
+
 void retro_set_environment(retro_environment_t environ_cb)
 {
    core_bind.penviron = environ_cb;
 
    static const struct retro_variable vars[] = {
-     { "bsnes_chip_hle", "Special Chip Accuracy; LLE|HLE" },
-     { NULL, NULL },
+      { "bsnes_chip_hle", "Special Chip Accuracy; LLE|HLE" },
+      { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
+         //Any integer is usable here, but there is no such thing as "any integer" in core options.
+      { NULL, NULL },
    };
    core_bind.penviron(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);
 
@@ -493,6 +497,19 @@ void retro_set_environment(retro_environment_t environ_cb)
    environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
 }
 
+static void update_variables(void) {
+   struct retro_variable var;
+   
+   if (SuperFamicom::cartridge.has_superfx()) {
+      var.key="bsnes_superfx_overclock";
+      var.value=NULL;
+      if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+         unsigned percent=strtoul(var.value, NULL, 10);//we can assume that the input is one of our advertised options
+         SuperFamicom::superfx.frequency=(uint64)superfx_freq_orig*percent/100;
+      }
+   }
+}
+
 void retro_set_video_refresh(retro_video_refresh_t video_refresh) { core_bind.pvideo_refresh = video_refresh; }
 void retro_set_audio_sample(retro_audio_sample_t audio_sample)    { core_bind.paudio_sample  = audio_sample; }
 void retro_set_audio_sample_batch(retro_audio_sample_batch_t)     {}
@@ -525,6 +542,9 @@ void retro_reset(void) {
 }
 
 void retro_run(void) {
+  bool updated = false;
+  if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+    update_variables();
   SuperFamicom::system.run();
 }
 
@@ -743,6 +763,10 @@ bool retro_load_game(const struct retro_game_info *info) {
   SuperFamicom::bus.libretro_mem_map.reverse();
   retro_memory_map map={SuperFamicom::bus.libretro_mem_map.data(), SuperFamicom::bus.libretro_mem_map.size()};
   core_bind.penviron(RETRO_ENVIRONMENT_SET_MEMORY_MAPS, (void*)&map);
+  
+  if (SuperFamicom::cartridge.has_superfx())
+    superfx_freq_orig=SuperFamicom::superfx.frequency;
+  
   return ret;
 }
 
