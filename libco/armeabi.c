@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#ifndef IOS
+#include <malloc.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,7 +27,7 @@ asm (
       ".globl co_switch_arm\n"
       ".globl _co_switch_arm\n"
       "co_switch_arm:\n"
-      "_co_switch_arm:\n"
+      "_co_switch_arm:\n"      
       "  stmia r1!, {r4, r5, r6, r7, r8, r9, r10, r11, sp, lr}\n"
       "  ldmia r0!, {r4, r5, r6, r7, r8, r9, r10, r11, sp, pc}\n"
     );
