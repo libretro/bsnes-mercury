@@ -102,7 +102,7 @@ struct Alt {
   struct SuperGameBoy {
     enum : unsigned {
       Internal,
-      Gambatte,
+      External,
     };
   };
 };

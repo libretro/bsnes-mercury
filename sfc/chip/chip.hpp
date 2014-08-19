@@ -33,6 +33,8 @@ struct Coprocessor : Thread {
 #include <sfc/chip/cx4/cx4.hpp>
 #include <sfc/chip/st0010/st0010.hpp>
 
+#include <sfc/chip/sgb-external/sgb-external.hpp>
+
 void Coprocessor::step(unsigned clocks) {
   clock += clocks * (uint64)cpu.frequency;
 }

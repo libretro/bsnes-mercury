@@ -45,6 +45,7 @@ struct Cartridge : property<Cartridge> {
   readonly<bool> has_dsp4;
   readonly<bool> has_cx4;
   readonly<bool> has_st0010;
+  readonly<bool> has_sgbexternal;
 
   struct Mapping {
     function<uint8 (unsigned)> reader;
@@ -128,6 +129,7 @@ private:
   
   void parse_markup_hitachidsp_hle(Markup::Node);
   void parse_markup_necdsp_hle(Markup::Node);
+  bool parse_markup_icd2_external(Markup::Node);
 
   friend class Interface;
 };

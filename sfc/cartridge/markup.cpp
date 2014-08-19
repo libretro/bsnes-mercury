@@ -19,19 +19,8 @@ void Cartridge::parse_markup(const char* markup) {
   parse_markup_sa1(cartridge["sa1"]);
   parse_markup_superfx(cartridge["superfx"]);
   parse_markup_armdsp(cartridge["armdsp"]);
-  if (cartridge["hitachidsp"].exists() || cartridge["necdsp"].exists())
-  {
-    if (interface->bind->altImplementation(Alt::ForDSP)==Alt::DSP::LLE)
-    {
-      parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
-      parse_markup_necdsp(cartridge["necdsp"]);
-    }
-    else
-    {
-      parse_markup_hitachidsp_hle(cartridge["hitachidsp"]);
-      parse_markup_necdsp_hle(cartridge["necdsp"]);
-    }
-  }
+  parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
+  parse_markup_necdsp(cartridge["necdsp"]);
   parse_markup_epsonrtc(cartridge["epsonrtc"]);
   parse_markup_sharprtc(cartridge["sharprtc"]);
   parse_markup_spc7110(cartridge["spc7110"]);
@@ -93,6 +82,11 @@ void Cartridge::parse_markup_cartridge(Markup::Node root) {
 
 void Cartridge::parse_markup_icd2(Markup::Node root) {
   if(root.exists() == false) return;
+  if(interface->bind->altImplementation(Alt::ForSuperGameBoy)==Alt::SuperGameBoy::External)
+  {
+    if (parse_markup_icd2_external(root)) return;
+    else interface->bind->notify("Couldn't load external GB emulator, falling back to internal");
+  }
   has_gb_slot = true;
   icd2.revision = max(1, numeral(root["revision"].data));
 
@@ -355,6 +349,12 @@ void Cartridge::parse_markup_armdsp(Markup::Node root) {
 
 void Cartridge::parse_markup_hitachidsp(Markup::Node root, unsigned roms) {
   if(root.exists() == false) return;
+  if(interface->bind->altImplementation(Alt::ForDSP) == Alt::DSP::HLE)
+  {
+    //this is after checking existence because we don't want to ask which DSP to use and then use none of them
+    parse_markup_hitachidsp_hle(root);
+    return;
+  }
   has_hitachidsp = true;
 
   parse_markup_memory(hitachidsp.rom, root["rom[0]"], ID::HitachiDSPROM, false);
@@ -402,6 +402,11 @@ void Cartridge::parse_markup_hitachidsp(Markup::Node root, unsigned roms) {
 
 void Cartridge::parse_markup_necdsp(Markup::Node root) {
   if(root.exists() == false) return;
+  if(interface->bind->altImplementation(Alt::ForDSP)==Alt::DSP::HLE)
+  {
+    parse_markup_necdsp_hle(root);
+    return;
+  }
   has_necdsp = true;
 
   for(auto& word : necdsp.programROM) word = 0x000000;
@@ -602,8 +607,7 @@ void Cartridge::parse_markup_msu1(Markup::Node root) {
 }
 
 void Cartridge::parse_markup_hitachidsp_hle(Markup::Node root) {
-  if(root.exists() == false) return;
-
+  //root.exists() is known true in the HLE chip handlers
   parse_markup_cartridge(root);
 
   has_cx4 = true;
@@ -616,8 +620,6 @@ void Cartridge::parse_markup_hitachidsp_hle(Markup::Node root) {
 }
 
 void Cartridge::parse_markup_necdsp_hle(Markup::Node root) {
-  if(root.exists() == false) return;
-
   if (root["model"].data == "uPD7725") {
     Mapping m;
     unsigned int select=0;
@@ -664,6 +666,40 @@ void Cartridge::parse_markup_necdsp_hle(Markup::Node root) {
       mapping.append(m);
     }
   }
+}
+
+bool Cartridge::parse_markup_icd2_external(Markup::Node root) {
+  //root.exists() is known true here
+  return false;
+  /*
+      markup.append(
+      "  rom name=program.rom size=0x", hex(rom_size), "\n"
+      "  map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
+      "  icd2 revision=1\n"
+      "    rom name=sgb.boot.rom size=0x100\n"
+      "    map id=io address=00-3f,80-bf:6000-7fff\n"
+    );
+  */
+  /*
+  has_gb_slot = true;
+  icd2.revision = max(1, numeral(root["revision"].data));
+
+  GameBoy::cartridge.load_empty(GameBoy::System::Revision::SuperGameBoy);
+  interface->loadRequest(ID::SuperGameBoy, "Game Boy", "gb");
+
+  string bootROMName = root["rom"]["name"].data;
+  interface->loadRequest(ID::SuperGameBoyBootROM, bootROMName);
+
+  for(auto& node : root) {
+    if(node.name != "map") continue;
+
+    if(node["id"].data == "io") {
+      Mapping m({&ICD2::read, &icd2}, {&ICD2::write, &icd2});
+      parse_markup_map(m, node);
+      mapping.append(m);
+    }
+  }
+  */
 }
 
 Cartridge::Mapping::Mapping() {

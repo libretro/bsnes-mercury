@@ -49,6 +49,14 @@ void Cartridge::load() {
   has_hsu1       = false;
   has_msu1       = false;
 
+  has_dsp1        = false;
+  has_dsp2        = false;
+  has_dsp3        = false;
+  has_dsp4        = false;
+  has_cx4         = false;
+  has_st0010      = false;
+  has_sgbexternal = false;
+
   information.markup.cartridge    = "";
   information.markup.gameBoy      = "";
   information.markup.satellaview  = "";

@@ -279,6 +279,7 @@ Only in bsneshle094/obj: sfc-sa1.o
 Only in bsneshle094/obj: sfc-satellaviewbase.o
 Only in bsneshle094/obj: sfc-satellaviewcart.o
 Only in bsneshle094/obj: sfc-sdd1.o
+Only in bsneshle094/obj: sfc-sgbexternal.o
 Only in bsneshle094/obj: sfc-sharprtc.o
 Only in bsneshle094/obj: sfc-smp.o
 Only in bsneshle094/obj: sfc-spc7110.o
@@ -287,6 +288,7 @@ Only in bsneshle094/obj: sfc-superfx.o
 Only in bsneshle094/obj: sfc-system.o
 Only in bsneshle094/out: bsnes_mercury_libretro.so
 Only in bsneshle094/out: .gitignore
+Only in bsneshle094/out: libsupergameboy.so
 Only in bsneshle094: README
 diff -ru higan_v094-source/sfc/alt/cpu/cpu.cpp bsneshle094/sfc/alt/cpu/cpu.cpp
 --- higan_v094-source/sfc/alt/cpu/cpu.cpp	2013-05-05 08:00:10.000000000 +0200
@@ -304,10 +306,28 @@ diff -ru higan_v094-source/sfc/alt/cpu/cpu.cpp bsneshle094/sfc/alt/cpu/cpu.cpp
  }
  
  void CPU::power() {
+diff -ru higan_v094-source/sfc/cartridge/cartridge.cpp bsneshle094/sfc/cartridge/cartridge.cpp
+--- higan_v094-source/sfc/cartridge/cartridge.cpp	2013-05-05 08:31:39.000000000 +0200
++++ bsneshle094/sfc/cartridge/cartridge.cpp	2014-08-19 15:44:56.053783897 +0200
+@@ -49,6 +49,14 @@
+   has_hsu1       = false;
+   has_msu1       = false;
+ 
++  has_dsp1        = false;
++  has_dsp2        = false;
++  has_dsp3        = false;
++  has_dsp4        = false;
++  has_cx4         = false;
++  has_st0010      = false;
++  has_sgbexternal = false;
++
+   information.markup.cartridge    = "";
+   information.markup.gameBoy      = "";
+   information.markup.satellaview  = "";
 diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge/cartridge.hpp
 --- higan_v094-source/sfc/cartridge/cartridge.hpp	2013-01-22 23:52:43.000000000 +0100
-+++ bsneshle094/sfc/cartridge/cartridge.hpp	2014-08-19 15:07:34.037741806 +0200
-@@ -39,6 +39,12 @@
++++ bsneshle094/sfc/cartridge/cartridge.hpp	2014-08-19 15:45:47.797784868 +0200
+@@ -39,6 +39,13 @@
    readonly<bool> has_obc1;
    readonly<bool> has_hsu1;
    readonly<bool> has_msu1;
@@ -317,10 +337,11 @@ diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge
 +  readonly<bool> has_dsp4;
 +  readonly<bool> has_cx4;
 +  readonly<bool> has_st0010;
++  readonly<bool> has_sgbexternal;
  
    struct Mapping {
      function<uint8 (unsigned)> reader;
-@@ -48,6 +54,9 @@
+@@ -48,6 +55,9 @@
      unsigned base;
      unsigned mask;
  
@@ -330,42 +351,21 @@ diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge
      Mapping();
      Mapping(const function<uint8 (unsigned)>&, const function<void (unsigned, uint8)>&);
      Mapping(SuperFamicom::Memory&);
-@@ -116,6 +125,9 @@
+@@ -116,6 +126,10 @@
    void parse_markup_obc1(Markup::Node);
    void parse_markup_hsu1(Markup::Node);
    void parse_markup_msu1(Markup::Node);
 +  
 +  void parse_markup_hitachidsp_hle(Markup::Node);
 +  void parse_markup_necdsp_hle(Markup::Node);
++  bool parse_markup_icd2_external(Markup::Node);
  
    friend class Interface;
  };
 diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/markup.cpp
 --- higan_v094-source/sfc/cartridge/markup.cpp	2013-12-06 21:58:46.000000000 +0100
-+++ bsneshle094/sfc/cartridge/markup.cpp	2014-08-19 15:15:46.561751053 +0200
-@@ -19,8 +19,19 @@
-   parse_markup_sa1(cartridge["sa1"]);
-   parse_markup_superfx(cartridge["superfx"]);
-   parse_markup_armdsp(cartridge["armdsp"]);
--  parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
--  parse_markup_necdsp(cartridge["necdsp"]);
-+  if (cartridge["hitachidsp"].exists() || cartridge["necdsp"].exists())
-+  {
-+    if (interface->bind->altImplementation(Alt::ForDSP)==Alt::DSP::LLE)
-+    {
-+      parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
-+      parse_markup_necdsp(cartridge["necdsp"]);
-+    }
-+    else
-+    {
-+      parse_markup_hitachidsp_hle(cartridge["hitachidsp"]);
-+      parse_markup_necdsp_hle(cartridge["necdsp"]);
-+    }
-+  }
-   parse_markup_epsonrtc(cartridge["epsonrtc"]);
-   parse_markup_sharprtc(cartridge["sharprtc"]);
-   parse_markup_spc7110(cartridge["spc7110"]);
-@@ -64,6 +75,8 @@
++++ bsneshle094/sfc/cartridge/markup.cpp	2014-08-19 15:58:33.169799237 +0200
+@@ -64,6 +64,8 @@
        Mapping m(rom);
        parse_markup_map(m, node);
        if(m.size == 0) m.size = rom.size();
@@ -374,7 +374,7 @@ diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/ma
        mapping.append(m);
      }
  
-@@ -71,6 +84,8 @@
+@@ -71,6 +73,8 @@
        Mapping m(ram);
        parse_markup_map(m, node);
        if(m.size == 0) m.size = ram.size();
@@ -383,13 +383,49 @@ diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/ma
        mapping.append(m);
      }
    }
-@@ -586,20 +601,88 @@
+@@ -78,6 +82,11 @@
+ 
+ void Cartridge::parse_markup_icd2(Markup::Node root) {
+   if(root.exists() == false) return;
++  if(interface->bind->altImplementation(Alt::ForSuperGameBoy)==Alt::SuperGameBoy::External)
++  {
++    if (parse_markup_icd2_external(root)) return;
++    else interface->bind->notify("Couldn't load external GB emulator, falling back to internal");
++  }
+   has_gb_slot = true;
+   icd2.revision = max(1, numeral(root["revision"].data));
+ 
+@@ -340,6 +349,12 @@
+ 
+ void Cartridge::parse_markup_hitachidsp(Markup::Node root, unsigned roms) {
+   if(root.exists() == false) return;
++  if(interface->bind->altImplementation(Alt::ForDSP) == Alt::DSP::HLE)
++  {
++    //this is after checking existence because we don't want to ask which DSP to use and then use none of them
++    parse_markup_hitachidsp_hle(root);
++    return;
++  }
+   has_hitachidsp = true;
+ 
+   parse_markup_memory(hitachidsp.rom, root["rom[0]"], ID::HitachiDSPROM, false);
+@@ -387,6 +402,11 @@
+ 
+ void Cartridge::parse_markup_necdsp(Markup::Node root) {
+   if(root.exists() == false) return;
++  if(interface->bind->altImplementation(Alt::ForDSP)==Alt::DSP::HLE)
++  {
++    parse_markup_necdsp_hle(root);
++    return;
++  }
+   has_necdsp = true;
+ 
+   for(auto& word : necdsp.programROM) word = 0x000000;
+@@ -586,20 +606,119 @@
    }
  }
  
 +void Cartridge::parse_markup_hitachidsp_hle(Markup::Node root) {
-+  if(root.exists() == false) return;
-+
++  //root.exists() is known true in the HLE chip handlers
 +  parse_markup_cartridge(root);
 +
 +  has_cx4 = true;
@@ -402,8 +438,6 @@ diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/ma
 +}
 +
 +void Cartridge::parse_markup_necdsp_hle(Markup::Node root) {
-+  if(root.exists() == false) return;
-+
 +  if (root["model"].data == "uPD7725") {
 +    Mapping m;
 +    unsigned int select=0;
@@ -452,6 +486,40 @@ diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/ma
 +  }
 +}
 +
++bool Cartridge::parse_markup_icd2_external(Markup::Node root) {
++  //root.exists() is known true here
++  return false;
++  /*
++      markup.append(
++      "  rom name=program.rom size=0x", hex(rom_size), "\n"
++      "  map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
++      "  icd2 revision=1\n"
++      "    rom name=sgb.boot.rom size=0x100\n"
++      "    map id=io address=00-3f,80-bf:6000-7fff\n"
++    );
++  */
++  /*
++  has_gb_slot = true;
++  icd2.revision = max(1, numeral(root["revision"].data));
++
++  GameBoy::cartridge.load_empty(GameBoy::System::Revision::SuperGameBoy);
++  interface->loadRequest(ID::SuperGameBoy, "Game Boy", "gb");
++
++  string bootROMName = root["rom"]["name"].data;
++  interface->loadRequest(ID::SuperGameBoyBootROM, bootROMName);
++
++  for(auto& node : root) {
++    if(node.name != "map") continue;
++
++    if(node["id"].data == "io") {
++      Mapping m({&ICD2::read, &icd2}, {&ICD2::write, &icd2});
++      parse_markup_map(m, node);
++      mapping.append(m);
++    }
++  }
++  */
++}
++
  Cartridge::Mapping::Mapping() {
    size = base = mask = 0;
 +  fastmode = Mapping::fastmode_slow;
@@ -474,8 +542,8 @@ diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/ma
  #endif
 diff -ru higan_v094-source/sfc/chip/chip.hpp bsneshle094/sfc/chip/chip.hpp
 --- higan_v094-source/sfc/chip/chip.hpp	2013-01-21 07:09:43.000000000 +0100
-+++ bsneshle094/sfc/chip/chip.hpp	2014-04-26 16:20:16.502065832 +0200
-@@ -25,6 +25,14 @@
++++ bsneshle094/sfc/chip/chip.hpp	2014-08-19 15:29:02.525765996 +0200
+@@ -25,6 +25,16 @@
  #include <sfc/chip/hsu1/hsu1.hpp>
  #include <sfc/chip/msu1/msu1.hpp>
  
@@ -487,6 +555,8 @@ diff -ru higan_v094-source/sfc/chip/chip.hpp bsneshle094/sfc/chip/chip.hpp
 +#include <sfc/chip/cx4/cx4.hpp>
 +#include <sfc/chip/st0010/st0010.hpp>
 +
++#include <sfc/chip/sgb-external/sgb-external.hpp>
++
  void Coprocessor::step(unsigned clocks) {
    clock += clocks * (uint64)cpu.frequency;
  }
@@ -495,6 +565,7 @@ Only in bsneshle094/sfc/chip: dsp1
 Only in bsneshle094/sfc/chip: dsp2
 Only in bsneshle094/sfc/chip: dsp3
 Only in bsneshle094/sfc/chip: dsp4
+Only in bsneshle094/sfc/chip: sgb-external
 Only in bsneshle094/sfc/chip: st0010
 diff -ru higan_v094-source/sfc/cpu/cpu.cpp bsneshle094/sfc/cpu/cpu.cpp
 --- higan_v094-source/sfc/cpu/cpu.cpp	2013-11-09 06:38:15.000000000 +0100
@@ -526,7 +597,7 @@ diff -ru higan_v094-source/sfc/cpu/timing/timing.hpp bsneshle094/sfc/cpu/timing/
  alwaysinline void alu_edge();
 diff -ru higan_v094-source/sfc/interface/interface.hpp bsneshle094/sfc/interface/interface.hpp
 --- higan_v094-source/sfc/interface/interface.hpp	2013-12-17 05:31:06.000000000 +0100
-+++ bsneshle094/sfc/interface/interface.hpp	2014-08-19 15:11:21.509746077 +0200
++++ bsneshle094/sfc/interface/interface.hpp	2014-08-19 15:43:19.689782088 +0200
 @@ -88,6 +88,25 @@
    };
  };
@@ -545,7 +616,7 @@ diff -ru higan_v094-source/sfc/interface/interface.hpp bsneshle094/sfc/interface
 +  struct SuperGameBoy {
 +    enum : unsigned {
 +      Internal,
-+      Gambatte,
++      External,
 +    };
 +  };
 +};
@@ -555,17 +626,18 @@ diff -ru higan_v094-source/sfc/interface/interface.hpp bsneshle094/sfc/interface
    double videoFrequency();
 diff -ru higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
 --- higan_v094-source/sfc/Makefile	2013-01-23 00:07:55.000000000 +0100
-+++ bsneshle094/sfc/Makefile	2014-05-03 21:21:27.859198554 +0200
-@@ -9,6 +9,8 @@
++++ bsneshle094/sfc/Makefile	2014-08-19 15:32:41.245770102 +0200
+@@ -9,6 +9,9 @@
  sfc_objects += sfc-spc7110 sfc-sdd1 sfc-obc1
  sfc_objects += sfc-hsu1 sfc-msu1
  sfc_objects += sfc-satellaviewcart sfc-sufamiturbo
 +sfc_objects += sfc-hledsp1 sfc-hledsp2 sfc-hledsp3 sfc-hledsp4
 +sfc_objects += sfc-hlecx4 sfc-hlest0010
++sfc_objects += sfc-sgbexternal
  objects += $(sfc_objects)
  
  ifeq ($(profile),accuracy)
-@@ -70,3 +72,11 @@
+@@ -70,3 +73,13 @@
  
  obj/sfc-satellaviewcart.o: $(sfc)/slot/satellaview/satellaview.cpp $(call rwildcard,$(sfc)/slot/satellaview/)
  obj/sfc-sufamiturbo.o:     $(sfc)/slot/sufamiturbo/sufamiturbo.cpp $(call rwildcard,$(sfc)/slot/sufamiturbo/)
@@ -577,6 +649,8 @@ diff -ru higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
 +
 +obj/sfc-hlecx4.o:          $(sfc)/chip/cx4/cx4.cpp $(sfc)/chip/cx4/*
 +obj/sfc-hlest0010.o:       $(sfc)/chip/st0010/st0010.cpp $(sfc)/chip/st0010/*
++
++obj/sfc-sgbexternal.o:     $(sfc)/chip/sgb-external/sgb-external.cpp $(sfc)/chip/sgb-external/*
 diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.cpp
 --- higan_v094-source/sfc/memory/memory.cpp	2013-05-05 09:29:50.000000000 +0200
 +++ bsneshle094/sfc/memory/memory.cpp	2014-06-05 22:10:02.955293881 +0200

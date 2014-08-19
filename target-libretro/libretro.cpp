@@ -355,7 +355,7 @@ struct Callbacks : Emulator::Interface::Bind {
     {
       struct retro_variable var = {"bsnes_sgb_core", "Internal"};
       this->penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
-      if (!strcmp(var.value, "Gambatte")) return SuperFamicom::Alt::SuperGameBoy::Gambatte;
+      if (!strcmp(var.value, "Gambatte")) return SuperFamicom::Alt::SuperGameBoy::External;
       else return SuperFamicom::Alt::SuperGameBoy::Internal;
     }
     return 0;
@@ -439,7 +439,7 @@ void retro_set_environment(retro_environment_t environ_cb)
       { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
       { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
          //Any integer is usable here, but there is no such thing as "any integer" in core options.
-      { "bsnes_sgb_core", "Super Gameboy core; Internal|Gambatte" },
+      { "bsnes_sgb_core", "Super Game Boy core; Internal|Gambatte" },
       { NULL, NULL },
    };
    core_bind.penviron(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);
