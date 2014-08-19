@@ -94,8 +94,8 @@ unsigned Interface::group(unsigned id) {
   throw;
 }
 
-void Interface::load(unsigned id, bool hlechips) {
-  if(id == ID::SuperFamicom) cartridge.load(hlechips);
+void Interface::load(unsigned id) {
+  if(id == ID::SuperFamicom) cartridge.load();
   if(id == ID::SuperGameBoy) cartridge.load_super_game_boy();
   if(id == ID::Satellaview) cartridge.load_satellaview();
   if(id == ID::SufamiTurboSlotA) cartridge.load_sufami_turbo_a();

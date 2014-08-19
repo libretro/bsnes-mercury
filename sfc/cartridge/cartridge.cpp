@@ -27,7 +27,7 @@ string Cartridge::title() {
   return information.title.cartridge;
 }
 
-void Cartridge::load(bool hlechips) {
+void Cartridge::load() {
   region = Region::NTSC;
 
   has_gb_slot    = false;
@@ -62,7 +62,7 @@ void Cartridge::load(bool hlechips) {
   information.title.sufamiTurboB  = "";
 
   interface->loadRequest(ID::Manifest, "manifest.bml");
-  parse_markup(information.markup.cartridge, hlechips);
+  parse_markup(information.markup.cartridge);
 
   //Super Game Boy
   if(cartridge.has_gb_slot()) {

@@ -1,6 +1,6 @@
 #ifdef CARTRIDGE_CPP
 
-void Cartridge::parse_markup(const char* markup, bool hlechips) {
+void Cartridge::parse_markup(const char* markup) {
   auto document = Markup::Document(markup);
   information.title.cartridge = document["information/title"].text();
 
@@ -19,15 +19,18 @@ void Cartridge::parse_markup(const char* markup, bool hlechips) {
   parse_markup_sa1(cartridge["sa1"]);
   parse_markup_superfx(cartridge["superfx"]);
   parse_markup_armdsp(cartridge["armdsp"]);
-  if (!hlechips)
+  if (cartridge["hitachidsp"].exists() || cartridge["necdsp"].exists())
   {
-    parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
-    parse_markup_necdsp(cartridge["necdsp"]);
-  }
-  else
-  {
-    parse_markup_hitachidsp_hle(cartridge["hitachidsp"]);
-    parse_markup_necdsp_hle(cartridge["necdsp"]);
+    if (interface->bind->altImplementation(Alt::ForDSP)==Alt::DSP::LLE)
+    {
+      parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
+      parse_markup_necdsp(cartridge["necdsp"]);
+    }
+    else
+    {
+      parse_markup_hitachidsp_hle(cartridge["hitachidsp"]);
+      parse_markup_necdsp_hle(cartridge["necdsp"]);
+    }
   }
   parse_markup_epsonrtc(cartridge["epsonrtc"]);
   parse_markup_sharprtc(cartridge["sharprtc"]);

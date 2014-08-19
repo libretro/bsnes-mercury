@@ -88,6 +88,25 @@ struct ID {
   };
 };
 
+struct Alt {
+  enum : unsigned {
+    ForDSP,
+    ForSuperGameBoy,
+  };
+  struct DSP {
+    enum : unsigned {
+      LLE,
+      HLE,
+    };
+  };
+  struct SuperGameBoy {
+    enum : unsigned {
+      Internal,
+      Gambatte,
+    };
+  };
+};
+
 struct Interface : Emulator::Interface {
   string title();
   double videoFrequency();
@@ -96,7 +115,7 @@ struct Interface : Emulator::Interface {
   bool loaded();
   string sha256();
   unsigned group(unsigned id);
-  void load(unsigned id, bool hlechips);
+  void load(unsigned id);
   void save();
   void load(unsigned id, const stream& stream);
   void save(unsigned id, const stream& stream);

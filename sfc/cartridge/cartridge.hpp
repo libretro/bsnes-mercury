@@ -89,7 +89,7 @@ struct Cartridge : property<Cartridge> {
 
   string title();
 
-  void load(bool);
+  void load();
   void unload();
 
   void serialize(serializer&);
@@ -102,7 +102,7 @@ private:
   void load_sufami_turbo_a();
   void load_sufami_turbo_b();
 
-  void parse_markup(const char*, bool);
+  void parse_markup(const char*);
   void parse_markup_map(Mapping&, Markup::Node);
   void parse_markup_memory(MappedRAM&, Markup::Node, unsigned id, bool writable);
 

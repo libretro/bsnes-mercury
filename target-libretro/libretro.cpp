@@ -342,6 +342,24 @@ struct Callbacks : Emulator::Interface::Bind {
     b >>= 8;
     return (r << 16) | (g << 8) | (b << 0);
   }
+  
+  unsigned altImplementation(unsigned item) override {
+    if (item==SuperFamicom::Alt::ForDSP)
+    {
+      struct retro_variable var = {"bsnes_chip_hle", "LLE"};
+      this->penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
+      if (!strcmp(var.value, "HLE")) return SuperFamicom::Alt::DSP::HLE;
+      else return SuperFamicom::Alt::DSP::LLE;
+    }
+    if (item==SuperFamicom::Alt::ForSuperGameBoy)
+    {
+      struct retro_variable var = {"bsnes_sgb_core", "Internal"};
+      this->penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
+      if (!strcmp(var.value, "Gambatte")) return SuperFamicom::Alt::SuperGameBoy::Gambatte;
+      else return SuperFamicom::Alt::SuperGameBoy::Internal;
+    }
+    return 0;
+  }
 };
 
 static Callbacks core_bind;
@@ -638,7 +656,7 @@ static void output_multiline(enum retro_log_level level, char * data)
 }
 
 static bool snes_load_cartridge_normal(
-  const char *rom_xml, const uint8_t *rom_data, unsigned rom_size, bool special_chip_hle
+  const char *rom_xml, const uint8_t *rom_data, unsigned rom_size
 ) {
   string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
 
@@ -647,7 +665,7 @@ static bool snes_load_cartridge_normal(
   core_bind.xmlrom   = xmlrom;
   output(RETRO_LOG_INFO, "BML map:\n");
   output_multiline(RETRO_LOG_INFO, xmlrom.data());
-  core_bind.iface->load(SuperFamicom::ID::SuperFamicom, special_chip_hle);
+  core_bind.iface->load(SuperFamicom::ID::SuperFamicom);
   SuperFamicom::system.power();
   return !core_bind.load_request_error;
 }
@@ -734,10 +752,6 @@ bool retro_load_game(const struct retro_game_info *info) {
   // Support loading a manifest directly.
   core_bind.manifest = info->path && string(info->path).endsWith(".bml");
 
-  struct retro_variable var = {"bsnes_chip_hle", "LLE"};
-  core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
-  bool special_chip_hle = (!strcmp(var.value, "HLE"));
-
   const uint8_t *data = (const uint8_t*)info->data;
   size_t size = info->size;
   if ((size & 0x7ffff) == 512) {
@@ -766,7 +780,7 @@ bool retro_load_game(const struct retro_game_info *info) {
   if (core_bind.manifest)
     manifest = std::string((const char*)info->data, info->size); // Might not be 0 terminated.
   
-  bool ret=snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size, special_chip_hle);
+  bool ret=snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size);
   SuperFamicom::bus.libretro_mem_map.reverse();
   retro_memory_map map={SuperFamicom::bus.libretro_mem_map.data(), SuperFamicom::bus.libretro_mem_map.size()};
   core_bind.penviron(RETRO_ENVIRONMENT_SET_MEMORY_MAPS, (void*)&map);
