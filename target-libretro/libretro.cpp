@@ -861,7 +861,7 @@ void retro_unload_game(void) {
 }
 
 unsigned retro_get_region(void) {
-  return SuperFamicom::system.region() == SuperFamicom::System::Region::NTSC ? 0 : 1;
+  return SuperFamicom::system.region() == SuperFamicom::System::Region::NTSC ? RETRO_REGION_NTSC : RETRO_REGION_PAL;
 }
 
 void* retro_get_memory_data(unsigned id) {
