@@ -343,6 +343,10 @@ struct Callbacks : Emulator::Interface::Bind {
     return (r << 16) | (g << 8) | (b << 0);
   }
   
+  void notify(string text) {
+    output(RETRO_LOG_ERROR, "%s\n", (const char*)text);
+  }
+  
   unsigned altImplementation(unsigned item) override {
     if (item==SuperFamicom::Alt::ForDSP)
     {

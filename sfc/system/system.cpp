@@ -82,12 +82,14 @@ void System::init() {
   hsu1.init();
   msu1.init();
   satellaviewcartridge.init();
+
   dsp1.init();
   dsp2.init();
   dsp3.init();
   dsp4.init();
   cx4.init();
   st0010.init();
+  sgbExternal.init();
 
   video.init();
   audio.init();
@@ -154,6 +156,7 @@ void System::load() {
   if(cartridge.has_dsp4()) dsp4.load();
   if(cartridge.has_cx4()) cx4.load();
   if(cartridge.has_st0010()) st0010.load();
+  if(cartridge.has_sgbexternal()) sgbExternal.load();
 
   serialize_init();
 }
@@ -178,12 +181,14 @@ void System::unload() {
   if(cartridge.has_msu1()) msu1.unload();
   if(cartridge.has_bs_slot()) satellaviewcartridge.unload();
   if(cartridge.has_st_slots()) sufamiturboA.unload(), sufamiturboB.unload();
+
   if(cartridge.has_dsp1()) dsp1.unload();
   if(cartridge.has_dsp2()) dsp2.unload();
   if(cartridge.has_dsp3()) dsp3.unload();
   if(cartridge.has_dsp4()) dsp4.unload();
   if(cartridge.has_cx4()) cx4.unload();
   if(cartridge.has_st0010()) st0010.unload();
+  if(cartridge.has_sgbexternal()) sgbExternal.unload();
 }
 
 void System::power() {
@@ -212,12 +217,14 @@ void System::power() {
   if(cartridge.has_hsu1()) hsu1.power();
   if(cartridge.has_msu1()) msu1.power();
   if(cartridge.has_bs_slot()) satellaviewcartridge.power();
+
   if(cartridge.has_dsp1()) dsp1.power();
   if(cartridge.has_dsp2()) dsp2.power();
   if(cartridge.has_dsp3()) dsp3.power();
   if(cartridge.has_dsp4()) dsp4.power();
   if(cartridge.has_cx4()) cx4.power();
   if(cartridge.has_st0010()) st0010.power();
+  if(cartridge.has_sgbexternal()) sgbExternal.power();
 
   reset();
 }
@@ -265,6 +272,7 @@ void System::reset() {
   if(cartridge.has_dsp4()) dsp4.reset();
   if(cartridge.has_cx4()) cx4.reset();
   if(cartridge.has_st0010()) st0010.reset();
+  if(cartridge.has_sgbexternal()) sgbExternal.reset();
 
   scheduler.init();
   input.connect(0, configuration.controller_port1);

@@ -77,6 +77,9 @@ void System::serialize_all(serializer& s) {
   if(cartridge.has_dsp2()) dsp2.serialize(s);
   //if(cartridge.has_dsp3()) dsp3.serialize(s);
   //if(cartridge.has_dsp4()) dsp4.serialize(s);
+  if(cartridge.has_cx4()) cx4.serialize(s);
+  if(cartridge.has_st0010()) st0010.serialize(s);
+  if(cartridge.has_sgbexternal()) sgbExternal.serialize(s);
 }
 
 //perform dry-run state save:

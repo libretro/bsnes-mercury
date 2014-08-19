@@ -85,7 +85,6 @@ void Cartridge::parse_markup_icd2(Markup::Node root) {
   if(interface->bind->altImplementation(Alt::ForSuperGameBoy)==Alt::SuperGameBoy::External)
   {
     if (parse_markup_icd2_external(root)) return;
-    else interface->bind->notify("Couldn't load external GB emulator, falling back to internal");
   }
   has_gb_slot = true;
   icd2.revision = max(1, numeral(root["revision"].data));
@@ -670,36 +669,29 @@ void Cartridge::parse_markup_necdsp_hle(Markup::Node root) {
 
 bool Cartridge::parse_markup_icd2_external(Markup::Node root) {
   //root.exists() is known true here
-  return false;
-  /*
-      markup.append(
-      "  rom name=program.rom size=0x", hex(rom_size), "\n"
-      "  map id=rom address=00-7f,80-ff:8000-ffff mask=0x8000\n"
-      "  icd2 revision=1\n"
-      "    rom name=sgb.boot.rom size=0x100\n"
-      "    map id=io address=00-3f,80-bf:6000-7fff\n"
-    );
-  */
-  /*
-  has_gb_slot = true;
-  icd2.revision = max(1, numeral(root["revision"].data));
+  if (!sgbExternal.load_library("/home/alcaro/Desktop/minir/cores/bsnes_v073/supergameboy/libsupergameboy.so"))
+  {
+    interface->bind->notify("Couldn't load external GB emulator, falling back to internal");
+    return false;
+  }
+
+  has_sgbexternal = true;
+  sgbExternal.revision = max(1, numeral(root["revision"].data));
 
   GameBoy::cartridge.load_empty(GameBoy::System::Revision::SuperGameBoy);
   interface->loadRequest(ID::SuperGameBoy, "Game Boy", "gb");
-
-  string bootROMName = root["rom"]["name"].data;
-  interface->loadRequest(ID::SuperGameBoyBootROM, bootROMName);
 
   for(auto& node : root) {
     if(node.name != "map") continue;
 
     if(node["id"].data == "io") {
-      Mapping m({&ICD2::read, &icd2}, {&ICD2::write, &icd2});
+      Mapping m({&SGBExternal::read, &sgbExternal}, {&SGBExternal::write, &sgbExternal});
       parse_markup_map(m, node);
       mapping.append(m);
     }
   }
-  */
+
+  return true;
 }
 
 Cartridge::Mapping::Mapping() {
