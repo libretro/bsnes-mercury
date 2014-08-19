@@ -1,7 +1,7 @@
 Only in bsneshle094/ananke/obj: .gitignore
-Only in bsneshle094/: bsnes_accuracy_libretro.so
-Only in bsneshle094/: bsnes_balanced_libretro.so
-Only in bsneshle094/: changes.diff
+Only in bsneshle094: changes.diff
+Only in bsneshle094: changes-libretro.diff
+Only in bsneshle094: diff.sh
 diff -ru higan_v094-source/emulator/emulator.hpp bsneshle094/emulator/emulator.hpp
 --- higan_v094-source/emulator/emulator.hpp	2014-01-20 07:36:22.000000000 +0100
 +++ bsneshle094/emulator/emulator.hpp	2014-04-26 16:20:16.498065832 +0200
@@ -16,23 +16,30 @@ diff -ru higan_v094-source/emulator/emulator.hpp bsneshle094/emulator/emulator.h
  typedef varuint_t<unsigned> varuint;
 diff -ru higan_v094-source/emulator/interface.hpp bsneshle094/emulator/interface.hpp
 --- higan_v094-source/emulator/interface.hpp	2013-12-23 08:39:57.000000000 +0100
-+++ bsneshle094/emulator/interface.hpp	2014-05-03 11:49:42.546554520 +0200
-@@ -85,7 +85,7 @@
-   virtual bool loaded() { return false; }
-   virtual string sha256() { return ""; }
-   virtual unsigned group(unsigned id) = 0;
--  virtual void load(unsigned id) {}
-+  virtual void load(unsigned id, bool hlechips=false) {}
-   virtual void save() {}
-   virtual void load(unsigned id, const stream& memory) {}
-   virtual void save(unsigned id, const stream& memory) {}
-Only in bsneshle094/: .git
-Only in bsneshle094/: install.sh
++++ bsneshle094/emulator/interface.hpp	2014-08-19 14:54:43.757727345 +0200
+@@ -59,6 +59,7 @@
+     virtual string path(unsigned) { return ""; }
+     virtual string server() { return ""; }
+     virtual void notify(string text) { print(text, "\n"); }
++    virtual unsigned altImplementation(unsigned) { return 0; }
+   };
+   Bind* bind = nullptr;
+ 
+Only in bsneshle094: .git
+Only in bsneshle094: install.sh
 Only in bsneshle094/libco: armeabi.c
 diff -ru higan_v094-source/libco/libco.c bsneshle094/libco/libco.c
 --- higan_v094-source/libco/libco.c	2014-01-20 07:37:11.000000000 +0100
-+++ bsneshle094/libco/libco.c	2014-04-26 16:20:16.498065832 +0200
-@@ -10,6 +10,8 @@
++++ bsneshle094/libco/libco.c	2014-07-06 02:44:49.694696264 +0200
+@@ -4,18 +4,16 @@
+   license: public domain
+ */
+ 
+-#if defined(__GNUC__) && defined(__i386__)
++#if defined(__GNUC__) && defined(__i386__) || (defined(_MSC_VER) && defined(_M_IX86))
+   #include "x86.c"
+-#elif defined(__GNUC__) && defined(__amd64__)
++#elif defined(__GNUC__) && defined(__amd64__) || (defined(_MSC_VER) && defined(_M_AMD64))
    #include "amd64.c"
  #elif defined(__GNUC__) && defined(_ARCH_PPC)
    #include "ppc.c"
@@ -40,9 +47,15 @@ diff -ru higan_v094-source/libco/libco.c bsneshle094/libco/libco.c
 +  #include "armeabi.c"
  #elif defined(__GNUC__)
    #include "sjlj.c"
- #elif defined(_MSC_VER) && defined(_M_IX86)
-Only in bsneshle094/: libretro-gitorious.cpp
-Only in bsneshle094/: LICENSE
+-#elif defined(_MSC_VER) && defined(_M_IX86)
+-  #include "x86.c"
+-#elif defined(_MSC_VER) && defined(_M_AMD64)
+-  #include "amd64.c"
+ #elif defined(_MSC_VER)
+   #include "fiber.c"
+ #else
+Only in bsneshle094: libretro-gitorious.cpp
+Only in bsneshle094: LICENSE
 diff -ru higan_v094-source/Makefile bsneshle094/Makefile
 --- higan_v094-source/Makefile	2013-10-20 14:39:14.000000000 +0200
 +++ bsneshle094/Makefile	2014-06-25 00:20:55.548462607 +0200
@@ -135,7 +148,7 @@ diff -ru higan_v094-source/Makefile bsneshle094/Makefile
  # implicit rules
  compile = \
    $(strip \
-Only in bsneshle094/: make.sh
+Only in bsneshle094: make.sh
 diff -ru higan_v094-source/nall/file.hpp bsneshle094/nall/file.hpp
 --- higan_v094-source/nall/file.hpp	2014-01-20 07:37:12.000000000 +0100
 +++ bsneshle094/nall/file.hpp	2014-04-26 17:34:50.338149822 +0200
@@ -217,9 +230,64 @@ diff -ru higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
    #define ENDIAN_LSB
    Intrinsics::Endian Intrinsics::endian() { return Intrinsics::Endian::LSB; }
  #elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && __BYTE_ORDER == __BIG_ENDIAN) || defined(__BIG_ENDIAN__) || defined(__powerpc__) || defined(_M_PPC)
+Only in bsneshle094/obj: gb-apu.o
+Only in bsneshle094/obj: gb-cartridge.o
+Only in bsneshle094/obj: gb-cheat.o
+Only in bsneshle094/obj: gb-cpu.o
+Only in bsneshle094/obj: gb-interface.o
+Only in bsneshle094/obj: gb-memory.o
+Only in bsneshle094/obj: gb-ppu.o
+Only in bsneshle094/obj: gb-scheduler.o
+Only in bsneshle094/obj: gb-system.o
+Only in bsneshle094/obj: gb-video.o
 Only in bsneshle094/obj: .gitignore
+Only in bsneshle094/obj: libco.o
+Only in bsneshle094/obj: libretro.o
+Only in bsneshle094/obj: processor-arm.o
+Only in bsneshle094/obj: processor-gsu.o
+Only in bsneshle094/obj: processor-hg51b.o
+Only in bsneshle094/obj: processor-lr35902.o
+Only in bsneshle094/obj: processor-r65816.o
+Only in bsneshle094/obj: processor-spc700.o
+Only in bsneshle094/obj: processor-upd96050.o
+Only in bsneshle094/obj: sfc-armdsp.o
+Only in bsneshle094/obj: sfc-bsx.o
+Only in bsneshle094/obj: sfc-cartridge.o
+Only in bsneshle094/obj: sfc-cheat.o
+Only in bsneshle094/obj: sfc-controller.o
+Only in bsneshle094/obj: sfc-cpu.o
+Only in bsneshle094/obj: sfc-dsp.o
+Only in bsneshle094/obj: sfc-epsonrtc.o
+Only in bsneshle094/obj: sfc-event.o
+Only in bsneshle094/obj: sfc-hitachidsp.o
+Only in bsneshle094/obj: sfc-hlecx4.o
+Only in bsneshle094/obj: sfc-hledsp1.o
+Only in bsneshle094/obj: sfc-hledsp2.o
+Only in bsneshle094/obj: sfc-hledsp3.o
+Only in bsneshle094/obj: sfc-hledsp4.o
+Only in bsneshle094/obj: sfc-hlest0010.o
+Only in bsneshle094/obj: sfc-hsu1.o
+Only in bsneshle094/obj: sfc-icd2.o
+Only in bsneshle094/obj: sfc-interface.o
+Only in bsneshle094/obj: sfc-memory.o
+Only in bsneshle094/obj: sfc-msu1.o
+Only in bsneshle094/obj: sfc-necdsp.o
+Only in bsneshle094/obj: sfc-nss.o
+Only in bsneshle094/obj: sfc-obc1.o
+Only in bsneshle094/obj: sfc-ppu.o
+Only in bsneshle094/obj: sfc-sa1.o
+Only in bsneshle094/obj: sfc-satellaviewbase.o
+Only in bsneshle094/obj: sfc-satellaviewcart.o
+Only in bsneshle094/obj: sfc-sdd1.o
+Only in bsneshle094/obj: sfc-sharprtc.o
+Only in bsneshle094/obj: sfc-smp.o
+Only in bsneshle094/obj: sfc-spc7110.o
+Only in bsneshle094/obj: sfc-sufamiturbo.o
+Only in bsneshle094/obj: sfc-superfx.o
+Only in bsneshle094/obj: sfc-system.o
+Only in bsneshle094/out: bsnes_mercury_libretro.so
 Only in bsneshle094/out: .gitignore
-Only in bsneshle094/: README
+Only in bsneshle094: README
 diff -ru higan_v094-source/sfc/alt/cpu/cpu.cpp bsneshle094/sfc/alt/cpu/cpu.cpp
 --- higan_v094-source/sfc/alt/cpu/cpu.cpp	2013-05-05 08:00:10.000000000 +0200
 +++ bsneshle094/sfc/alt/cpu/cpu.cpp	2014-05-03 20:02:34.275109688 +0200
@@ -236,30 +304,9 @@ diff -ru higan_v094-source/sfc/alt/cpu/cpu.cpp bsneshle094/sfc/alt/cpu/cpu.cpp
  }
  
  void CPU::power() {
-diff -ru higan_v094-source/sfc/cartridge/cartridge.cpp bsneshle094/sfc/cartridge/cartridge.cpp
---- higan_v094-source/sfc/cartridge/cartridge.cpp	2013-05-05 08:31:39.000000000 +0200
-+++ bsneshle094/sfc/cartridge/cartridge.cpp	2014-06-14 21:58:46.294723667 +0200
-@@ -27,7 +27,7 @@
-   return information.title.cartridge;
- }
- 
--void Cartridge::load() {
-+void Cartridge::load(bool hlechips) {
-   region = Region::NTSC;
- 
-   has_gb_slot    = false;
-@@ -62,7 +62,7 @@
-   information.title.sufamiTurboB  = "";
- 
-   interface->loadRequest(ID::Manifest, "manifest.bml");
--  parse_markup(information.markup.cartridge);
-+  parse_markup(information.markup.cartridge, hlechips);
- 
-   //Super Game Boy
-   if(cartridge.has_gb_slot()) {
 diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge/cartridge.hpp
 --- higan_v094-source/sfc/cartridge/cartridge.hpp	2013-01-22 23:52:43.000000000 +0100
-+++ bsneshle094/sfc/cartridge/cartridge.hpp	2014-05-03 20:45:32.915158098 +0200
++++ bsneshle094/sfc/cartridge/cartridge.hpp	2014-08-19 15:07:34.037741806 +0200
 @@ -39,6 +39,12 @@
    readonly<bool> has_obc1;
    readonly<bool> has_hsu1;
@@ -283,24 +330,6 @@ diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge
      Mapping();
      Mapping(const function<uint8 (unsigned)>&, const function<void (unsigned, uint8)>&);
      Mapping(SuperFamicom::Memory&);
-@@ -80,7 +89,7 @@
- 
-   string title();
- 
--  void load();
-+  void load(bool);
-   void unload();
- 
-   void serialize(serializer&);
-@@ -93,7 +102,7 @@
-   void load_sufami_turbo_a();
-   void load_sufami_turbo_b();
- 
--  void parse_markup(const char*);
-+  void parse_markup(const char*, bool);
-   void parse_markup_map(Mapping&, Markup::Node);
-   void parse_markup_memory(MappedRAM&, Markup::Node, unsigned id, bool writable);
- 
 @@ -116,6 +125,9 @@
    void parse_markup_obc1(Markup::Node);
    void parse_markup_hsu1(Markup::Node);
@@ -313,35 +342,30 @@ diff -ru higan_v094-source/sfc/cartridge/cartridge.hpp bsneshle094/sfc/cartridge
  };
 diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/markup.cpp
 --- higan_v094-source/sfc/cartridge/markup.cpp	2013-12-06 21:58:46.000000000 +0100
-+++ bsneshle094/sfc/cartridge/markup.cpp	2014-05-03 20:45:05.907157591 +0200
-@@ -1,6 +1,6 @@
- #ifdef CARTRIDGE_CPP
- 
--void Cartridge::parse_markup(const char* markup) {
-+void Cartridge::parse_markup(const char* markup, bool hlechips) {
-   auto document = Markup::Document(markup);
-   information.title.cartridge = document["information/title"].text();
- 
-@@ -19,8 +19,16 @@
++++ bsneshle094/sfc/cartridge/markup.cpp	2014-08-19 15:15:46.561751053 +0200
+@@ -19,8 +19,19 @@
    parse_markup_sa1(cartridge["sa1"]);
    parse_markup_superfx(cartridge["superfx"]);
    parse_markup_armdsp(cartridge["armdsp"]);
 -  parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
 -  parse_markup_necdsp(cartridge["necdsp"]);
-+  if (!hlechips)
++  if (cartridge["hitachidsp"].exists() || cartridge["necdsp"].exists())
 +  {
-+    parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
-+    parse_markup_necdsp(cartridge["necdsp"]);
-+  }
-+  else
-+  {
-+    parse_markup_hitachidsp_hle(cartridge["hitachidsp"]);
-+    parse_markup_necdsp_hle(cartridge["necdsp"]);
++    if (interface->bind->altImplementation(Alt::ForDSP)==Alt::DSP::LLE)
++    {
++      parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
++      parse_markup_necdsp(cartridge["necdsp"]);
++    }
++    else
++    {
++      parse_markup_hitachidsp_hle(cartridge["hitachidsp"]);
++      parse_markup_necdsp_hle(cartridge["necdsp"]);
++    }
 +  }
    parse_markup_epsonrtc(cartridge["epsonrtc"]);
    parse_markup_sharprtc(cartridge["sharprtc"]);
    parse_markup_spc7110(cartridge["spc7110"]);
-@@ -64,6 +72,8 @@
+@@ -64,6 +75,8 @@
        Mapping m(rom);
        parse_markup_map(m, node);
        if(m.size == 0) m.size = rom.size();
@@ -350,7 +374,7 @@ diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/ma
        mapping.append(m);
      }
  
-@@ -71,6 +81,8 @@
+@@ -71,6 +84,8 @@
        Mapping m(ram);
        parse_markup_map(m, node);
        if(m.size == 0) m.size = ram.size();
@@ -359,7 +383,7 @@ diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/ma
        mapping.append(m);
      }
    }
-@@ -586,20 +598,88 @@
+@@ -586,20 +601,88 @@
    }
  }
  
@@ -500,32 +524,35 @@ diff -ru higan_v094-source/sfc/cpu/timing/timing.hpp bsneshle094/sfc/cpu/timing/
  void scanline();
  
  alwaysinline void alu_edge();
-diff -ru higan_v094-source/sfc/interface/interface.cpp bsneshle094/sfc/interface/interface.cpp
---- higan_v094-source/sfc/interface/interface.cpp	2014-01-13 07:34:39.000000000 +0100
-+++ bsneshle094/sfc/interface/interface.cpp	2014-06-13 23:35:10.221815969 +0200
-@@ -94,8 +94,8 @@
-   throw;
- }
- 
--void Interface::load(unsigned id) {
--  if(id == ID::SuperFamicom) cartridge.load();
-+void Interface::load(unsigned id, bool hlechips) {
-+  if(id == ID::SuperFamicom) cartridge.load(hlechips);
-   if(id == ID::SuperGameBoy) cartridge.load_super_game_boy();
-   if(id == ID::Satellaview) cartridge.load_satellaview();
-   if(id == ID::SufamiTurboSlotA) cartridge.load_sufami_turbo_a();
 diff -ru higan_v094-source/sfc/interface/interface.hpp bsneshle094/sfc/interface/interface.hpp
 --- higan_v094-source/sfc/interface/interface.hpp	2013-12-17 05:31:06.000000000 +0100
-+++ bsneshle094/sfc/interface/interface.hpp	2014-05-03 11:42:58.918546942 +0200
-@@ -96,7 +96,7 @@
-   bool loaded();
-   string sha256();
-   unsigned group(unsigned id);
--  void load(unsigned id);
-+  void load(unsigned id, bool hlechips);
-   void save();
-   void load(unsigned id, const stream& stream);
-   void save(unsigned id, const stream& stream);
++++ bsneshle094/sfc/interface/interface.hpp	2014-08-19 15:11:21.509746077 +0200
+@@ -88,6 +88,25 @@
+   };
+ };
+ 
++struct Alt {
++  enum : unsigned {
++    ForDSP,
++    ForSuperGameBoy,
++  };
++  struct DSP {
++    enum : unsigned {
++      LLE,
++      HLE,
++    };
++  };
++  struct SuperGameBoy {
++    enum : unsigned {
++      Internal,
++      Gambatte,
++    };
++  };
++};
++
+ struct Interface : Emulator::Interface {
+   string title();
+   double videoFrequency();
 diff -ru higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
 --- higan_v094-source/sfc/Makefile	2013-01-23 00:07:55.000000000 +0100
 +++ bsneshle094/sfc/Makefile	2014-05-03 21:21:27.859198554 +0200
@@ -1001,5 +1028,4 @@ diff -ru higan_v094-source/sfc/system/system.cpp bsneshle094/sfc/system/system.c
    scheduler.init();
    input.connect(0, configuration.controller_port1);
    input.connect(1, configuration.controller_port2);
-Only in bsneshle094/: target-libretro
-Only in bsneshle094/: verify.diff
+Only in bsneshle094: target-libretro

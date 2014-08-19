@@ -1,5 +1,5 @@
 --- libretro-gitorious.cpp	2014-06-06 10:37:33.090322723 +0200
-+++ target-libretro/libretro.cpp	2014-06-25 02:27:02.840461704 +0200
++++ target-libretro/libretro.cpp	2014-08-19 15:04:38.665738514 +0200
 @@ -64,6 +64,16 @@
  /*fffe*/  0xc0, 0xff         //reset vector location ($ffc0)
  };
@@ -95,7 +95,7 @@
          loadROM(id);
          break;
  
-@@ -296,37 +306,37 @@
+@@ -296,42 +306,60 @@
          break;
  
        default:
@@ -141,7 +141,30 @@
      r >>= 8;
      g >>= 8;
      b >>= 8;
-@@ -401,10 +411,24 @@
+     return (r << 16) | (g << 8) | (b << 0);
+   }
++  
++  unsigned altImplementation(unsigned item) override {
++    if (item==SuperFamicom::Alt::ForDSP)
++    {
++      struct retro_variable var = {"bsnes_chip_hle", "LLE"};
++      this->penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
++      if (!strcmp(var.value, "HLE")) return SuperFamicom::Alt::DSP::HLE;
++      else return SuperFamicom::Alt::DSP::LLE;
++    }
++    if (item==SuperFamicom::Alt::ForSuperGameBoy)
++    {
++      struct retro_variable var = {"bsnes_sgb_core", "Internal"};
++      this->penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
++      if (!strcmp(var.value, "Gambatte")) return SuperFamicom::Alt::SuperGameBoy::Gambatte;
++      else return SuperFamicom::Alt::SuperGameBoy::Internal;
++    }
++    return 0;
++  }
+ };
+ 
+ static Callbacks core_bind;
+@@ -401,10 +429,25 @@
    return RETRO_API_VERSION;
  }
  
@@ -152,9 +175,10 @@
     core_bind.penviron = environ_cb;
  
 +   static const struct retro_variable vars[] = {
-+      { "bsnes_chip_hle", "Special Chip Accuracy; LLE|HLE" },
++      { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
 +      { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
 +         //Any integer is usable here, but there is no such thing as "any integer" in core options.
++      { "bsnes_sgb_core", "Super Gameboy core; Internal|Gambatte" },
 +      { NULL, NULL },
 +   };
 +   core_bind.penviron(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);
@@ -166,7 +190,7 @@
     static const retro_subsystem_memory_info sgb_memory[] = {
        { "srm", RETRO_MEMORY_SNES_GAME_BOY_RAM },
        { "rtc", RETRO_MEMORY_SNES_GAME_BOY_RTC },
-@@ -473,6 +497,19 @@
+@@ -473,6 +516,19 @@
     environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
  }
  
@@ -186,7 +210,7 @@
  void retro_set_video_refresh(retro_video_refresh_t video_refresh) { core_bind.pvideo_refresh = video_refresh; }
  void retro_set_audio_sample(retro_audio_sample_t audio_sample)    { core_bind.paudio_sample  = audio_sample; }
  void retro_set_audio_sample_batch(retro_audio_sample_batch_t)     {}
-@@ -505,6 +542,9 @@
+@@ -505,6 +561,9 @@
  }
  
  void retro_run(void) {
@@ -196,7 +220,7 @@
    SuperFamicom::system.run();
  }
  
-@@ -525,6 +565,7 @@
+@@ -525,6 +584,7 @@
    return SuperFamicom::system.unserialize(s);
  }
  
@@ -204,7 +228,7 @@
  struct CheatList {
    bool enable;
    string code;
-@@ -532,27 +573,33 @@
+@@ -532,27 +592,33 @@
  };
  
  static vector<CheatList> cheatList;
@@ -241,47 +265,50 @@
    info->library_version  = version;
    info->valid_extensions = "sfc|smc|bml";
    info->need_fullpath    = false;
-@@ -577,15 +624,25 @@
+@@ -576,6 +642,19 @@
+   core_bind.penviron(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt);
  }
  
++static void output_multiline(enum retro_log_level level, char * data)
++{
++  while (true)
++  {
++    char* data_linebreak=strchr(data, '\n');
++    if (data_linebreak) *data_linebreak='\0';
++    if (*data) output(level, "%s\n", data);
++    if (!data_linebreak) break;
++    *data_linebreak='\n';
++    data=data_linebreak+1;
++  }
++}
++
  static bool snes_load_cartridge_normal(
--  const char *rom_xml, const uint8_t *rom_data, unsigned rom_size
-+  const char *rom_xml, const uint8_t *rom_data, unsigned rom_size, bool special_chip_hle
+   const char *rom_xml, const uint8_t *rom_data, unsigned rom_size
  ) {
-   string xmlrom = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
- 
+@@ -584,7 +663,8 @@
    core_bind.rom_data = rom_data;
    core_bind.rom_size = rom_size;
    core_bind.xmlrom   = xmlrom;
 -  fprintf(stderr, "[bSNES]: XML map:\n%s\n", (const char*)xmlrom);
--  core_bind.iface->load(SuperFamicom::ID::SuperFamicom);
 +  output(RETRO_LOG_INFO, "BML map:\n");
-+  char* xmlrom_c = xmlrom.data();
-+  while (xmlrom_c)
-+  {
-+    char* xmlrom_linebreak=strchr(xmlrom_c, '\n');
-+    if (xmlrom_linebreak) *xmlrom_linebreak='\0';
-+    if (*xmlrom_c) output(RETRO_LOG_INFO, "%s\n", xmlrom_c);
-+    if (!xmlrom_linebreak) break;
-+    *xmlrom_linebreak='\n';
-+    xmlrom_c=xmlrom_linebreak+1;
-+  }
-+  core_bind.iface->load(SuperFamicom::ID::SuperFamicom, special_chip_hle);
++  output_multiline(RETRO_LOG_INFO, xmlrom.data());
+   core_bind.iface->load(SuperFamicom::ID::SuperFamicom);
    SuperFamicom::system.power();
    return !core_bind.load_request_error;
- }
-@@ -650,8 +707,8 @@
+@@ -650,8 +730,10 @@
  ) {
    string xmlrom_sgb = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
    string xmlrom_gb  = (dmg_xml && *dmg_xml) ? string(dmg_xml) : GameBoyCartridge((uint8_t*)dmg_data, dmg_size).markup;
 -  fprintf(stderr, "[bSNES]: Markup SGB: %s\n", (const char*)xmlrom_sgb);
 -  fprintf(stderr, "[bSNES]: Markup GB: %s\n", (const char*)xmlrom_gb);
-+  output(RETRO_LOG_INFO, "Markup SGB: %s\n", (const char*)xmlrom_sgb);
-+  output(RETRO_LOG_INFO, "Markup GB: %s\n", (const char*)xmlrom_gb);
++  output(RETRO_LOG_INFO, "Markup SGB:\n");
++  output_multiline(RETRO_LOG_INFO, xmlrom_sgb.data());
++  output(RETRO_LOG_INFO, "Markup GB:\n");
++  output_multiline(RETRO_LOG_INFO, xmlrom_gb.data());
  
    core_bind.rom_data    = rom_data;
    core_bind.rom_size    = rom_size;
-@@ -660,8 +717,8 @@
+@@ -660,8 +742,8 @@
    core_bind.xmlrom      = xmlrom_sgb;
    core_bind.xmlrom_gb   = xmlrom_gb;
  
@@ -291,24 +318,13 @@
    SuperFamicom::system.power();
    return !core_bind.load_request_error;
  }
-@@ -670,6 +727,10 @@
-   // Support loading a manifest directly.
-   core_bind.manifest = info->path && string(info->path).endsWith(".bml");
- 
-+  struct retro_variable var = {"bsnes_chip_hle", "LLE"};
-+  core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
-+  bool special_chip_hle = (!strcmp(var.value, "HLE"));
-+
-   const uint8_t *data = (const uint8_t*)info->data;
-   size_t size = info->size;
-   if ((size & 0x7ffff) == 512) {
-@@ -697,9 +758,19 @@
+@@ -697,9 +779,19 @@
    std::string manifest;
    if (core_bind.manifest)
      manifest = std::string((const char*)info->data, info->size); // Might not be 0 terminated.
 -  return snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size);
 +  
-+  bool ret=snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size, special_chip_hle);
++  bool ret=snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size);
 +  SuperFamicom::bus.libretro_mem_map.reverse();
 +  retro_memory_map map={SuperFamicom::bus.libretro_mem_map.data(), SuperFamicom::bus.libretro_mem_map.size()};
 +  core_bind.penviron(RETRO_ENVIRONMENT_SET_MEMORY_MAPS, (void*)&map);
@@ -323,7 +339,16 @@
  bool retro_load_game_special(unsigned game_type,
        const struct retro_game_info *info, size_t num_info) {
    core_bind.manifest = false;
-@@ -827,7 +898,7 @@
+@@ -783,7 +875,7 @@
+ }
+ 
+ unsigned retro_get_region(void) {
+-  return SuperFamicom::system.region() == SuperFamicom::System::Region::NTSC ? 0 : 1;
++  return SuperFamicom::system.region() == SuperFamicom::System::Region::NTSC ? RETRO_REGION_NTSC : RETRO_REGION_PAL;
+ }
+ 
+ void* retro_get_memory_data(unsigned id) {
+@@ -827,7 +919,7 @@
    switch(id) {
      case RETRO_MEMORY_SAVE_RAM:
        size = core_bind.sram_size;
