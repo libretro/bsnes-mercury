@@ -421,6 +421,7 @@ void retro_set_environment(retro_environment_t environ_cb)
       { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
       { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
          //Any integer is usable here, but there is no such thing as "any integer" in core options.
+      { "bsnes_sgb_core", "Super Gameboy core; Internal|Gambatte" },
       { NULL, NULL },
    };
    core_bind.penviron(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);
@@ -623,6 +624,19 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
   core_bind.penviron(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt);
 }
 
+static void output_multiline(enum retro_log_level level, char * data)
+{
+  while (true)
+  {
+    char* data_linebreak=strchr(data, '\n');
+    if (data_linebreak) *data_linebreak='\0';
+    if (*data) output(level, "%s\n", data);
+    if (!data_linebreak) break;
+    *data_linebreak='\n';
+    data=data_linebreak+1;
+  }
+}
+
 static bool snes_load_cartridge_normal(
   const char *rom_xml, const uint8_t *rom_data, unsigned rom_size, bool special_chip_hle
 ) {
@@ -632,16 +646,7 @@ static bool snes_load_cartridge_normal(
   core_bind.rom_size = rom_size;
   core_bind.xmlrom   = xmlrom;
   output(RETRO_LOG_INFO, "BML map:\n");
-  char* xmlrom_c = xmlrom.data();
-  while (xmlrom_c)
-  {
-    char* xmlrom_linebreak=strchr(xmlrom_c, '\n');
-    if (xmlrom_linebreak) *xmlrom_linebreak='\0';
-    if (*xmlrom_c) output(RETRO_LOG_INFO, "%s\n", xmlrom_c);
-    if (!xmlrom_linebreak) break;
-    *xmlrom_linebreak='\n';
-    xmlrom_c=xmlrom_linebreak+1;
-  }
+  output_multiline(RETRO_LOG_INFO, xmlrom.data());
   core_bind.iface->load(SuperFamicom::ID::SuperFamicom, special_chip_hle);
   SuperFamicom::system.power();
   return !core_bind.load_request_error;
@@ -707,8 +712,10 @@ static bool snes_load_cartridge_super_game_boy(
 ) {
   string xmlrom_sgb = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
   string xmlrom_gb  = (dmg_xml && *dmg_xml) ? string(dmg_xml) : GameBoyCartridge((uint8_t*)dmg_data, dmg_size).markup;
-  output(RETRO_LOG_INFO, "Markup SGB: %s\n", (const char*)xmlrom_sgb);
-  output(RETRO_LOG_INFO, "Markup GB: %s\n", (const char*)xmlrom_gb);
+  output(RETRO_LOG_INFO, "Markup SGB:\n");
+  output_multiline(RETRO_LOG_INFO, xmlrom_sgb.data());
+  output(RETRO_LOG_INFO, "Markup GB:\n");
+  output_multiline(RETRO_LOG_INFO, xmlrom_gb.data());
 
   core_bind.rom_data    = rom_data;
   core_bind.rom_size    = rom_size;
