@@ -273,6 +273,7 @@ void System::reset() {
   if(cartridge.has_cx4()) cx4.reset();
   if(cartridge.has_st0010()) st0010.reset();
   if(cartridge.has_sgbexternal()) sgbExternal.reset();
+  if(cartridge.has_sgbexternal()) cpu.coprocessors.append(&sgbExternal);
 
   scheduler.init();
   input.connect(0, configuration.controller_port1);
