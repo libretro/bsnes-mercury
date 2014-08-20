@@ -22,6 +22,9 @@ ifeq ($(platform),)
   else ifneq ($(findstring CYGWIN,$(uname)),)
     platform := windows
     delete = del $(subst /,\,$1)
+  else ifneq ($(findstring MINGW,$(uname)),)
+    platform := windows
+    delete = del $(subst /,\,$1)
   else ifneq ($(findstring Darwin,$(uname)),)
     platform := macosx
     delete = rm -f $1
