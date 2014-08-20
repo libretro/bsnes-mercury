@@ -40,7 +40,7 @@ else ifeq ($(platform),macosx)
 else ifeq ($(platform),windows)
 	$(compiler) -o out/bsnes_mercury_libretro.dll -shared $(objects) -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T -static-libgcc -static-libstdc++ -lws2_32 $(link)
 else
-	echo "invalid platform: $(platform)."
+	echo "invalid platform: $(platform). valid platforms are: windows linux macosx ios bsd"
 	false
 endif
 
