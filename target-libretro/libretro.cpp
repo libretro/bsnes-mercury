@@ -355,6 +355,7 @@ struct Callbacks : Emulator::Interface::Bind {
       if (!strcmp(var.value, "HLE")) return SuperFamicom::Alt::DSP::HLE;
       else return SuperFamicom::Alt::DSP::LLE;
     }
+#ifdef EXPERIMENTAL_FEATURES
     if (item==SuperFamicom::Alt::ForSuperGameBoy)
     {
       struct retro_variable var = {"bsnes_sgb_core", "Internal"};
@@ -362,6 +363,7 @@ struct Callbacks : Emulator::Interface::Bind {
       if (!strcmp(var.value, "Gambatte")) return SuperFamicom::Alt::SuperGameBoy::External;
       else return SuperFamicom::Alt::SuperGameBoy::Internal;
     }
+#endif
     return 0;
   }
 };
@@ -443,7 +445,9 @@ void retro_set_environment(retro_environment_t environ_cb)
       { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
       { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
          //Any integer is usable here, but there is no such thing as "any integer" in core options.
+#ifdef EXPERIMENTAL_FEATURES
       { "bsnes_sgb_core", "Super Game Boy core; Internal|Gambatte" },
+#endif
       { NULL, NULL },
    };
    core_bind.penviron(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);

@@ -1,5 +1,5 @@
 --- libretro-gitorious.cpp	2014-06-06 10:37:33.090322723 +0200
-+++ target-libretro/libretro.cpp	2014-08-19 17:04:50.709873910 +0200
++++ target-libretro/libretro.cpp	2014-08-20 18:06:36.645311813 +0200
 @@ -64,6 +64,16 @@
  /*fffe*/  0xc0, 0xff         //reset vector location ($ffc0)
  };
@@ -95,7 +95,7 @@
          loadROM(id);
          break;
  
-@@ -296,42 +306,64 @@
+@@ -296,42 +306,66 @@
          break;
  
        default:
@@ -156,6 +156,7 @@
 +      if (!strcmp(var.value, "HLE")) return SuperFamicom::Alt::DSP::HLE;
 +      else return SuperFamicom::Alt::DSP::LLE;
 +    }
++#ifdef EXPERIMENTAL_FEATURES
 +    if (item==SuperFamicom::Alt::ForSuperGameBoy)
 +    {
 +      struct retro_variable var = {"bsnes_sgb_core", "Internal"};
@@ -163,12 +164,13 @@
 +      if (!strcmp(var.value, "Gambatte")) return SuperFamicom::Alt::SuperGameBoy::External;
 +      else return SuperFamicom::Alt::SuperGameBoy::Internal;
 +    }
++#endif
 +    return 0;
 +  }
  };
  
  static Callbacks core_bind;
-@@ -401,10 +433,25 @@
+@@ -401,10 +435,27 @@
    return RETRO_API_VERSION;
  }
  
@@ -182,7 +184,9 @@
 +      { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
 +      { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
 +         //Any integer is usable here, but there is no such thing as "any integer" in core options.
++#ifdef EXPERIMENTAL_FEATURES
 +      { "bsnes_sgb_core", "Super Game Boy core; Internal|Gambatte" },
++#endif
 +      { NULL, NULL },
 +   };
 +   core_bind.penviron(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);
@@ -194,7 +198,7 @@
     static const retro_subsystem_memory_info sgb_memory[] = {
        { "srm", RETRO_MEMORY_SNES_GAME_BOY_RAM },
        { "rtc", RETRO_MEMORY_SNES_GAME_BOY_RTC },
-@@ -473,6 +520,19 @@
+@@ -473,6 +524,19 @@
     environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
  }
  
@@ -214,7 +218,7 @@
  void retro_set_video_refresh(retro_video_refresh_t video_refresh) { core_bind.pvideo_refresh = video_refresh; }
  void retro_set_audio_sample(retro_audio_sample_t audio_sample)    { core_bind.paudio_sample  = audio_sample; }
  void retro_set_audio_sample_batch(retro_audio_sample_batch_t)     {}
-@@ -505,6 +565,9 @@
+@@ -505,6 +569,9 @@
  }
  
  void retro_run(void) {
@@ -224,7 +228,7 @@
    SuperFamicom::system.run();
  }
  
-@@ -525,6 +588,7 @@
+@@ -525,6 +592,7 @@
    return SuperFamicom::system.unserialize(s);
  }
  
@@ -232,7 +236,7 @@
  struct CheatList {
    bool enable;
    string code;
-@@ -532,27 +596,33 @@
+@@ -532,27 +600,33 @@
  };
  
  static vector<CheatList> cheatList;
@@ -269,7 +273,7 @@
    info->library_version  = version;
    info->valid_extensions = "sfc|smc|bml";
    info->need_fullpath    = false;
-@@ -576,6 +646,19 @@
+@@ -576,6 +650,19 @@
    core_bind.penviron(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt);
  }
  
@@ -289,7 +293,7 @@
  static bool snes_load_cartridge_normal(
    const char *rom_xml, const uint8_t *rom_data, unsigned rom_size
  ) {
-@@ -584,7 +667,8 @@
+@@ -584,7 +671,8 @@
    core_bind.rom_data = rom_data;
    core_bind.rom_size = rom_size;
    core_bind.xmlrom   = xmlrom;
@@ -299,7 +303,7 @@
    core_bind.iface->load(SuperFamicom::ID::SuperFamicom);
    SuperFamicom::system.power();
    return !core_bind.load_request_error;
-@@ -650,8 +734,10 @@
+@@ -650,8 +738,10 @@
  ) {
    string xmlrom_sgb = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
    string xmlrom_gb  = (dmg_xml && *dmg_xml) ? string(dmg_xml) : GameBoyCartridge((uint8_t*)dmg_data, dmg_size).markup;
@@ -312,7 +316,7 @@
  
    core_bind.rom_data    = rom_data;
    core_bind.rom_size    = rom_size;
-@@ -660,8 +746,8 @@
+@@ -660,8 +750,8 @@
    core_bind.xmlrom      = xmlrom_sgb;
    core_bind.xmlrom_gb   = xmlrom_gb;
  
@@ -322,7 +326,7 @@
    SuperFamicom::system.power();
    return !core_bind.load_request_error;
  }
-@@ -697,9 +783,19 @@
+@@ -697,9 +787,19 @@
    std::string manifest;
    if (core_bind.manifest)
      manifest = std::string((const char*)info->data, info->size); // Might not be 0 terminated.
@@ -343,7 +347,7 @@
  bool retro_load_game_special(unsigned game_type,
        const struct retro_game_info *info, size_t num_info) {
    core_bind.manifest = false;
-@@ -783,7 +879,7 @@
+@@ -783,7 +883,7 @@
  }
  
  unsigned retro_get_region(void) {
@@ -352,7 +356,7 @@
  }
  
  void* retro_get_memory_data(unsigned id) {
-@@ -827,7 +923,7 @@
+@@ -827,7 +927,7 @@
    switch(id) {
      case RETRO_MEMORY_SAVE_RAM:
        size = core_bind.sram_size;

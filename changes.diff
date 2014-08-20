@@ -230,6 +230,19 @@ diff -ru higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
    #define ENDIAN_LSB
    Intrinsics::Endian Intrinsics::endian() { return Intrinsics::Endian::LSB; }
  #elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && __BYTE_ORDER == __BIG_ENDIAN) || defined(__BIG_ENDIAN__) || defined(__powerpc__) || defined(_M_PPC)
+diff -ru higan_v094-source/nall/Makefile bsneshle094/nall/Makefile
+--- higan_v094-source/nall/Makefile	2014-01-20 07:37:12.000000000 +0100
++++ bsneshle094/nall/Makefile	2014-08-20 17:41:55.249337200 +0200
+@@ -22,6 +22,9 @@
+   else ifneq ($(findstring CYGWIN,$(uname)),)
+     platform := windows
+     delete = del $(subst /,\,$1)
++  else ifneq ($(findstring MINGW,$(uname)),)
++    platform := windows
++    delete = del $(subst /,\,$1)
+   else ifneq ($(findstring Darwin,$(uname)),)
+     platform := macosx
+     delete = rm -f $1
 Only in bsneshle094/obj: gb-apu.o
 Only in bsneshle094/obj: gb-cartridge.o
 Only in bsneshle094/obj: gb-cheat.o
