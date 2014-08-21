@@ -27,7 +27,6 @@ bool SGBExternal::load_library(const char * path) {
 #undef SYM
     return true;
   }
-  else puts(dlerror());
   return false;
 }
 
