@@ -1,5 +1,13 @@
 include nall/Makefile
 
+ifeq ($(platform),win)
+  override platform = windows
+else ifeq ($(platform),osx)
+  override platform = macosx
+else ifeq ($(platform),unix)
+  override platform = linux
+endif
+
 fc  := fc
 sfc := sfc
 gb  := gb
