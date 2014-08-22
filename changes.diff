@@ -58,8 +58,23 @@ Only in bsneshle094: libretro-gitorious.cpp
 Only in bsneshle094: LICENSE
 diff -ru higan_v094-source/Makefile bsneshle094/Makefile
 --- higan_v094-source/Makefile	2013-10-20 14:39:14.000000000 +0200
-+++ bsneshle094/Makefile	2014-06-25 00:20:55.548462607 +0200
-@@ -6,15 +6,23 @@
++++ bsneshle094/Makefile	2014-08-22 18:38:13.089818138 +0200
+@@ -1,20 +1,38 @@
+ include nall/Makefile
+ 
++ifeq ($(platform),win)
++  override platform = windows
++else ifeq ($(platform),osx)
++  override platform = macosx
++else ifeq ($(platform),unix)
++  override platform = linux
++else ifeq ($(platform),x)
++  override platform = linux
++endif
++
+ fc  := fc
+ sfc := sfc
+ gb  := gb
  gba := gba
  
  profile := accuracy
@@ -86,7 +101,7 @@ diff -ru higan_v094-source/Makefile bsneshle094/Makefile
  objects := libco
  
  # profile-guided optimization mode
-@@ -28,33 +36,39 @@
+@@ -28,33 +46,39 @@
    flags += -fprofile-use
  endif
  

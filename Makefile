@@ -6,6 +6,8 @@ else ifeq ($(platform),osx)
   override platform = macosx
 else ifeq ($(platform),unix)
   override platform = linux
+else ifeq ($(platform),x)
+  override platform = linux
 endif
 
 fc  := fc

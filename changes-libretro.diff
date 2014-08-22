@@ -1,5 +1,5 @@
 --- libretro-gitorious.cpp	2014-06-06 10:37:33.090322723 +0200
-+++ target-libretro/libretro.cpp	2014-08-20 18:06:36.645311813 +0200
++++ target-libretro/libretro.cpp	2014-08-21 12:42:24.365563257 +0200
 @@ -64,6 +64,16 @@
  /*fffe*/  0xc0, 0xff         //reset vector location ($ffc0)
  };
