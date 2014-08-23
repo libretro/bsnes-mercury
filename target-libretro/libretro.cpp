@@ -74,6 +74,8 @@ static void retro_log_default(enum retro_log_level level, const char *fmt, ...)
 }
 static retro_log_printf_t output;
 
+static const char * read_opt(const char * name, const char * defval);
+
 struct Callbacks : Emulator::Interface::Bind {
   retro_video_refresh_t pvideo_refresh;
   retro_audio_sample_t paudio_sample;
@@ -350,17 +352,13 @@ struct Callbacks : Emulator::Interface::Bind {
   unsigned altImplementation(unsigned item) override {
     if (item==SuperFamicom::Alt::ForDSP)
     {
-      struct retro_variable var = {"bsnes_chip_hle", "LLE"};
-      this->penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
-      if (!strcmp(var.value, "HLE")) return SuperFamicom::Alt::DSP::HLE;
+      if (!strcmp(read_opt("bsnes_chip_hle", "LLE"), "HLE")) return SuperFamicom::Alt::DSP::HLE;
       else return SuperFamicom::Alt::DSP::LLE;
     }
 #ifdef EXPERIMENTAL_FEATURES
     if (item==SuperFamicom::Alt::ForSuperGameBoy)
     {
-      struct retro_variable var = {"bsnes_sgb_core", "Internal"};
-      this->penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
-      if (!strcmp(var.value, "Gambatte")) return SuperFamicom::Alt::SuperGameBoy::External;
+      if (!strcmp(read_opt("bsnes_sgb_core", "Internal"), "Gambatte")) return SuperFamicom::Alt::SuperGameBoy::External;
       else return SuperFamicom::Alt::SuperGameBoy::Internal;
     }
 #endif
@@ -369,6 +367,19 @@ struct Callbacks : Emulator::Interface::Bind {
 };
 
 static Callbacks core_bind;
+
+static const char * read_opt(const char * name, const char * defval)
+{
+	struct retro_variable allowvar = { "bsnes_violate_accuracy", "No" };
+	core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&allowvar);
+	if (!strcmp(allowvar.value, "Yes"))
+	{
+		struct retro_variable var = {name, defval};
+		core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
+		return var.value;
+	}
+	else return defval;
+}
 
 struct Interface : public SuperFamicom::Interface {
   SuperFamicomCartridge::Mode mode;
@@ -442,6 +453,7 @@ void retro_set_environment(retro_environment_t environ_cb)
    core_bind.penviron = environ_cb;
 
    static const struct retro_variable vars[] = {
+      { "bsnes_violate_accuracy", "Respect accuracy-impacting settings; No|Yes" },
       { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
       { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
          //Any integer is usable here, but there is no such thing as "any integer" in core options.
@@ -525,15 +537,10 @@ void retro_set_environment(retro_environment_t environ_cb)
 }
 
 static void update_variables(void) {
-   struct retro_variable var;
-   
    if (SuperFamicom::cartridge.has_superfx()) {
-      var.key="bsnes_superfx_overclock";
-      var.value=NULL;
-      if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
-         unsigned percent=strtoul(var.value, NULL, 10);//we can assume that the input is one of our advertised options
-         SuperFamicom::superfx.frequency=(uint64)superfx_freq_orig*percent/100;
-      }
+      const char * speed=read_opt("bsnes_superfx_overclock", "100%");
+      unsigned percent=strtoul(speed, NULL, 10);//we can assume that the input is one of our advertised options
+      SuperFamicom::superfx.frequency=(uint64)superfx_freq_orig*percent/100;
    }
 }
 

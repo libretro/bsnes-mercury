@@ -1,6 +1,6 @@
 --- libretro-gitorious.cpp	2014-06-06 10:37:33.090322723 +0200
-+++ target-libretro/libretro.cpp	2014-08-21 12:42:24.365563257 +0200
-@@ -64,6 +64,16 @@
++++ target-libretro/libretro.cpp	2014-08-24 00:33:05.156427324 +0200
+@@ -64,6 +64,18 @@
  /*fffe*/  0xc0, 0xff         //reset vector location ($ffc0)
  };
  
@@ -14,10 +14,12 @@
 +}
 +static retro_log_printf_t output;
 +
++static const char * read_opt(const char * name, const char * defval);
++
  struct Callbacks : Emulator::Interface::Bind {
    retro_video_refresh_t pvideo_refresh;
    retro_audio_sample_t paudio_sample;
-@@ -121,7 +131,7 @@
+@@ -121,7 +133,7 @@
  
    uint32_t video_buffer[512 * 480];
  
@@ -26,7 +28,7 @@
      if (!overscan) {
        data += 8 * 1024;
  
-@@ -136,22 +146,22 @@
+@@ -136,22 +148,22 @@
         for (unsigned x = 0; x < width; x++)
            ptr[x] = palette[data[x]];
  
@@ -54,7 +56,7 @@
        string save_path = {path(0), p};
        filestream stream(save_path, file::mode::write);
        iface->save(id, stream);
-@@ -173,11 +183,11 @@
+@@ -173,11 +185,11 @@
          mmapstream stream(load_path);
          iface->load(id, stream);
        } else {
@@ -68,7 +70,7 @@
        load_request_error = true;
      }
    }
-@@ -208,7 +218,7 @@
+@@ -208,7 +220,7 @@
    }
  
    void loadRequestManifest(unsigned id, const string& p) {
@@ -77,7 +79,7 @@
      switch(id) {
        case SuperFamicom::ID::IPLROM:
          loadIPLROM(id);
-@@ -225,7 +235,7 @@
+@@ -225,7 +237,7 @@
    }
  
    void loadRequestMemory(unsigned id, const string& p) {
@@ -86,7 +88,7 @@
      switch(id) {
        case SuperFamicom::ID::Manifest:
          loadManifest(id);
-@@ -241,7 +251,7 @@
+@@ -241,7 +253,7 @@
        case SuperFamicom::ID::SDD1ROM:
        case SuperFamicom::ID::HitachiDSPROM:
        case SuperFamicom::ID::SPC7110PROM:
@@ -95,7 +97,7 @@
          loadROM(id);
          break;
  
-@@ -296,42 +306,66 @@
+@@ -296,46 +308,79 @@
          break;
  
        default:
@@ -151,17 +153,13 @@
 +  unsigned altImplementation(unsigned item) override {
 +    if (item==SuperFamicom::Alt::ForDSP)
 +    {
-+      struct retro_variable var = {"bsnes_chip_hle", "LLE"};
-+      this->penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
-+      if (!strcmp(var.value, "HLE")) return SuperFamicom::Alt::DSP::HLE;
++      if (!strcmp(read_opt("bsnes_chip_hle", "LLE"), "HLE")) return SuperFamicom::Alt::DSP::HLE;
 +      else return SuperFamicom::Alt::DSP::LLE;
 +    }
 +#ifdef EXPERIMENTAL_FEATURES
 +    if (item==SuperFamicom::Alt::ForSuperGameBoy)
 +    {
-+      struct retro_variable var = {"bsnes_sgb_core", "Internal"};
-+      this->penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
-+      if (!strcmp(var.value, "Gambatte")) return SuperFamicom::Alt::SuperGameBoy::External;
++      if (!strcmp(read_opt("bsnes_sgb_core", "Internal"), "Gambatte")) return SuperFamicom::Alt::SuperGameBoy::External;
 +      else return SuperFamicom::Alt::SuperGameBoy::Internal;
 +    }
 +#endif
@@ -170,7 +168,24 @@
  };
  
  static Callbacks core_bind;
-@@ -401,10 +435,27 @@
+ 
++static const char * read_opt(const char * name, const char * defval)
++{
++	struct retro_variable allowvar = { "bsnes_violate_accuracy", "No" };
++	core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&allowvar);
++	if (!strcmp(allowvar.value, "Yes"))
++	{
++		struct retro_variable var = {name, defval};
++		core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
++		return var.value;
++	}
++	else return defval;
++}
++
+ struct Interface : public SuperFamicom::Interface {
+   SuperFamicomCartridge::Mode mode;
+ 
+@@ -401,10 +446,28 @@
    return RETRO_API_VERSION;
  }
  
@@ -181,6 +196,7 @@
     core_bind.penviron = environ_cb;
  
 +   static const struct retro_variable vars[] = {
++      { "bsnes_violate_accuracy", "Respect accuracy-impacting settings; No|Yes" },
 +      { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
 +      { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
 +         //Any integer is usable here, but there is no such thing as "any integer" in core options.
@@ -198,27 +214,22 @@
     static const retro_subsystem_memory_info sgb_memory[] = {
        { "srm", RETRO_MEMORY_SNES_GAME_BOY_RAM },
        { "rtc", RETRO_MEMORY_SNES_GAME_BOY_RTC },
-@@ -473,6 +524,19 @@
+@@ -473,6 +536,14 @@
     environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
  }
  
 +static void update_variables(void) {
-+   struct retro_variable var;
-+   
 +   if (SuperFamicom::cartridge.has_superfx()) {
-+      var.key="bsnes_superfx_overclock";
-+      var.value=NULL;
-+      if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
-+         unsigned percent=strtoul(var.value, NULL, 10);//we can assume that the input is one of our advertised options
-+         SuperFamicom::superfx.frequency=(uint64)superfx_freq_orig*percent/100;
-+      }
++      const char * speed=read_opt("bsnes_superfx_overclock", "100%");
++      unsigned percent=strtoul(speed, NULL, 10);//we can assume that the input is one of our advertised options
++      SuperFamicom::superfx.frequency=(uint64)superfx_freq_orig*percent/100;
 +   }
 +}
 +
  void retro_set_video_refresh(retro_video_refresh_t video_refresh) { core_bind.pvideo_refresh = video_refresh; }
  void retro_set_audio_sample(retro_audio_sample_t audio_sample)    { core_bind.paudio_sample  = audio_sample; }
  void retro_set_audio_sample_batch(retro_audio_sample_batch_t)     {}
-@@ -505,6 +569,9 @@
+@@ -505,6 +576,9 @@
  }
  
  void retro_run(void) {
@@ -228,7 +239,7 @@
    SuperFamicom::system.run();
  }
  
-@@ -525,6 +592,7 @@
+@@ -525,6 +599,7 @@
    return SuperFamicom::system.unserialize(s);
  }
  
@@ -236,7 +247,7 @@
  struct CheatList {
    bool enable;
    string code;
-@@ -532,27 +600,33 @@
+@@ -532,27 +607,33 @@
  };
  
  static vector<CheatList> cheatList;
@@ -273,7 +284,7 @@
    info->library_version  = version;
    info->valid_extensions = "sfc|smc|bml";
    info->need_fullpath    = false;
-@@ -576,6 +650,19 @@
+@@ -576,6 +657,19 @@
    core_bind.penviron(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt);
  }
  
@@ -293,7 +304,7 @@
  static bool snes_load_cartridge_normal(
    const char *rom_xml, const uint8_t *rom_data, unsigned rom_size
  ) {
-@@ -584,7 +671,8 @@
+@@ -584,7 +678,8 @@
    core_bind.rom_data = rom_data;
    core_bind.rom_size = rom_size;
    core_bind.xmlrom   = xmlrom;
@@ -303,7 +314,7 @@
    core_bind.iface->load(SuperFamicom::ID::SuperFamicom);
    SuperFamicom::system.power();
    return !core_bind.load_request_error;
-@@ -650,8 +738,10 @@
+@@ -650,8 +745,10 @@
  ) {
    string xmlrom_sgb = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
    string xmlrom_gb  = (dmg_xml && *dmg_xml) ? string(dmg_xml) : GameBoyCartridge((uint8_t*)dmg_data, dmg_size).markup;
@@ -316,7 +327,7 @@
  
    core_bind.rom_data    = rom_data;
    core_bind.rom_size    = rom_size;
-@@ -660,8 +750,8 @@
+@@ -660,8 +757,8 @@
    core_bind.xmlrom      = xmlrom_sgb;
    core_bind.xmlrom_gb   = xmlrom_gb;
  
@@ -326,7 +337,7 @@
    SuperFamicom::system.power();
    return !core_bind.load_request_error;
  }
-@@ -697,9 +787,19 @@
+@@ -697,9 +794,19 @@
    std::string manifest;
    if (core_bind.manifest)
      manifest = std::string((const char*)info->data, info->size); // Might not be 0 terminated.
@@ -347,7 +358,7 @@
  bool retro_load_game_special(unsigned game_type,
        const struct retro_game_info *info, size_t num_info) {
    core_bind.manifest = false;
-@@ -783,7 +883,7 @@
+@@ -783,7 +890,7 @@
  }
  
  unsigned retro_get_region(void) {
@@ -356,7 +367,7 @@
  }
  
  void* retro_get_memory_data(unsigned id) {
-@@ -827,7 +927,7 @@
+@@ -827,7 +934,7 @@
    switch(id) {
      case RETRO_MEMORY_SAVE_RAM:
        size = core_bind.sram_size;
