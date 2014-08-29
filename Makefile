@@ -2,6 +2,8 @@ include nall/Makefile
 
 ifeq ($(platform),win)
   override platform = windows
+else ifeq ($(platform),mingw)
+  override platform = windows
 else ifeq ($(platform),osx)
   override platform = macosx
 else ifeq ($(platform),unix)
@@ -47,7 +49,11 @@ else ifeq ($(pgo),optimize)
 endif
 
 ifeq ($(compiler),)
-  compiler := g++
+  ifneq ($(CXX),)
+    compiler := $(CXX)
+  else
+    compiler := g++
+  endif
 endif
 
 # platform

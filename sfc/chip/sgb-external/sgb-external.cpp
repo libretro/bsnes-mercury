@@ -92,6 +92,7 @@ uint8 SGBExternal::read(unsigned addr) {
     {
       x=0;
       sgb_row(y++);
+//printf("%.6x\n",(unsigned)      cpu.status.wram_addr);
       if (y==18) y=0;
     }
   }
