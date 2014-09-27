@@ -1,4 +1,6 @@
 Only in bsneshle094/ananke/obj: .gitignore
+Only in bsneshle094: bsnes_accuracy_libretro.so
+Only in bsneshle094: bsnes_balanced_libretro.so
 Only in bsneshle094: changes.diff
 Only in bsneshle094: changes-libretro.diff
 Only in bsneshle094: diff.sh
@@ -54,15 +56,16 @@ diff -ru higan_v094-source/libco/libco.c bsneshle094/libco/libco.c
  #elif defined(_MSC_VER)
    #include "fiber.c"
  #else
-Only in bsneshle094: libretro-gitorious.cpp
 Only in bsneshle094: LICENSE
 diff -ru higan_v094-source/Makefile bsneshle094/Makefile
 --- higan_v094-source/Makefile	2013-10-20 14:39:14.000000000 +0200
-+++ bsneshle094/Makefile	2014-08-22 18:38:13.089818138 +0200
-@@ -1,20 +1,38 @@
++++ bsneshle094/Makefile	2014-08-29 20:40:04.834931667 +0200
+@@ -1,20 +1,40 @@
  include nall/Makefile
  
 +ifeq ($(platform),win)
++  override platform = windows
++else ifeq ($(platform),mingw)
 +  override platform = windows
 +else ifeq ($(platform),osx)
 +  override platform = macosx
@@ -101,15 +104,11 @@ diff -ru higan_v094-source/Makefile bsneshle094/Makefile
  objects := libco
  
  # profile-guided optimization mode
-@@ -28,33 +46,39 @@
+@@ -28,33 +48,43 @@
    flags += -fprofile-use
  endif
  
-+ifeq ($(compiler),)
-+  compiler := g++
-+endif
-+
- # platform
+-# platform
 -ifeq ($(platform),windows)
 -  ifeq ($(arch),x86)
 -    flags += -m32
@@ -117,8 +116,30 @@ diff -ru higan_v094-source/Makefile bsneshle094/Makefile
 -  endif
 -  ifeq ($(console),true)
 -    link += -mconsole
-+ui := target-$(target)
-+
++ifeq ($(compiler),)
++  ifneq ($(CXX),)
++    compiler := $(CXX)
+   else
+-    link += -mwindows
++    compiler := g++
+   endif
+-  link += -s -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lws2_32
+-  link += -Wl,-enable-auto-import -Wl,-enable-runtime-pseudo-reloc
+-else ifeq ($(platform),macosx)
+-  flags += -march=native
+-else ifeq ($(platform),linux)
+-  flags += -march=native
+-  link += -s -Wl,-export-dynamic -lX11 -lXext -ldl
+-else ifeq ($(platform),bsd)
+-  flags += -march=native
+-  link += -s -Wl,-export-dynamic -lX11 -lXext
+-else
+-  $(error unsupported platform.)
+ endif
+ 
++# platform
+ ui := target-$(target)
+ 
 +ifeq ($(findstring libretro,$(ui)),)
 +  ifeq ($(platform),windows)
 +    ifeq ($(arch),x86)
@@ -140,26 +161,11 @@ diff -ru higan_v094-source/Makefile bsneshle094/Makefile
 +  else ifeq ($(platform),bsd)
 +    flags += -march=native
 +    link += -s -Wl,-export-dynamic -lX11 -lXext
-   else
--    link += -mwindows
++  else
 +    $(error unsupported platform.)
-   endif
--  link += -s -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lws2_32
--  link += -Wl,-enable-auto-import -Wl,-enable-runtime-pseudo-reloc
--else ifeq ($(platform),macosx)
--  flags += -march=native
--else ifeq ($(platform),linux)
--  flags += -march=native
--  link += -s -Wl,-export-dynamic -lX11 -lXext -ldl
--else ifeq ($(platform),bsd)
--  flags += -march=native
--  link += -s -Wl,-export-dynamic -lX11 -lXext
--else
--  $(error unsupported platform.)
- endif
- 
--ui := target-$(target)
--
++  endif
++endif
++
  # implicit rules
  compile = \
    $(strip \

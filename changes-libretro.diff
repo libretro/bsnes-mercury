@@ -1,6 +1,6 @@
---- libretro-gitorious.cpp	2014-06-06 10:37:33.090322723 +0200
-+++ target-libretro/libretro.cpp	2014-08-24 00:33:05.156427324 +0200
-@@ -64,6 +64,18 @@
+--- ../bsnes-libretro/target-libretro/libretro.cpp	2014-09-27 16:33:06.651246150 +0200
++++ target-libretro/libretro.cpp	2014-09-27 17:10:09.471245885 +0200
+@@ -64,9 +64,21 @@
  /*fffe*/  0xc0, 0xff         //reset vector location ($ffc0)
  };
  
@@ -18,7 +18,11 @@
 +
  struct Callbacks : Emulator::Interface::Bind {
    retro_video_refresh_t pvideo_refresh;
-   retro_audio_sample_t paudio_sample;
+-  retro_audio_sample_batch_t paudio_sample;
++  retro_audio_sample_batch_t paudio;
+   retro_input_poll_t pinput_poll;
+   retro_input_state_t pinput_state;
+   retro_environment_t penviron;
 @@ -121,7 +133,7 @@
  
    uint32_t video_buffer[512 * 480];
@@ -28,7 +32,7 @@
      if (!overscan) {
        data += 8 * 1024;
  
-@@ -136,22 +148,22 @@
+@@ -136,24 +148,30 @@
         for (unsigned x = 0; x < width; x++)
            ptr[x] = palette[data[x]];
  
@@ -37,9 +41,20 @@
      pinput_poll();
    }
  
--  void audioSample(int16_t left, int16_t right) {
+-  void audioSample(int16_t left, int16_t right)
+-  {
+-     const int16_t samples[2] = { left, right };
+-     paudio_sample(samples, 1);
++  int16_t sampleBuf[128];
++  unsigned int sampleBufPos;
++
 +  void audioSample(int16_t left, int16_t right) override {
-     paudio_sample(left, right);
++    sampleBuf[sampleBufPos++] = left;
++    sampleBuf[sampleBufPos++] = right;
++    if(sampleBufPos==128) {
++      paudio(sampleBuf, 64);
++      sampleBufPos = 0;
++    }
    }
  
 -  int16_t inputPoll(unsigned port, unsigned device, unsigned id) {
@@ -56,7 +71,7 @@
        string save_path = {path(0), p};
        filestream stream(save_path, file::mode::write);
        iface->save(id, stream);
-@@ -173,11 +185,11 @@
+@@ -175,11 +193,11 @@
          mmapstream stream(load_path);
          iface->load(id, stream);
        } else {
@@ -70,7 +85,7 @@
        load_request_error = true;
      }
    }
-@@ -208,7 +220,7 @@
+@@ -210,7 +228,7 @@
    }
  
    void loadRequestManifest(unsigned id, const string& p) {
@@ -79,7 +94,7 @@
      switch(id) {
        case SuperFamicom::ID::IPLROM:
          loadIPLROM(id);
-@@ -225,7 +237,7 @@
+@@ -227,7 +245,7 @@
    }
  
    void loadRequestMemory(unsigned id, const string& p) {
@@ -88,7 +103,7 @@
      switch(id) {
        case SuperFamicom::ID::Manifest:
          loadManifest(id);
-@@ -241,7 +253,7 @@
+@@ -243,7 +261,7 @@
        case SuperFamicom::ID::SDD1ROM:
        case SuperFamicom::ID::HitachiDSPROM:
        case SuperFamicom::ID::SPC7110PROM:
@@ -97,7 +112,7 @@
          loadROM(id);
          break;
  
-@@ -296,46 +308,79 @@
+@@ -298,46 +316,79 @@
          break;
  
        default:
@@ -185,7 +200,7 @@
  struct Interface : public SuperFamicom::Interface {
    SuperFamicomCartridge::Mode mode;
  
-@@ -401,10 +446,28 @@
+@@ -403,10 +454,28 @@
    return RETRO_API_VERSION;
  }
  
@@ -214,10 +229,15 @@
     static const retro_subsystem_memory_info sgb_memory[] = {
        { "srm", RETRO_MEMORY_SNES_GAME_BOY_RAM },
        { "rtc", RETRO_MEMORY_SNES_GAME_BOY_RTC },
-@@ -473,6 +536,14 @@
+@@ -475,11 +544,19 @@
     environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
  }
  
+-void retro_set_video_refresh(retro_video_refresh_t video_refresh) { core_bind.pvideo_refresh = video_refresh; }
+-void retro_set_audio_sample(retro_audio_sample_t)    { }
+-void retro_set_audio_sample_batch(retro_audio_sample_batch_t audio_sample) { core_bind.paudio_sample  = audio_sample; }
+-void retro_set_input_poll(retro_input_poll_t input_poll)          { core_bind.pinput_poll    = input_poll; }
+-void retro_set_input_state(retro_input_state_t input_state)       { core_bind.pinput_state   = input_state; }
 +static void update_variables(void) {
 +   if (SuperFamicom::cartridge.has_superfx()) {
 +      const char * speed=read_opt("bsnes_superfx_overclock", "100%");
@@ -226,10 +246,24 @@
 +   }
 +}
 +
- void retro_set_video_refresh(retro_video_refresh_t video_refresh) { core_bind.pvideo_refresh = video_refresh; }
- void retro_set_audio_sample(retro_audio_sample_t audio_sample)    { core_bind.paudio_sample  = audio_sample; }
- void retro_set_audio_sample_batch(retro_audio_sample_batch_t)     {}
-@@ -505,6 +576,9 @@
++void retro_set_video_refresh(retro_video_refresh_t cb)           { core_bind.pvideo_refresh = cb; }
++void retro_set_audio_sample(retro_audio_sample_t)                { }
++void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) { core_bind.paudio         = cb; }
++void retro_set_input_poll(retro_input_poll_t cb)                 { core_bind.pinput_poll    = cb; }
++void retro_set_input_state(retro_input_state_t cb)               { core_bind.pinput_state   = cb; }
+ 
+ void retro_set_controller_port_device(unsigned port, unsigned device) {
+   if (port < 2)
+@@ -492,6 +569,8 @@
+ 
+   core_interface.init();
+   core_gb_interface.init();
++  
++  core_bind.sampleBufPos = 0;
+ 
+   SuperFamicom::system.init();
+   SuperFamicom::input.connect(SuperFamicom::Controller::Port1, SuperFamicom::Input::Device::Joypad);
+@@ -507,6 +586,9 @@
  }
  
  void retro_run(void) {
@@ -239,7 +273,7 @@
    SuperFamicom::system.run();
  }
  
-@@ -525,6 +599,7 @@
+@@ -527,6 +609,7 @@
    return SuperFamicom::system.unserialize(s);
  }
  
@@ -247,7 +281,7 @@
  struct CheatList {
    bool enable;
    string code;
-@@ -532,27 +607,33 @@
+@@ -534,27 +617,33 @@
  };
  
  static vector<CheatList> cheatList;
@@ -284,7 +318,7 @@
    info->library_version  = version;
    info->valid_extensions = "sfc|smc|bml";
    info->need_fullpath    = false;
-@@ -576,6 +657,19 @@
+@@ -578,6 +667,19 @@
    core_bind.penviron(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt);
  }
  
@@ -304,7 +338,7 @@
  static bool snes_load_cartridge_normal(
    const char *rom_xml, const uint8_t *rom_data, unsigned rom_size
  ) {
-@@ -584,7 +678,8 @@
+@@ -586,7 +688,8 @@
    core_bind.rom_data = rom_data;
    core_bind.rom_size = rom_size;
    core_bind.xmlrom   = xmlrom;
@@ -314,7 +348,7 @@
    core_bind.iface->load(SuperFamicom::ID::SuperFamicom);
    SuperFamicom::system.power();
    return !core_bind.load_request_error;
-@@ -650,8 +745,10 @@
+@@ -652,8 +755,10 @@
  ) {
    string xmlrom_sgb = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
    string xmlrom_gb  = (dmg_xml && *dmg_xml) ? string(dmg_xml) : GameBoyCartridge((uint8_t*)dmg_data, dmg_size).markup;
@@ -327,17 +361,7 @@
  
    core_bind.rom_data    = rom_data;
    core_bind.rom_size    = rom_size;
-@@ -660,8 +757,8 @@
-   core_bind.xmlrom      = xmlrom_sgb;
-   core_bind.xmlrom_gb   = xmlrom_gb;
- 
--  core_bind.iface->load(SuperFamicom::ID::SuperGameBoy);
-   core_bind.iface->load(SuperFamicom::ID::SuperFamicom);
-+  core_bind.iface->load(SuperFamicom::ID::SuperGameBoy);
-   SuperFamicom::system.power();
-   return !core_bind.load_request_error;
- }
-@@ -697,9 +794,19 @@
+@@ -699,9 +804,19 @@
    std::string manifest;
    if (core_bind.manifest)
      manifest = std::string((const char*)info->data, info->size); // Might not be 0 terminated.
@@ -358,7 +382,7 @@
  bool retro_load_game_special(unsigned game_type,
        const struct retro_game_info *info, size_t num_info) {
    core_bind.manifest = false;
-@@ -783,7 +890,7 @@
+@@ -785,7 +900,7 @@
  }
  
  unsigned retro_get_region(void) {
@@ -367,7 +391,7 @@
  }
  
  void* retro_get_memory_data(unsigned id) {
-@@ -827,7 +934,7 @@
+@@ -829,7 +944,7 @@
    switch(id) {
      case RETRO_MEMORY_SAVE_RAM:
        size = core_bind.sram_size;
