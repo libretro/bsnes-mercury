@@ -643,7 +643,7 @@ void retro_cheat_set(unsigned index, bool enable, const char *code) {
 
 void retro_get_system_info(struct retro_system_info *info) {
   static string version("v", Emulator::Version, " (", Emulator::Profile, ")");
-  info->library_name     = "bsnes";
+  info->library_name     = "bsnes-mercury";
   info->library_version  = version;
   info->valid_extensions = "sfc|smc|bml";
   info->need_fullpath    = false;
