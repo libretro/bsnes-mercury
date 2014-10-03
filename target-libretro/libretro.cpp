@@ -590,6 +590,10 @@ void retro_run(void) {
   if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
     update_variables();
   SuperFamicom::system.run();
+  if(core_bind.sampleBufPos) {
+    core_bind.paudio(core_bind.sampleBuf, core_bind.sampleBufPos/2);
+    core_bind.sampleBufPos = 0;
+  }
 }
 
 size_t retro_serialize_size(void) {
