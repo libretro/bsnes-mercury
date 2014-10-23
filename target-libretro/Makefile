@@ -13,8 +13,9 @@ else ifeq ($(platform),macosx)
   flags += -fPIC
 else ifeq ($(platform),ios)
   flags += -arch armv7 -fPIC -isysroot $(IOSSDK) -DHAVE_POSIX_MEMALIGN=1 -w
-  OSXVER := $(shell sw_vers -productVersion | cut -c 1-4)
-  ifneq ($(OSXVER),10.9)
+   OSXVER = `sw_vers -productVersion | cut -d. -f 2`
+   OSX_LT_MAVERICKS = `(( $(OSXVER) <= 9)) && echo "YES"`
+ifeq ($(OSX_LT_MAVERICKS),"YES")
     flags += -miphoneos-version-min=5.0
   endif
 endif
