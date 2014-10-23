@@ -12,6 +12,11 @@ else ifeq ($(platform),bsd)
 else ifeq ($(platform),macosx)
   flags += -fPIC
 else ifeq ($(platform),ios)
+
+ifeq ($(IOSSDK),)
+   IOSSDK := $(shell xcrun -sdk iphoneos -show-sdk-path)
+endif
+
   flags += -arch armv7 -fPIC -isysroot $(IOSSDK) -DHAVE_POSIX_MEMALIGN=1 -w
    OSXVER = `sw_vers -productVersion | cut -d. -f 2`
    OSX_LT_MAVERICKS = `(( $(OSXVER) <= 9)) && echo "YES"`
