@@ -73,6 +73,13 @@ LOCAL_SRC_FILES += $(SRCDIR)/libco/libco.c \
 						 $(SRCDIR)/sfc/chip/epsonrtc/epsonrtc.cpp \
 						 $(SRCDIR)/sfc/chip/sharprtc/sharprtc.cpp \
 						 $(SRCDIR)/sfc/chip/spc7110/spc7110.cpp \
+						 $(SRCDIR)/sfc/chip/dsp1/dsp1.cpp \
+						 $(SRCDIR)/sfc/chip/dsp2/dsp2.cpp \
+						 $(SRCDIR)/sfc/chip/dsp3/dsp3.cpp \
+						 $(SRCDIR)/sfc/chip/dsp4/dsp4.cpp \
+						 $(SRCDIR)/sfc/chip/cx4/cx4.cpp \
+						 $(SRCDIR)/sfc/chip/st0010/st0010.cpp \
+						 $(SRCDIR)/sfc/chip/sgb-external/sgb-external.cpp \
 						 $(SRCDIR)/sfc/chip/sdd1/sdd1.cpp \
 						 $(SRCDIR)/sfc/chip/obc1/obc1.cpp \
 						 $(SRCDIR)/sfc/chip/hsu1/hsu1.cpp \
