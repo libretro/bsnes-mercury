@@ -5,11 +5,15 @@
 */
 
 #define LIBCO_C
-#include "libco.h"
+#include <libco.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+
+#ifndef IOS
+#include <malloc.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

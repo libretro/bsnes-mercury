@@ -5,7 +5,7 @@
 */
 
 #define LIBCO_C
-#include "libco.h"
+#include <libco.h>
 #include <assert.h>
 #include <stdlib.h>
 
@@ -27,8 +27,18 @@ static void (fastcall *co_swap)(cothread_t, cothread_t) = 0;
 
 //ABI: fastcall
 static unsigned char co_swap_function[] = {
-  0x89, 0x22, 0x8B, 0x21, 0x58, 0x89, 0x6A, 0x04, 0x89, 0x72, 0x08, 0x89, 0x7A, 0x0C, 0x89, 0x5A,
-  0x10, 0x8B, 0x69, 0x04, 0x8B, 0x71, 0x08, 0x8B, 0x79, 0x0C, 0x8B, 0x59, 0x10, 0xFF, 0xE0,
+  0x89, 0x22,         /* mov [edx],esp      */
+  0x8b, 0x21,         /* mov esp,[ecx]      */
+  0x58,               /* pop eax            */
+  0x89, 0x6a, 0x04,   /* mov [edx+0x04],ebp */
+  0x89, 0x72, 0x08,   /* mov [edx+0x08],esi */
+  0x89, 0x7a, 0x0c,   /* mov [edx+0x0c],edi */
+  0x89, 0x5a, 0x10,   /* mov [edx+0x10],ebx */
+  0x8b, 0x69, 0x04,   /* mov ebp,[ecx+0x04] */
+  0x8b, 0x71, 0x08,   /* mov esi,[ecx+0x08] */
+  0x8b, 0x79, 0x0c,   /* mov edi,[ecx+0x0c] */
+  0x8b, 0x59, 0x10,   /* mov ebx,[ecx+0x10] */
+  0xff, 0xe0,         /* jmp eax            */
 };
 
 #ifdef _WIN32
@@ -80,7 +90,7 @@ cothread_t co_create(unsigned int size, void (*entrypoint)(void))
    size += 256; /* allocate additional space for storage */
    size &= ~15; /* align stack to 16-byte boundary */
 
-   if(handle = (cothread_t)malloc(size))
+   if((handle = (cothread_t)malloc(size)))
    {
       long *p = (long*)((char*)handle + size); /* seek to top of stack */
       *--p = (long)crash;                      /* crash if entrypoint returns */
