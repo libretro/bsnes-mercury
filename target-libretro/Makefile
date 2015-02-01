@@ -42,7 +42,11 @@ else ifeq ($(platform),bsd)
 else ifeq ($(platform),ios)
 	$(compiler) -o out/bsnes_mercury_libretro_ios.dylib -dynamiclib $(objects) -isysroot $(IOSSDK) -arch armv7 $(link)
 else ifeq ($(platform),macosx)
+ifdef ($(NOUNIVERSAL))
 	$(compiler) -o out/bsnes_mercury_libretro.dylib -dynamiclib $(objects) $(link)
+else
+	$(compiler) $(ARCHFLAGS) -o out/bsnes_mercury_libretro.dylib -dynamiclib $(objects) $(link)
+endif
 else ifeq ($(platform),windows)
 	$(compiler) -o out/bsnes_mercury_libretro.dll -shared $(objects) -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T -static-libgcc -static-libstdc++ -lws2_32 $(link)
 else
