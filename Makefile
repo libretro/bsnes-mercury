@@ -85,6 +85,14 @@ ifeq ($(findstring libretro,$(ui)),)
   endif
 endif
 
+ifeq ($(platform),macosx)
+   ifndef ($(NOUNIVERSAL))
+      flags += $(ARCHFLAGS)
+      link += $(ARCHFLAGS)
+   endif
+endif
+
+
 # implicit rules
 compile = \
   $(strip \
