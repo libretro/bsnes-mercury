@@ -7,20 +7,21 @@ output := libretro
 
 ifeq ($(platform),linux)
   flags += -fPIC
+  ifeq ($(arch),arm)
+    flags += -marm
+  endif
 else ifeq ($(platform),bsd)
   flags += -fPIC
 else ifeq ($(platform),macosx)
   flags += -fPIC
 else ifeq ($(platform),ios)
-
-ifeq ($(IOSSDK),)
-   IOSSDK := $(shell xcrun -sdk iphoneos -show-sdk-path)
-endif
-
+  ifeq ($(IOSSDK),)
+    IOSSDK := $(shell xcrun -sdk iphoneos -show-sdk-path)
+  endif
   flags += -arch armv7 -fPIC -isysroot $(IOSSDK) -marm -DHAVE_POSIX_MEMALIGN=1 -w
-   OSXVER = `sw_vers -productVersion | cut -d. -f 2`
-   OSX_LT_MAVERICKS = `(( $(OSXVER) <= 9)) && echo "YES"`
-ifeq ($(OSX_LT_MAVERICKS),"YES")
+  OSXVER = `sw_vers -productVersion | cut -d. -f 2`
+  OSX_LT_MAVERICKS = `(( $(OSXVER) <= 9)) && echo "YES"`
+  ifeq ($(OSX_LT_MAVERICKS),"YES")
     flags += -miphoneos-version-min=5.0
   endif
 endif
