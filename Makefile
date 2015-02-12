@@ -145,3 +145,9 @@ ifeq ($(shell id -un),byuu)
 endif
 
 help:;
+
+#this must be last because other things may have altered $(flags)
+ifneq ($(lto),)
+  flags += -flto
+  link += $(flags)
+endif
