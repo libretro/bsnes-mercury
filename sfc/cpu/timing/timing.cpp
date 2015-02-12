@@ -8,6 +8,7 @@ unsigned CPU::dma_counter() {
 }
 
 void CPU::add_clocks(unsigned clocks) {
+again:
   status.irq_lock = false;
   unsigned ticks = clocks >> 1;
   while(ticks--) {
@@ -25,7 +26,8 @@ void CPU::add_clocks(unsigned clocks) {
 
   if(status.dram_refreshed == false && hcounter() >= status.dram_refresh_position) {
     status.dram_refreshed = true;
-    add_clocks(40);
+    clocks = 40;
+    goto again;
   }
 
   #if defined(DEBUGGER)
