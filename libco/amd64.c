@@ -22,7 +22,7 @@ thread_local cothread_t co_active_handle = 0;
 #ifndef CO_USE_INLINE_ASM
 static void (*co_swap)(cothread_t, cothread_t) = 0;
 #else
-extern "C" void co_swap(cothread_t, cothread_t);
+void co_swap(cothread_t, cothread_t);
 #endif
 
 #ifdef _WIN32
