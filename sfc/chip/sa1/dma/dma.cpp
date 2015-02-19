@@ -32,16 +32,13 @@ void SA1::dma_normal() {
       break;
     }
 
-    switch(mmio.dd) {
-    case DMA::DestBWRAM:
+    if (mmio.dd == DMA::DestBWRAM) {
       if((dda & 0x40e000) == 0x006000 || (dda & 0xf00000) == 0x400000) {
         bus_write(dda, data);
       }
-      break;
-
-    case DMA::DestIRAM:
+	} else {
+      // mmio.dd == DMA::DestIRAM
       iram.write(dda & 0x07ff, data);
-      break;
     }
   }
 

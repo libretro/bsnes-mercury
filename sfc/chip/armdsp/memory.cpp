@@ -15,6 +15,9 @@ uint32 ArmDSP::bus_read(uint32 addr, uint32 size) {
     case Byte:
       return memory[addr];
     }
+
+    // NOT REACHED
+    return 0;
   };
 
   switch(addr & 0xe0000000) {

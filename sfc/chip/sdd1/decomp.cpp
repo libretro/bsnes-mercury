@@ -253,6 +253,9 @@ uint8 SDD1::Decomp::OL::decompress() {
     }
     return r1;
   }
+
+  // NOT REACHED
+  return 0;
 }
 
 //core

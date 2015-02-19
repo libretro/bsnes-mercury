@@ -30,6 +30,7 @@ char* qstrlower(char* s) {
     if(quoted == false && *s >= 'A' && *s <= 'Z') *s += 0x20;
     s++;
   }
+  return s;
 }
 
 char* qstrupper(char* s) {
@@ -40,6 +41,7 @@ char* qstrupper(char* s) {
     if(quoted == false && *s >= 'a' && *s <= 'z') *s -= 0x20;
     s++;
   }
+  return s;
 }
 
 char* strtr(char* dest, const char* before, const char* after) {

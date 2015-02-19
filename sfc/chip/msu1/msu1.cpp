@@ -133,6 +133,9 @@ uint8 MSU1::mmio_read(unsigned addr) {
   case 0x2006: return 'U';
   case 0x2007: return '1';
   }
+
+  // NOT REACHED
+  return 0;
 }
 
 void MSU1::mmio_write(unsigned addr, uint8 data) {

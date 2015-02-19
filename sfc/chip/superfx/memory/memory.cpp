@@ -24,6 +24,9 @@ uint8 SuperFX::bus_read(unsigned addr) {
     }
     return ram.read(addr & ram_mask);
   }
+
+  // TODO: invalid address, what does real hardware do?
+  return 0;
 }
 
 void SuperFX::bus_write(unsigned addr, uint8 data) {
