@@ -31,10 +31,9 @@ inline string evaluateExpression(Node* node) {
     }
     return result.rtrim<1>(", ").append(")");
   }
+  default: throw "invalid operator";
   }
   #undef p
-
-  throw "invalid operator";
 }
 
 inline int64_t evaluateInteger(Node* node) {
@@ -87,10 +86,9 @@ inline int64_t evaluateInteger(Node* node) {
   case Node::Type::AssignBitwiseAnd: return p(0) & p(1);
   case Node::Type::AssignBitwiseOr: return p(0) | p(1);
   case Node::Type::AssignBitwiseXor: return p(0) ^ p(1);
+  default: throw "invalid operator";
   }
   #undef p
-
-  throw "invalid operator";
 }
 
 inline optional<int64_t> integer(const string& expression) {
@@ -132,10 +130,10 @@ inline long double evaluateReal(Node* node) {
   case Node::Type::AssignDivide: return p(0) / p(1);
   case Node::Type::AssignAdd: return p(0) + p(1);
   case Node::Type::AssignSubtract: return p(0) - p(1);
+  default: throw "invalid operator";
   }
   #undef p
 
-  throw "invalid operator";
 }
 
 inline optional<long double> real(const string& expression) {

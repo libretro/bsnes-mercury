@@ -187,7 +187,7 @@ private:
     struct dirent* ep;
     dp = opendir(pathname);
     if(dp) {
-      while(ep = readdir(dp)) {
+      while((ep = readdir(dp))) {
         if(!strcmp(ep->d_name, ".")) continue;
         if(!strcmp(ep->d_name, "..")) continue;
         bool is_directory = ep->d_type & DT_DIR;
@@ -212,7 +212,7 @@ private:
     struct dirent* ep;
     dp = opendir(pathname);
     if(dp) {
-      while(ep = readdir(dp)) {
+      while((ep = readdir(dp))) {
         if(!strcmp(ep->d_name, ".")) continue;
         if(!strcmp(ep->d_name, "..")) continue;
         if((ep->d_type & DT_DIR) == 0) {

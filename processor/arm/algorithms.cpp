@@ -17,6 +17,9 @@ bool ARM::condition(uint4 condition) {
   case 14: return true;                                   //AL (always)
   case 15: return false;                                  //NV (never)
   }
+
+  // NOT REACHED
+  return false;
 }
 
 uint32 ARM::bit(uint32 result) {
@@ -59,7 +62,7 @@ uint32 ARM::lsl(uint32 source, uint8 shift) {
   carryout() = cpsr().c;
   if(shift == 0) return source;
 
-  carryout() = shift > 32 ? 0 : source & (1 << 32 - shift);
+  carryout() = shift > 32 ? 0 : source & (1 << (32 - shift));
   source     = shift > 31 ? 0 : source << shift;
   return source;
 }
@@ -68,7 +71,7 @@ uint32 ARM::lsr(uint32 source, uint8 shift) {
   carryout() = cpsr().c;
   if(shift == 0) return source;
 
-  carryout() = shift > 32 ? 0 : source & (1 << shift - 1);
+  carryout() = shift > 32 ? 0 : source & (1 << (shift - 1));
   source     = shift > 31 ? 0 : source >> shift;
   return source;
 }
@@ -77,7 +80,7 @@ uint32 ARM::asr(uint32 source, uint8 shift) {
   carryout() = cpsr().c;
   if(shift == 0) return source;
 
-  carryout() = shift > 32 ? source & (1 << 31) : source & (1 << shift - 1);
+  carryout() = shift > 32 ? source & (1 << 31) : source & (1 << (shift - 1));
   source     = shift > 31 ? (int32)source >> 31 : (int32)source >> shift;
   return source;
 }
@@ -86,8 +89,8 @@ uint32 ARM::ror(uint32 source, uint8 shift) {
   carryout() = cpsr().c;
   if(shift == 0) return source;
 
-  if(shift &= 31)
-  source     = source << 32 - shift | source >> shift;
+  if((shift &= 31))
+    source     = source << (32 - shift) | source >> shift;
   carryout() = source & (1 << 31);
   return source;
 }

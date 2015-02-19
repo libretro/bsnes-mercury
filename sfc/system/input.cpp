@@ -20,10 +20,10 @@ void Input::connect(bool port, Input::Device id) {
   case Device::USART: controller = new USART(port); break;
   }
 
-  switch(port) {
-  case Controller::Port1: configuration.controller_port1 = id; break;
-  case Controller::Port2: configuration.controller_port2 = id; break;
-  }
+  if (port == Controller::Port1)
+    configuration.controller_port1 = id;
+  else
+    configuration.controller_port2 = id;
 }
 
 Input::Input() {

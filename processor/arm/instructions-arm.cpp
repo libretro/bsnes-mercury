@@ -441,7 +441,7 @@ void ARM::arm_op_data_register_shift() {
   if(mode == 0      ) rm = lsl(rm, rs < 33 ? rs : 33);
   if(mode == 1      ) rm = lsr(rm, rs < 33 ? rs : 33);
   if(mode == 2      ) rm = asr(rm, rs < 32 ? rs : 32);
-  if(mode == 3 && rs) rm = ror(rm, rs & 31 == 0 ? 32 : rs & 31);
+  if(mode == 3 && rs) rm = ror(rm, (rs & 31) == 0 ? 32 : rs & 31);
 
   arm_opcode(rm);
 }

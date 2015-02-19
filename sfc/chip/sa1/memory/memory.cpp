@@ -99,6 +99,9 @@ uint8 SA1::vbr_read(unsigned addr) {
   if((addr & 0x40f800) == 0x003000) {  //$00-3f|80-bf:3000-37ff
     return iram.read(addr & 2047);
   }
+
+  // TODO: invalid address, what does real hardware do here?
+  return 0;
 }
 
 //ROM, I-RAM and MMIO registers are accessed at ~10.74MHz (2 clock ticks)
@@ -252,6 +255,9 @@ uint8 SA1::bitmap_read(unsigned addr) {
     case 3: return (bwram.read(addr) >> 6) & 3;
     }
   }
+
+  // NOT REACHED
+  return 0;
 }
 
 void SA1::bitmap_write(unsigned addr, uint8 data) {

@@ -33,17 +33,17 @@ void Controller::synchronize_cpu() {
 }
 
 bool Controller::iobit() {
-  switch(port) {
-  case Controller::Port1: return cpu.pio() & 0x40;
-  case Controller::Port2: return cpu.pio() & 0x80;
-  }
+  if (port == Controller::Port1)
+    return cpu.pio() & 0x40;
+  else
+    return cpu.pio() & 0x80;
 }
 
 void Controller::iobit(bool data) {
-  switch(port) {
-  case Controller::Port1: bus.write(0x4201, (cpu.pio() & ~0x40) | (data << 6)); break;
-  case Controller::Port2: bus.write(0x4201, (cpu.pio() & ~0x80) | (data << 7)); break;
-  }
+  if (port == Controller::Port1)
+    bus.write(0x4201, (cpu.pio() & ~0x40) | (data << 6));
+  else
+    bus.write(0x4201, (cpu.pio() & ~0x80) | (data << 7));
 }
 
 Controller::Controller(bool port) : port(port) {

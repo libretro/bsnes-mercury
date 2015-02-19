@@ -195,10 +195,14 @@ struct file : varint {
     uintmax_t req_offset = file_offset;
     switch(index_) {
     case index::absolute: req_offset  = offset; break;
-    case index::relative: req_offset += offset; break;
+    case index::relative:
+        if (offset < 0 && -offset > req_offset)
+            req_offset = 0;             //cannot seek before start of file
+        else
+            req_offset += offset;
+        break;
     }
 
-    if(req_offset < 0) req_offset = 0;  //cannot seek before start of file
     if(req_offset > file_size) {
       if(file_mode == mode::read) {     //cannot seek past end of file
         req_offset = file_size;

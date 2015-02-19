@@ -121,6 +121,8 @@ void Video::update() {
       draw_cursor(0x02e0, device.player2.x, device.player2.y);
     }
     break;
+  default:
+    break;
   }
 
   uint32_t* data = (uint32_t*)ppu.output;

@@ -56,7 +56,8 @@ uint16 PPU::Screen::get_pixel_sub(bool hires) {
     priority = self.sprite.output.sub.priority;
     math.sub.color = get_color(self.sprite.output.sub.palette);
   }
-  if(math.transparent = (priority == 0)) math.sub.color = get_color(0);
+  math.transparent = (priority == 0);
+  if(math.transparent) math.sub.color = get_color(0);
 
   if(!hires) return 0;
   if(!math.sub.color_enable) return math.main.color_enable ? math.sub.color : 0;

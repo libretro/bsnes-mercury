@@ -165,6 +165,9 @@ uint8 EpsonRTC::read(unsigned addr) {
   if(addr == 2) {
     return ready << 7;
   }
+
+  // TODO: byuu returned nothing if addr == 3
+  return 0;
 }
 
 void EpsonRTC::write(unsigned addr, uint8 data) {

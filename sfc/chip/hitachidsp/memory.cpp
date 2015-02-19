@@ -38,7 +38,7 @@ uint8 HitachiDSP::dsp_read(unsigned addr) {
   addr &= 0x1fff;
 
   //Data RAM
-  if((addr >= 0x0000 && addr <= 0x0bff) || (addr >= 0x1000 && addr <= 0x1bff)) {
+  if(addr <= 0x0bff || (addr >= 0x1000 && addr <= 0x1bff)) {
     return dataRAM[addr & 0x0fff];
   }
 
@@ -88,7 +88,7 @@ void HitachiDSP::dsp_write(unsigned addr, uint8 data) {
   addr &= 0x1fff;
 
   //Data RAM
-  if((addr >= 0x0000 && addr <= 0x0bff) || (addr >= 0x1000 && addr <= 0x1bff)) {
+  if(addr <= 0x0bff || (addr >= 0x1000 && addr <= 0x1bff)) {
     dataRAM[addr & 0x0fff] = data;
     return;
   }
