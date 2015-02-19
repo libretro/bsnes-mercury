@@ -416,9 +416,9 @@ void Dsp1::distance(int16 *input, int16 *output)
       Distance = ((Node2 - Node1) * (C & 0x1ff) >> 9) + Node1;
 
 #if DSP1_VERSION < 0x0102
-		if (Pos & 1) Distance -= (Node2 - Node1);
-#endif		
-		Distance >>= (E >> 1);
+      if (Pos & 1) Distance -= (Node2 - Node1);
+#endif
+      Distance >>= (E >> 1);
    }
 }
 
@@ -483,7 +483,7 @@ void Dsp1::polar(int16 *input, int16 *output)
    X = (X1 * cos(Ay) >> 15) - (Z1 * sin(Ay) >> 15);
    X2 = X; Z1 = Z;
 
-   // Rotate Around X	
+   // Rotate Around X
    Y = (Z1 * sin(Ax) >> 15) + (Y1 * cos(Ax) >> 15);
    Z = (Z1 * cos(Ax) >> 15) - (Y1 * sin(Ax) >> 15);
    Y2 = Y; Z2 = Z;
@@ -848,9 +848,9 @@ void Dsp1::gyrate(int16 *input, int16 *output)
 //////////////////////////////////////////////////////////////////
 
 const int16 Dsp1::MaxAZS_Exp[16] = {
-   0x38b4, 0x38b7, 0x38ba, 0x38be, 0x38c0, 0x38c4, 0x38c7, 0x38ca,	
+   0x38b4, 0x38b7, 0x38ba, 0x38be, 0x38c0, 0x38c4, 0x38c7, 0x38ca,
    0x38ce, 0x38d0, 0x38d4, 0x38d7, 0x38da, 0x38dd, 0x38e0, 0x38e4
-};		
+};
 
 //////////////////////////////////////////////////////////////////
 
@@ -956,7 +956,7 @@ void Dsp1::parameter(int16 *input, int16 *output)
 
    // calculate the separation of (cx, cy) from the projection of
    // the 'centre of projection' over the ground... (CentreZ*tg(AZS))
-   inverse(shared.CosAZS, 0, shared.SecAZS_C1, shared.SecAZS_E1);	
+   inverse(shared.CosAZS, 0, shared.SecAZS_C1, shared.SecAZS_E1);
    normalize(C * shared.SecAZS_C1 >> 15, C, E);
    E += shared.SecAZS_E1;
    C = denormalizeAndClip(C, E) * shared.SinAZS >> 15;
@@ -978,7 +978,7 @@ void Dsp1::parameter(int16 *input, int16 *output)
       // we have only some few Taylor coefficients, so we cannot guess which ones
       // are the approximated functions and, what is worse, we don't know why
       // the own clipping stuff (and, particularly, this correction) is done
-      if (Azs == -32768) Azs = -32767;	
+      if (Azs == -32768) Azs = -32767;
 
       C = Azs - MaxAZS;
       if (C >= 0) C--;
@@ -1013,7 +1013,7 @@ void Dsp1::parameter(int16 *input, int16 *output)
    Vva = denormalizeAndClip(-C, E);
 
    // Store Secant of clipped Zenith angle
-   inverse(shared.CosAZS, 0, shared.SecAZS_C2, shared.SecAZS_E2);	
+   inverse(shared.CosAZS, 0, shared.SecAZS_C2, shared.SecAZS_E2);
 }
 
 //////////////////////////////////////////////////////////////////
@@ -1120,7 +1120,7 @@ void Dsp1::target(int16 *input, int16 *output)
 // 'enlargement ratio' (M). The positive directions on the screen are as described
 // in the targe command. M is scaled down by 2^-7, that is, M==0x0100 means ratio 1:1
 
-      void Dsp1::project(int16 *input, int16 *output)
+void Dsp1::project(int16 *input, int16 *output)
 {
    int16& X = input[0];
    int16& Y = input[1];
@@ -1134,68 +1134,68 @@ void Dsp1::target(int16 *input, int16 *output)
    int16 C2, C4, C6, C8, C9, C10, C11, C12, C16, C17, C18, C19, C20, C21, C22, C23, C24, C25, C26;
    int16 Px, Py, Pz;
 
-   E4=E3=E2=E=E5=0;
+   E4 = E3 = E2 = E = E5 = 0;
 
-   normalizeDouble(int32(X)-shared.Gx, Px, E4);
-   normalizeDouble(int32(Y)-shared.Gy, Py, E);
-   normalizeDouble(int32(Z)-shared.Gz, Pz, E3);
+   normalizeDouble(int32(X) - shared.Gx, Px, E4);
+   normalizeDouble(int32(Y) - shared.Gy, Py, E);
+   normalizeDouble(int32(Z) - shared.Gz, Pz, E3);
    Px>>=1; E4--;   // to avoid overflows when calculating the scalar products
    Py>>=1; E--;
    Pz>>=1; E3--;
 
-   refE = (E<E3)?E:E3;
-   refE = (refE<E4)?refE:E4;
+   refE = (E < E3) ? E : E3;
+   refE = (refE < E4) ? refE : E4;
 
-   Px=shiftR(Px,E4-refE);    // normalize them to the same exponent
-   Py=shiftR(Py,E-refE);
-   Pz=shiftR(Pz,E3-refE);
+   Px=shiftR(Px,E4 - refE);    // normalize them to the same exponent
+   Py=shiftR(Py,E - refE);
+   Pz=shiftR(Pz,E3 - refE);
 
-   C11= - (Px*shared.Nx>>15);
-   C8= - (Py*shared.Ny>>15);
-   C9= - (Pz*shared.Nz>>15);
-   C12=C11+C8+C9;   // this cannot overflow!
+   C11 = -(Px*shared.Nx>>15);
+   C8 = -(Py*shared.Ny>>15);
+   C9 = -(Pz*shared.Nz>>15);
+   C12 = C11 + C8 + C9;   // this cannot overflow!
 
    aux4=C12;   // de-normalization with 32-bits arithmetic
-   refE = 16-refE;    // refE can be up to 3
-   if (refE>=0)
-      aux4 <<=(refE);
+   refE = 16 - refE;    // refE can be up to 3
+   if (refE >= 0)
+      aux4 <<= (refE);
    else
-      aux4 >>=-(refE);
-   if (aux4==-1) aux4 = 0;      // why?
-   aux4>>=1;
+      aux4 >>= -(refE);
+   if (aux4 == -1) aux4 = 0;      // why?
+   aux4 >>= 1;
 
    aux = static_cast<uint16>(shared.Les) + aux4;   // Les - the scalar product of P with the normal vector of the screen
    normalizeDouble(aux, C10, E2);
-   E2 = 15-E2;
+   E2 = 15 - E2;
 
    inverse(C10, 0, C4, E4);
-   C2=C4*shared.C_Les>>15;                 // scale factor
+   C2=C4*shared.C_Les >> 15;                 // scale factor
 
 
    // H
-   E7=0;
-   C16= (Px*shared.Hx>>15);
-   C20= (Py*shared.Hy>>15);
-   C17=C16+C20;   // scalar product of P with the normalized horizontal vector of the screen...
+   E7 = 0;
+   C16 = (Px*shared.Hx>>15);
+   C20 = (Py*shared.Hy>>15);
+   C17 = C16 + C20;   // scalar product of P with the normalized horizontal vector of the screen...
 
-   C18=C17*C2>>15;    // ... multiplied by the scale factor
+   C18 = C17 * C2>>15;    // ... multiplied by the scale factor
    normalize(C18, C19, E7);
-   H=denormalizeAndClip(C19, shared.E_Les-E2+refE+E7);
+   H=denormalizeAndClip(C19, shared.E_Les - E2 + refE + E7);
 
    // V
-   E6=0;
+   E6 = 0;
    C21 = Px*shared.Vx>>15;
    C22 = Py*shared.Vy>>15;
    C23 = Pz*shared.Vz>>15;
-   C24=C21+C22+C23;   // scalar product of P with the normalized vertical vector of the screen...
+   C24 = C21 + C22 + C23;   // scalar product of P with the normalized vertical vector of the screen...
 
-   C26=C24*C2>>15;    // ... multiplied by the scale factor
+   C26 = C24 * C2>>15;    // ... multiplied by the scale factor
    normalize(C26, C25, E6);
-   V=denormalizeAndClip(C25, shared.E_Les-E2+refE+E6);
+   V=denormalizeAndClip(C25, shared.E_Les - E2 + refE + E6);
 
    // M
    normalize(C2, C6, E4);
-   M=denormalizeAndClip(C6, E4+shared.E_Les-E2-7); // M is the scale factor divided by 2^7
+   M=denormalizeAndClip(C6, E4+shared.E_Les - E2 - 7); // M is the scale factor divided by 2^7
 }
 
 //////////////////////////////////////////////////////////////////
