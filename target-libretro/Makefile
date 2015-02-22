@@ -29,12 +29,12 @@ endif
 flags += -D__LIBRETRO__
 
 #rules
-objects += libretro
 objects := $(patsubst %,obj/%.o,$(objects))
+sfc_objects += libretro
 sfc_objects := $(patsubst %,obj/%-$(profile).o,$(sfc_objects))
 objects += $(sfc_objects)
 
-obj/libretro.o: $(ui)/libretro.cpp $(ui)/*
+obj/libretro-$(profile).o: $(ui)/libretro.cpp $(ui)/*
 
 #targets
 build: $(objects)
