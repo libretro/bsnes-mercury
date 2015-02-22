@@ -14,19 +14,19 @@ sfc_objects += sfc-hlecx4 sfc-hlest0010
 sfc_objects += sfc-sgbexternal
 
 ifeq ($(profile),accuracy)
-  flags += -DPROFILE_ACCURACY
+  profflags := -DPROFILE_ACCURACY
   sfccpu := $(sfc)/cpu
   sfcsmp := $(sfc)/smp
   sfcdsp := $(sfc)/dsp
   sfcppu := $(sfc)/ppu
 else ifeq ($(profile),balanced)
-  flags += -DPROFILE_BALANCED
+  profflags := -DPROFILE_BALANCED
   sfccpu := $(sfc)/cpu
   sfcsmp := $(sfc)/smp
   sfcdsp := $(sfc)/alt/dsp
   sfcppu := $(sfc)/alt/ppu-balanced
 else ifeq ($(profile),performance)
-  flags += -DPROFILE_PERFORMANCE
+  profflags := -DPROFILE_PERFORMANCE
   sfccpu := $(sfc)/alt/cpu
   sfcsmp := $(sfc)/alt/smp
   sfcdsp := $(sfc)/alt/dsp
