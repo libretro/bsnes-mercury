@@ -43,6 +43,8 @@ link += $(rubylink)
 # rules
 objects := $(ui_objects) $(objects)
 objects := $(patsubst %,obj/%.o,$(objects))
+sfc_objects := $(patsubst %,obj/%-$(profile).o,$(sfc_objects))
+objects += $(sfc_objects)
 
 obj/ui-ethos.o: $(ui)/ethos.cpp $(call rwildcard,$(ui)/)
 obj/ui-configuration.o: $(ui)/configuration/configuration.cpp $(call rwildcard,$(ui)/)
