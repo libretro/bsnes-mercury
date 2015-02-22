@@ -94,6 +94,18 @@ endif
 
 
 # implicit rules
+compile-profile = \
+  $(strip \
+    $(if $(filter %.c,$<), \
+      $(compiler) $(cflags) $(flags) $(profflags) $1 -c $< -o $@, \
+      $(if $(filter %.cpp,$<), \
+        $(compiler) $(cppflags) $(flags) $(profflags) $1 -c $< -o $@ \
+      ) \
+    ) \
+  )
+
+%-$(profile).o: $<; $(call compile-profile)
+
 compile = \
   $(strip \
     $(if $(filter %.c,$<), \
