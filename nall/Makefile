@@ -6,6 +6,7 @@
 [a-z] = a b c d e f g h i j k l m n o p q r s t u v w x y z
 [0-9] = 0 1 2 3 4 5 6 7 8 9
 [markup] = ` ~ ! @ \# $$ % ^ & * ( ) - _ = + [ { ] } \ | ; : ' " , < . > / ?
+# for syntax highlight "close" the string: '
 [all] = $([A-Z]) $([a-z]) $([0-9]) $([markup])
 [space] :=
 [space] +=
@@ -15,26 +16,25 @@ ifeq ($(platform),)
   uname := $(shell uname -s)
   ifeq ($(uname),)
     platform := windows
-    delete = del $(subst /,\,$1)
   else ifneq ($(findstring Windows,$(uname)),)
     platform := windows
-    delete = del $(subst /,\,$1)
   else ifneq ($(findstring CYGWIN,$(uname)),)
     platform := windows
-    delete = del $(subst /,\,$1)
   else ifneq ($(findstring MINGW,$(uname)),)
     platform := windows
-    delete = del $(subst /,\,$1)
   else ifneq ($(findstring Darwin,$(uname)),)
     platform := macosx
-    delete = rm -f $1
   else ifneq ($(findstring BSD,$(uname)),)
     platform := bsd
-    delete = rm -f $1
   else
     platform := linux
-    delete = rm -f $1
   endif
+endif
+
+ifeq ($(platform),windows)
+  delete = del /F /Q $(subst /,\,$1)
+else
+  delete = rm -f $1
 endif
 
 # compiler detection
