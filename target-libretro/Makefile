@@ -18,7 +18,7 @@ else ifeq ($(platform),ios)
   ifeq ($(IOSSDK),)
     IOSSDK := $(shell xcodebuild -version -sdk iphoneos Path)
   endif
-  flags += -arch armv7 -fPIC -isysroot $(IOSSDK) -marm -DHAVE_POSIX_MEMALIGN=1 -w
+  flags += -arch armv7 -fPIC -isysroot $(IOSSDK) -marm -DHAVE_POSIX_MEMALIGN=1 -DIOS -w
   OSXVER = `sw_vers -productVersion | cut -d. -f 2`
   OSX_LT_MAVERICKS = `(( $(OSXVER) <= 9)) && echo "YES"`
   ifeq ($(OSX_LT_MAVERICKS),"YES")
