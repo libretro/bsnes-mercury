@@ -691,7 +691,6 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
   info->geometry = geom;
 
   enum retro_pixel_format fmt;
-  
   fmt = RETRO_PIXEL_FORMAT_XRGB8888;
   if (core_bind.penviron(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
     core_bind.video_fmt = Callbacks::video_fmt_32;
@@ -705,8 +704,8 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
       //this one is always supported
       core_bind.video_fmt = Callbacks::video_fmt_15;
     }
+    SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard);
   }
-  SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard);
 }
 
 static void output_multiline(enum retro_log_level level, char * data)
