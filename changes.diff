@@ -1,9 +1,8 @@
 Only in bsneshle094/ananke/obj: .gitignore
-Only in bsneshle094: bsnes_accuracy_libretro.so
-Only in bsneshle094: bsnes_balanced_libretro.so
 Only in bsneshle094: changes.diff
 Only in bsneshle094: changes-libretro.diff
 Only in bsneshle094: diff.sh
+Only in bsneshle094: e.log
 diff -ru higan_v094-source/emulator/emulator.hpp bsneshle094/emulator/emulator.hpp
 --- higan_v094-source/emulator/emulator.hpp	2014-01-20 07:36:22.000000000 +0100
 +++ bsneshle094/emulator/emulator.hpp	2014-04-26 16:20:16.498065832 +0200
@@ -34,7 +33,7 @@ Only in bsneshle094: libretro-sdk
 Only in bsneshle094: LICENSE
 diff -ru higan_v094-source/Makefile bsneshle094/Makefile
 --- higan_v094-source/Makefile	2013-10-20 14:39:14.000000000 +0200
-+++ bsneshle094/Makefile	2014-11-14 23:01:02.553698866 +0100
++++ bsneshle094/Makefile	2015-06-25 17:48:26.523991971 +0200
 @@ -1,20 +1,40 @@
  include nall/Makefile
  
@@ -79,7 +78,7 @@ diff -ru higan_v094-source/Makefile bsneshle094/Makefile
  objects := libco
  
  # profile-guided optimization mode
-@@ -28,33 +48,43 @@
+@@ -28,34 +48,64 @@
    flags += -fprofile-use
  endif
  
@@ -126,28 +125,108 @@ diff -ru higan_v094-source/Makefile bsneshle094/Makefile
 +    else
 +      link += -mwindows
 +    endif
-+    link += -s -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lws2_32
++    link += -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lws2_32
 +    link += -Wl,-enable-auto-import -Wl,-enable-runtime-pseudo-reloc
 +  else ifeq ($(platform),macosx)
 +    flags += -march=native
 +  else ifeq ($(platform),linux)
 +    flags += -march=native
-+    link += -s -Wl,-export-dynamic -lX11 -lXext -ldl
++    link += -Wl,-export-dynamic -lX11 -lXext -ldl
 +  else ifeq ($(platform),bsd)
 +    flags += -march=native
-+    link += -s -Wl,-export-dynamic -lX11 -lXext
++    link += -Wl,-export-dynamic -lX11 -lXext
 +  else
 +    $(error unsupported platform.)
 +  endif
 +endif
 +
++ifeq ($(platform),macosx)
++   ifndef ($(NOUNIVERSAL))
++      flags += $(ARCHFLAGS)
++      link += $(ARCHFLAGS)
++   endif
++endif
++
++
  # implicit rules
++compile-profile = \
++  $(strip \
++    $(if $(filter %.c,$<), \
++      $(compiler) $(cflags) $(flags) $(profflags) $1 -c $< -o $@, \
++      $(if $(filter %.cpp,$<), \
++        $(compiler) $(cppflags) $(flags) $(profflags) $1 -c $< -o $@ \
++      ) \
++    ) \
++  )
++
++%-$(profile).o: $<; $(call compile-profile)
++
  compile = \
    $(strip \
+     $(if $(filter %.c,$<), \
+@@ -107,3 +157,9 @@
+ endif
+ 
+ help:;
++
++#this must be last because other things may have altered $(flags)
++ifneq ($(lto),)
++  flags += -flto
++  link += $(flags)
++endif
 Only in bsneshle094: make.sh
+diff -ru higan_v094-source/nall/directory.hpp bsneshle094/nall/directory.hpp
+--- higan_v094-source/nall/directory.hpp	2014-01-20 07:37:12.000000000 +0100
++++ bsneshle094/nall/directory.hpp	2015-02-21 10:47:18.286028379 +0100
+@@ -187,7 +187,7 @@
+     struct dirent* ep;
+     dp = opendir(pathname);
+     if(dp) {
+-      while(ep = readdir(dp)) {
++      while((ep = readdir(dp))) {
+         if(!strcmp(ep->d_name, ".")) continue;
+         if(!strcmp(ep->d_name, "..")) continue;
+         bool is_directory = ep->d_type & DT_DIR;
+@@ -212,7 +212,7 @@
+     struct dirent* ep;
+     dp = opendir(pathname);
+     if(dp) {
+-      while(ep = readdir(dp)) {
++      while((ep = readdir(dp))) {
+         if(!strcmp(ep->d_name, ".")) continue;
+         if(!strcmp(ep->d_name, "..")) continue;
+         if((ep->d_type & DT_DIR) == 0) {
+diff -ru higan_v094-source/nall/dsp/core.hpp bsneshle094/nall/dsp/core.hpp
+--- higan_v094-source/nall/dsp/core.hpp	2014-01-20 07:37:12.000000000 +0100
++++ bsneshle094/nall/dsp/core.hpp	2015-02-21 10:47:18.286028379 +0100
+@@ -19,6 +19,7 @@
+   virtual void clear() = 0;
+   virtual void sample() = 0;
+   Resampler(DSP& dsp) : dsp(dsp) {}
++  virtual ~Resampler() {}
+ };
+ 
+ struct DSP {
+diff -ru higan_v094-source/nall/dsp/resample/lib/sinc.hpp bsneshle094/nall/dsp/resample/lib/sinc.hpp
+--- higan_v094-source/nall/dsp/resample/lib/sinc.hpp	2014-01-20 07:37:12.000000000 +0100
++++ bsneshle094/nall/dsp/resample/lib/sinc.hpp	2015-02-21 10:47:18.286028379 +0100
+@@ -11,8 +11,11 @@
+ #if defined(__SSE__)
+   #define SINCRESAMPLE_USE_SSE 1
+   #ifndef __x86_64__
+-    #undef RESAMPLE_SSEREGPARM
+-    #define RESAMPLE_SSEREGPARM __attribute__((sseregparm))
++    // clang may not have this extension (Apple's certainly doesn't)
++    #ifndef __clang__
++      #undef RESAMPLE_SSEREGPARM
++      #define RESAMPLE_SSEREGPARM __attribute__((sseregparm))
++    #endif
+   #endif
+ #else
+   // TODO: altivec here
 diff -ru higan_v094-source/nall/file.hpp bsneshle094/nall/file.hpp
 --- higan_v094-source/nall/file.hpp	2014-01-20 07:37:12.000000000 +0100
-+++ bsneshle094/nall/file.hpp	2014-04-26 17:34:50.338149822 +0200
++++ bsneshle094/nall/file.hpp	2015-02-21 10:47:18.286028379 +0100
 @@ -9,6 +9,10 @@
  #include <nall/windows/utf8.hpp>
  #include <nall/stream/memory.hpp>
@@ -159,7 +238,24 @@ diff -ru higan_v094-source/nall/file.hpp bsneshle094/nall/file.hpp
  namespace nall {
  
  inline FILE* fopen_utf8(const string& filename, const string& mode) {
-@@ -232,7 +236,10 @@
+@@ -191,10 +195,14 @@
+     uintmax_t req_offset = file_offset;
+     switch(index_) {
+     case index::absolute: req_offset  = offset; break;
+-    case index::relative: req_offset += offset; break;
++    case index::relative:
++        if (offset < 0 && -offset > req_offset)
++            req_offset = 0;             //cannot seek before start of file
++        else
++            req_offset += offset;
++        break;
+     }
+ 
+-    if(req_offset < 0) req_offset = 0;  //cannot seek before start of file
+     if(req_offset > file_size) {
+       if(file_mode == mode::read) {     //cannot seek past end of file
+         req_offset = file_size;
+@@ -232,7 +240,10 @@
    }
  
    static bool exists(const string& filename) {
@@ -171,7 +267,7 @@ diff -ru higan_v094-source/nall/file.hpp bsneshle094/nall/file.hpp
      struct stat data;
      if(stat(filename, &data) != 0) return false;
      #else
-@@ -244,7 +251,10 @@
+@@ -244,7 +255,10 @@
    }
  
    static uintmax_t size(const string& filename) {
@@ -183,7 +279,7 @@ diff -ru higan_v094-source/nall/file.hpp bsneshle094/nall/file.hpp
      struct stat data;
      stat(filename, &data);
      #else
-@@ -255,7 +265,10 @@
+@@ -255,7 +269,10 @@
    }
  
    static time_t timestamp(const string& filename, file::time mode = file::time::create) {
@@ -228,17 +324,49 @@ diff -ru higan_v094-source/nall/intrinsics.hpp bsneshle094/nall/intrinsics.hpp
  #elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && __BYTE_ORDER == __BIG_ENDIAN) || defined(__BIG_ENDIAN__) || defined(__powerpc__) || defined(_M_PPC)
 diff -ru higan_v094-source/nall/Makefile bsneshle094/nall/Makefile
 --- higan_v094-source/nall/Makefile	2014-01-20 07:37:12.000000000 +0100
-+++ bsneshle094/nall/Makefile	2014-08-20 17:41:55.249337200 +0200
-@@ -22,6 +22,9 @@
++++ bsneshle094/nall/Makefile	2015-04-23 17:11:57.475859018 +0200
+@@ -6,6 +6,7 @@
+ [a-z] = a b c d e f g h i j k l m n o p q r s t u v w x y z
+ [0-9] = 0 1 2 3 4 5 6 7 8 9
+ [markup] = ` ~ ! @ \# $$ % ^ & * ( ) - _ = + [ { ] } \ | ; : ' " , < . > / ?
++# Some editors need this for proper syntax highlighting: '
+ [all] = $([A-Z]) $([a-z]) $([0-9]) $([markup])
+ [space] :=
+ [space] +=
+@@ -15,25 +16,27 @@
+   uname := $(shell uname -s)
+   ifeq ($(uname),)
+     platform := windows
+-    delete = del $(subst /,\,$1)
+   else ifneq ($(findstring Windows,$(uname)),)
+     platform := windows
+-    delete = del $(subst /,\,$1)
    else ifneq ($(findstring CYGWIN,$(uname)),)
      platform := windows
-     delete = del $(subst /,\,$1)
+-    delete = del $(subst /,\,$1)
 +  else ifneq ($(findstring MINGW,$(uname)),)
 +    platform := windows
-+    delete = del $(subst /,\,$1)
    else ifneq ($(findstring Darwin,$(uname)),)
      platform := macosx
-     delete = rm -f $1
+-    delete = rm -f $1
+   else ifneq ($(findstring BSD,$(uname)),)
+     platform := bsd
+-    delete = rm -f $1
+   else
+     platform := linux
+-    delete = rm -f $1
+   endif
+ endif
+ 
++ifeq ($(platform),windows)
++  delete = del /F /Q $(subst /,\,$1)
++else
++  delete = rm -f $1
++endif
++
+ # compiler detection
+ ifeq ($(compiler),)
+   ifeq ($(platform),windows)
 diff -ru higan_v094-source/nall/platform.hpp bsneshle094/nall/platform.hpp
 --- higan_v094-source/nall/platform.hpp	2014-01-20 07:37:12.000000000 +0100
 +++ bsneshle094/nall/platform.hpp	2014-11-14 23:01:04.933698821 +0100
@@ -254,10 +382,220 @@ diff -ru higan_v094-source/nall/platform.hpp bsneshle094/nall/platform.hpp
    #include <unistd.h>
    #include <pwd.h>
    #define dllexport
+diff -ru higan_v094-source/nall/string/char/convert.hpp bsneshle094/nall/string/char/convert.hpp
+--- higan_v094-source/nall/string/char/convert.hpp	2014-01-20 07:37:13.000000000 +0100
++++ bsneshle094/nall/string/char/convert.hpp	2015-02-21 10:47:18.286028379 +0100
+@@ -30,6 +30,7 @@
+     if(quoted == false && *s >= 'A' && *s <= 'Z') *s += 0x20;
+     s++;
+   }
++  return s;
+ }
+ 
+ char* qstrupper(char* s) {
+@@ -40,6 +41,7 @@
+     if(quoted == false && *s >= 'a' && *s <= 'z') *s -= 0x20;
+     s++;
+   }
++  return s;
+ }
+ 
+ char* strtr(char* dest, const char* before, const char* after) {
+diff -ru higan_v094-source/nall/string/eval/evaluator.hpp bsneshle094/nall/string/eval/evaluator.hpp
+--- higan_v094-source/nall/string/eval/evaluator.hpp	2014-01-20 07:37:13.000000000 +0100
++++ bsneshle094/nall/string/eval/evaluator.hpp	2015-02-21 10:47:18.286028379 +0100
+@@ -31,10 +31,9 @@
+     }
+     return result.rtrim<1>(", ").append(")");
+   }
++  default: throw "invalid operator";
+   }
+   #undef p
+-
+-  throw "invalid operator";
+ }
+ 
+ inline int64_t evaluateInteger(Node* node) {
+@@ -87,10 +86,9 @@
+   case Node::Type::AssignBitwiseAnd: return p(0) & p(1);
+   case Node::Type::AssignBitwiseOr: return p(0) | p(1);
+   case Node::Type::AssignBitwiseXor: return p(0) ^ p(1);
++  default: throw "invalid operator";
+   }
+   #undef p
+-
+-  throw "invalid operator";
+ }
+ 
+ inline optional<int64_t> integer(const string& expression) {
+@@ -132,10 +130,10 @@
+   case Node::Type::AssignDivide: return p(0) / p(1);
+   case Node::Type::AssignAdd: return p(0) + p(1);
+   case Node::Type::AssignSubtract: return p(0) - p(1);
++  default: throw "invalid operator";
+   }
+   #undef p
+ 
+-  throw "invalid operator";
+ }
+ 
+ inline optional<long double> real(const string& expression) {
+diff -ru higan_v094-source/nall/string/markup/node.hpp bsneshle094/nall/string/markup/node.hpp
+--- higan_v094-source/nall/string/markup/node.hpp	2014-01-20 07:37:13.000000000 +0100
++++ bsneshle094/nall/string/markup/node.hpp	2015-02-21 10:47:18.286028379 +0100
+@@ -59,6 +59,7 @@
+       case Comparator::LE: side = rule.split<1>("<="); break;
+       case Comparator::GT: side = rule.split<1> (">"); break;
+       case Comparator::GE: side = rule.split<1>(">="); break;
++      default: break;
+       }
+ 
+       string data = text();
+@@ -75,8 +76,10 @@
+       case Comparator::LE: if(numeral(data) <= numeral(side(1))) continue; break;
+       case Comparator::GT: if(numeral(data)  > numeral(side(1))) continue; break;
+       case Comparator::GE: if(numeral(data) >= numeral(side(1))) continue; break;
++      default: break;
+       }
+ 
++      // NOT REACHED
+       return false;
+     }
+ 
+Only in bsneshle094/obj: gb-apu.o
+Only in bsneshle094/obj: gb-cartridge.o
+Only in bsneshle094/obj: gb-cheat.o
+Only in bsneshle094/obj: gb-cpu.o
+Only in bsneshle094/obj: gb-interface.o
+Only in bsneshle094/obj: gb-memory.o
+Only in bsneshle094/obj: gb-ppu.o
+Only in bsneshle094/obj: gb-scheduler.o
+Only in bsneshle094/obj: gb-system.o
+Only in bsneshle094/obj: gb-video.o
 Only in bsneshle094/obj: .gitignore
-Only in bsneshle094/out: bsnes_mercury_libretro_old.so
+Only in bsneshle094/obj: libco.o
+Only in bsneshle094/obj: libretro-accuracy.o
+Only in bsneshle094/obj: processor-arm.o
+Only in bsneshle094/obj: processor-gsu.o
+Only in bsneshle094/obj: processor-hg51b.o
+Only in bsneshle094/obj: processor-lr35902.o
+Only in bsneshle094/obj: processor-r65816.o
+Only in bsneshle094/obj: processor-spc700.o
+Only in bsneshle094/obj: processor-upd96050.o
+Only in bsneshle094/obj: sfc-armdsp-accuracy.o
+Only in bsneshle094/obj: sfc-bsx-accuracy.o
+Only in bsneshle094/obj: sfc-cartridge-accuracy.o
+Only in bsneshle094/obj: sfc-cheat-accuracy.o
+Only in bsneshle094/obj: sfc-controller-accuracy.o
+Only in bsneshle094/obj: sfc-cpu-accuracy.o
+Only in bsneshle094/obj: sfc-dsp-accuracy.o
+Only in bsneshle094/obj: sfc-epsonrtc-accuracy.o
+Only in bsneshle094/obj: sfc-event-accuracy.o
+Only in bsneshle094/obj: sfc-hitachidsp-accuracy.o
+Only in bsneshle094/obj: sfc-hlecx4-accuracy.o
+Only in bsneshle094/obj: sfc-hledsp1-accuracy.o
+Only in bsneshle094/obj: sfc-hledsp2-accuracy.o
+Only in bsneshle094/obj: sfc-hledsp3-accuracy.o
+Only in bsneshle094/obj: sfc-hledsp4-accuracy.o
+Only in bsneshle094/obj: sfc-hlest0010-accuracy.o
+Only in bsneshle094/obj: sfc-hsu1-accuracy.o
+Only in bsneshle094/obj: sfc-icd2-accuracy.o
+Only in bsneshle094/obj: sfc-interface-accuracy.o
+Only in bsneshle094/obj: sfc-memory-accuracy.o
+Only in bsneshle094/obj: sfc-msu1-accuracy.o
+Only in bsneshle094/obj: sfc-necdsp-accuracy.o
+Only in bsneshle094/obj: sfc-nss-accuracy.o
+Only in bsneshle094/obj: sfc-obc1-accuracy.o
+Only in bsneshle094/obj: sfc-ppu-accuracy.o
+Only in bsneshle094/obj: sfc-sa1-accuracy.o
+Only in bsneshle094/obj: sfc-satellaviewbase-accuracy.o
+Only in bsneshle094/obj: sfc-satellaviewcart-accuracy.o
+Only in bsneshle094/obj: sfc-sdd1-accuracy.o
+Only in bsneshle094/obj: sfc-sgbexternal-accuracy.o
+Only in bsneshle094/obj: sfc-sharprtc-accuracy.o
+Only in bsneshle094/obj: sfc-smp-accuracy.o
+Only in bsneshle094/obj: sfc-spc7110-accuracy.o
+Only in bsneshle094/obj: sfc-sufamiturbo-accuracy.o
+Only in bsneshle094/obj: sfc-superfx-accuracy.o
+Only in bsneshle094/obj: sfc-system-accuracy.o
+Only in bsneshle094/out: bsnes_mercury_accuracy_libretro.so
 Only in bsneshle094/out: .gitignore
 Only in bsneshle094/out: libsupergameboy.so
+diff -ru higan_v094-source/processor/arm/algorithms.cpp bsneshle094/processor/arm/algorithms.cpp
+--- higan_v094-source/processor/arm/algorithms.cpp	2012-04-15 03:34:45.000000000 +0200
++++ bsneshle094/processor/arm/algorithms.cpp	2015-02-21 10:47:18.286028379 +0100
+@@ -17,6 +17,9 @@
+   case 14: return true;                                   //AL (always)
+   case 15: return false;                                  //NV (never)
+   }
++
++  // NOT REACHED
++  return false;
+ }
+ 
+ uint32 ARM::bit(uint32 result) {
+@@ -59,7 +62,7 @@
+   carryout() = cpsr().c;
+   if(shift == 0) return source;
+ 
+-  carryout() = shift > 32 ? 0 : source & (1 << 32 - shift);
++  carryout() = shift > 32 ? 0 : source & (1 << (32 - shift));
+   source     = shift > 31 ? 0 : source << shift;
+   return source;
+ }
+@@ -68,7 +71,7 @@
+   carryout() = cpsr().c;
+   if(shift == 0) return source;
+ 
+-  carryout() = shift > 32 ? 0 : source & (1 << shift - 1);
++  carryout() = shift > 32 ? 0 : source & (1 << (shift - 1));
+   source     = shift > 31 ? 0 : source >> shift;
+   return source;
+ }
+@@ -77,7 +80,7 @@
+   carryout() = cpsr().c;
+   if(shift == 0) return source;
+ 
+-  carryout() = shift > 32 ? source & (1 << 31) : source & (1 << shift - 1);
++  carryout() = shift > 32 ? source & (1 << 31) : source & (1 << (shift - 1));
+   source     = shift > 31 ? (int32)source >> 31 : (int32)source >> shift;
+   return source;
+ }
+@@ -86,8 +89,8 @@
+   carryout() = cpsr().c;
+   if(shift == 0) return source;
+ 
+-  if(shift &= 31)
+-  source     = source << 32 - shift | source >> shift;
++  if((shift &= 31))
++    source     = source << (32 - shift) | source >> shift;
+   carryout() = source & (1 << 31);
+   return source;
+ }
+diff -ru higan_v094-source/processor/arm/instructions-arm.cpp bsneshle094/processor/arm/instructions-arm.cpp
+--- higan_v094-source/processor/arm/instructions-arm.cpp	2013-05-05 07:00:41.000000000 +0200
++++ bsneshle094/processor/arm/instructions-arm.cpp	2015-02-21 10:47:18.286028379 +0100
+@@ -441,7 +441,7 @@
+   if(mode == 0      ) rm = lsl(rm, rs < 33 ? rs : 33);
+   if(mode == 1      ) rm = lsr(rm, rs < 33 ? rs : 33);
+   if(mode == 2      ) rm = asr(rm, rs < 32 ? rs : 32);
+-  if(mode == 3 && rs) rm = ror(rm, rs & 31 == 0 ? 32 : rs & 31);
++  if(mode == 3 && rs) rm = ror(rm, (rs & 31) == 0 ? 32 : rs & 31);
+ 
+   arm_opcode(rm);
+ }
+diff -ru higan_v094-source/processor/r65816/opcode_misc.cpp bsneshle094/processor/r65816/opcode_misc.cpp
+--- higan_v094-source/processor/r65816/opcode_misc.cpp	2012-04-28 10:17:50.000000000 +0200
++++ bsneshle094/processor/r65816/opcode_misc.cpp	2015-02-21 10:47:18.286028379 +0100
+@@ -70,7 +70,7 @@
+ }
+ 
+ void R65816::op_stp() {
+-  while(regs.wai = true) {
++  while((regs.wai = true)) {
+ L   op_io();
+   }
+ }
 Only in bsneshle094: README
 diff -ru higan_v094-source/sfc/alt/cpu/cpu.cpp bsneshle094/sfc/alt/cpu/cpu.cpp
 --- higan_v094-source/sfc/alt/cpu/cpu.cpp	2013-05-05 08:00:10.000000000 +0200
@@ -275,6 +613,81 @@ diff -ru higan_v094-source/sfc/alt/cpu/cpu.cpp bsneshle094/sfc/alt/cpu/cpu.cpp
  }
  
  void CPU::power() {
+diff -ru higan_v094-source/sfc/alt/ppu-balanced/render/windows.cpp bsneshle094/sfc/alt/ppu-balanced/render/windows.cpp
+--- higan_v094-source/sfc/alt/ppu-balanced/render/windows.cpp	2013-05-05 08:11:18.000000000 +0200
++++ bsneshle094/sfc/alt/ppu-balanced/render/windows.cpp	2015-02-21 10:47:18.286028379 +0100
+@@ -34,7 +34,11 @@
+   }
+ 
+   if(regs.window1_enabled[bg] == true && regs.window2_enabled[bg] == false) {
+-    if(regs.window1_invert[bg] == true) set ^= clr ^= set ^= clr;
++    if(regs.window1_invert[bg] == true) {
++      bool tmp = set;
++      set = clr;
++      clr = tmp;
++    }
+     for(unsigned x = 0; x < 256; x++) {
+       table[x] = (x >= window1_left && x <= window1_right) ? set : clr;
+     }
+@@ -42,7 +46,11 @@
+   }
+ 
+   if(regs.window1_enabled[bg] == false && regs.window2_enabled[bg] == true) {
+-    if(regs.window2_invert[bg] == true) set ^= clr ^= set ^= clr;
++    if(regs.window2_invert[bg] == true) {
++      bool tmp = set;
++      set = clr;
++      clr = tmp;
++    }
+     for(unsigned x = 0; x < 256; x++) {
+       table[x] = (x >= window2_left && x <= window2_right) ? set : clr;
+     }
+diff -ru higan_v094-source/sfc/alt/ppu-performance/cache/cache.cpp bsneshle094/sfc/alt/ppu-performance/cache/cache.cpp
+--- higan_v094-source/sfc/alt/ppu-performance/cache/cache.cpp	2013-05-05 08:14:41.000000000 +0200
++++ bsneshle094/sfc/alt/ppu-performance/cache/cache.cpp	2015-02-21 10:47:18.286028379 +0100
+@@ -109,6 +109,9 @@
+     case 1: return tile_4bpp(tile);
+     case 2: return tile_8bpp(tile);
+   }
++
++  // NOT REACHED
++  return 0;
+ }
+ 
+ PPU::Cache::Cache(PPU& self) : self(self) {
+diff -ru higan_v094-source/sfc/alt/ppu-performance/window/window.cpp bsneshle094/sfc/alt/ppu-performance/window/window.cpp
+--- higan_v094-source/sfc/alt/ppu-performance/window/window.cpp	2013-05-05 08:23:15.000000000 +0200
++++ bsneshle094/sfc/alt/ppu-performance/window/window.cpp	2015-02-21 10:47:18.286028379 +0100
+@@ -41,10 +41,10 @@
+     bool one_mask = (x >= ppu.regs.window_one_left && x <= ppu.regs.window_one_right) ^ one_invert;
+     bool two_mask = (x >= ppu.regs.window_two_left && x <= ppu.regs.window_two_right) ^ two_invert;
+     switch(mask) {
+-    case 0: output[x] = one_mask | two_mask == 1; break;
+-    case 1: output[x] = one_mask & two_mask == 1; break;
+-    case 2: output[x] = one_mask ^ two_mask == 1; break;
+-    case 3: output[x] = one_mask ^ two_mask == 0; break;
++    case 0: output[x] =  (one_mask | two_mask); break;
++    case 1: output[x] =  (one_mask & two_mask); break;
++    case 2: output[x] =  (one_mask ^ two_mask); break;
++    case 3: output[x] = !(one_mask ^ two_mask); break;
+     }
+   }
+ }
+@@ -87,10 +87,10 @@
+     bool one_mask = (x >= ppu.regs.window_one_left && x <= ppu.regs.window_one_right) ^ one_invert;
+     bool two_mask = (x >= ppu.regs.window_two_left && x <= ppu.regs.window_two_right) ^ two_invert;
+     switch(mask) {
+-      case 0: output[x] = one_mask | two_mask == 1 ? set : clr; break;
+-      case 1: output[x] = one_mask & two_mask == 1 ? set : clr; break;
+-      case 2: output[x] = one_mask ^ two_mask == 1 ? set : clr; break;
+-      case 3: output[x] = one_mask ^ two_mask == 0 ? set : clr; break;
++      case 0: output[x] =  (one_mask | two_mask) ? set : clr; break;
++      case 1: output[x] =  (one_mask & two_mask) ? set : clr; break;
++      case 2: output[x] =  (one_mask ^ two_mask) ? set : clr; break;
++      case 3: output[x] = !(one_mask ^ two_mask) ? set : clr; break;
+     }
+   }
+ }
 diff -ru higan_v094-source/sfc/cartridge/cartridge.cpp bsneshle094/sfc/cartridge/cartridge.cpp
 --- higan_v094-source/sfc/cartridge/cartridge.cpp	2013-05-05 08:31:39.000000000 +0200
 +++ bsneshle094/sfc/cartridge/cartridge.cpp	2014-08-19 15:44:56.053783897 +0200
@@ -501,6 +914,44 @@ diff -ru higan_v094-source/sfc/cartridge/markup.cpp bsneshle094/sfc/cartridge/ma
  }
  
  #endif
+diff -ru higan_v094-source/sfc/chip/armdsp/armdsp.cpp bsneshle094/sfc/chip/armdsp/armdsp.cpp
+--- higan_v094-source/sfc/chip/armdsp/armdsp.cpp	2012-10-15 18:43:08.000000000 +0200
++++ bsneshle094/sfc/chip/armdsp/armdsp.cpp	2015-02-21 10:47:18.286028379 +0100
+@@ -39,7 +39,7 @@
+ }
+ 
+ void ArmDSP::step(unsigned clocks) {
+-  if(bridge.timer && --bridge.timer == 0);
++  if(bridge.timer) --bridge.timer;
+   Coprocessor::step(clocks);
+   synchronize_cpu();
+ }
+diff -ru higan_v094-source/sfc/chip/armdsp/memory.cpp bsneshle094/sfc/chip/armdsp/memory.cpp
+--- higan_v094-source/sfc/chip/armdsp/memory.cpp	2012-04-17 02:47:16.000000000 +0200
++++ bsneshle094/sfc/chip/armdsp/memory.cpp	2015-02-21 10:47:18.286028379 +0100
+@@ -15,6 +15,9 @@
+     case Byte:
+       return memory[addr];
+     }
++
++    // NOT REACHED
++    return 0;
+   };
+ 
+   switch(addr & 0xe0000000) {
+diff -ru higan_v094-source/sfc/chip/bsx/bsx.cpp bsneshle094/sfc/chip/bsx/bsx.cpp
+--- higan_v094-source/sfc/chip/bsx/bsx.cpp	2013-05-05 08:39:50.000000000 +0200
++++ bsneshle094/sfc/chip/bsx/bsx.cpp	2015-02-21 10:47:18.286028379 +0100
+@@ -31,6 +31,9 @@
+ uint8 BSXCartridge::memory_access(bool write, Memory& memory, unsigned addr, uint8 data) {
+   if(write == 0) return memory_read(memory, addr);
+   memory_write(memory, addr, data);
++
++  // byuu returned nothing here (causing C++ to return 0)
++  return 0;
+ }
+ 
+ uint8 BSXCartridge::memory_read(Memory& memory, unsigned addr) {
 diff -ru higan_v094-source/sfc/chip/chip.hpp bsneshle094/sfc/chip/chip.hpp
 --- higan_v094-source/sfc/chip/chip.hpp	2013-01-21 07:09:43.000000000 +0100
 +++ bsneshle094/sfc/chip/chip.hpp	2014-08-19 15:29:02.525765996 +0200
@@ -526,8 +977,182 @@ Only in bsneshle094/sfc/chip: dsp1
 Only in bsneshle094/sfc/chip: dsp2
 Only in bsneshle094/sfc/chip: dsp3
 Only in bsneshle094/sfc/chip: dsp4
+diff -ru higan_v094-source/sfc/chip/epsonrtc/epsonrtc.cpp bsneshle094/sfc/chip/epsonrtc/epsonrtc.cpp
+--- higan_v094-source/sfc/chip/epsonrtc/epsonrtc.cpp	2013-05-05 08:40:40.000000000 +0200
++++ bsneshle094/sfc/chip/epsonrtc/epsonrtc.cpp	2015-02-21 10:47:18.286028379 +0100
+@@ -165,6 +165,9 @@
+   if(addr == 2) {
+     return ready << 7;
+   }
++
++  // TODO: byuu returned nothing if addr == 3
++  return 0;
+ }
+ 
+ void EpsonRTC::write(unsigned addr, uint8 data) {
+diff -ru higan_v094-source/sfc/chip/hitachidsp/memory.cpp bsneshle094/sfc/chip/hitachidsp/memory.cpp
+--- higan_v094-source/sfc/chip/hitachidsp/memory.cpp	2012-11-06 03:57:30.000000000 +0100
++++ bsneshle094/sfc/chip/hitachidsp/memory.cpp	2015-02-21 10:47:18.290028379 +0100
+@@ -38,7 +38,7 @@
+   addr &= 0x1fff;
+ 
+   //Data RAM
+-  if((addr >= 0x0000 && addr <= 0x0bff) || (addr >= 0x1000 && addr <= 0x1bff)) {
++  if(addr <= 0x0bff || (addr >= 0x1000 && addr <= 0x1bff)) {
+     return dataRAM[addr & 0x0fff];
+   }
+ 
+@@ -88,7 +88,7 @@
+   addr &= 0x1fff;
+ 
+   //Data RAM
+-  if((addr >= 0x0000 && addr <= 0x0bff) || (addr >= 0x1000 && addr <= 0x1bff)) {
++  if(addr <= 0x0bff || (addr >= 0x1000 && addr <= 0x1bff)) {
+     dataRAM[addr & 0x0fff] = data;
+     return;
+   }
+diff -ru higan_v094-source/sfc/chip/msu1/msu1.cpp bsneshle094/sfc/chip/msu1/msu1.cpp
+--- higan_v094-source/sfc/chip/msu1/msu1.cpp	2013-05-05 08:47:03.000000000 +0200
++++ bsneshle094/sfc/chip/msu1/msu1.cpp	2015-02-21 10:47:18.290028379 +0100
+@@ -133,6 +133,9 @@
+   case 0x2006: return 'U';
+   case 0x2007: return '1';
+   }
++
++  // NOT REACHED
++  return 0;
+ }
+ 
+ void MSU1::mmio_write(unsigned addr, uint8 data) {
+diff -ru higan_v094-source/sfc/chip/sa1/dma/dma.cpp bsneshle094/sfc/chip/sa1/dma/dma.cpp
+--- higan_v094-source/sfc/chip/sa1/dma/dma.cpp	2013-05-05 08:50:25.000000000 +0200
++++ bsneshle094/sfc/chip/sa1/dma/dma.cpp	2015-02-21 10:47:18.290028379 +0100
+@@ -32,16 +32,13 @@
+       break;
+     }
+ 
+-    switch(mmio.dd) {
+-    case DMA::DestBWRAM:
++    if (mmio.dd == DMA::DestBWRAM) {
+       if((dda & 0x40e000) == 0x006000 || (dda & 0xf00000) == 0x400000) {
+         bus_write(dda, data);
+       }
+-      break;
+-
+-    case DMA::DestIRAM:
++	} else {
++      // mmio.dd == DMA::DestIRAM
+       iram.write(dda & 0x07ff, data);
+-      break;
+     }
+   }
+ 
+diff -ru higan_v094-source/sfc/chip/sa1/memory/memory.cpp bsneshle094/sfc/chip/sa1/memory/memory.cpp
+--- higan_v094-source/sfc/chip/sa1/memory/memory.cpp	2013-10-20 14:48:17.000000000 +0200
++++ bsneshle094/sfc/chip/sa1/memory/memory.cpp	2015-02-21 10:47:18.290028379 +0100
+@@ -99,6 +99,9 @@
+   if((addr & 0x40f800) == 0x003000) {  //$00-3f|80-bf:3000-37ff
+     return iram.read(addr & 2047);
+   }
++
++  // TODO: invalid address, what does real hardware do here?
++  return 0;
+ }
+ 
+ //ROM, I-RAM and MMIO registers are accessed at ~10.74MHz (2 clock ticks)
+@@ -252,6 +255,9 @@
+     case 3: return (bwram.read(addr) >> 6) & 3;
+     }
+   }
++
++  // NOT REACHED
++  return 0;
+ }
+ 
+ void SA1::bitmap_write(unsigned addr, uint8 data) {
+diff -ru higan_v094-source/sfc/chip/sdd1/decomp.cpp bsneshle094/sfc/chip/sdd1/decomp.cpp
+--- higan_v094-source/sfc/chip/sdd1/decomp.cpp	2013-05-05 08:57:02.000000000 +0200
++++ bsneshle094/sfc/chip/sdd1/decomp.cpp	2015-02-21 10:47:18.290028379 +0100
+@@ -253,6 +253,9 @@
+     }
+     return r1;
+   }
++
++  // NOT REACHED
++  return 0;
+ }
+ 
+ //core
 Only in bsneshle094/sfc/chip: sgb-external
 Only in bsneshle094/sfc/chip: st0010
+diff -ru higan_v094-source/sfc/chip/superfx/memory/memory.cpp bsneshle094/sfc/chip/superfx/memory/memory.cpp
+--- higan_v094-source/sfc/chip/superfx/memory/memory.cpp	2012-07-09 06:59:32.000000000 +0200
++++ bsneshle094/sfc/chip/superfx/memory/memory.cpp	2015-02-21 10:47:18.290028379 +0100
+@@ -24,6 +24,9 @@
+     }
+     return ram.read(addr & ram_mask);
+   }
++
++  // TODO: invalid address, what does real hardware do?
++  return 0;
+ }
+ 
+ void SuperFX::bus_write(unsigned addr, uint8 data) {
+diff -ru higan_v094-source/sfc/controller/controller.cpp bsneshle094/sfc/controller/controller.cpp
+--- higan_v094-source/sfc/controller/controller.cpp	2012-04-28 12:25:51.000000000 +0200
++++ bsneshle094/sfc/controller/controller.cpp	2015-02-21 10:47:18.290028379 +0100
+@@ -33,17 +33,17 @@
+ }
+ 
+ bool Controller::iobit() {
+-  switch(port) {
+-  case Controller::Port1: return cpu.pio() & 0x40;
+-  case Controller::Port2: return cpu.pio() & 0x80;
+-  }
++  if (port == Controller::Port1)
++    return cpu.pio() & 0x40;
++  else
++    return cpu.pio() & 0x80;
+ }
+ 
+ void Controller::iobit(bool data) {
+-  switch(port) {
+-  case Controller::Port1: bus.write(0x4201, (cpu.pio() & ~0x40) | (data << 6)); break;
+-  case Controller::Port2: bus.write(0x4201, (cpu.pio() & ~0x80) | (data << 7)); break;
+-  }
++  if (port == Controller::Port1)
++    bus.write(0x4201, (cpu.pio() & ~0x40) | (data << 6));
++  else
++    bus.write(0x4201, (cpu.pio() & ~0x80) | (data << 7));
+ }
+ 
+ Controller::Controller(bool port) : port(port) {
+diff -ru higan_v094-source/sfc/controller/justifier/justifier.cpp bsneshle094/sfc/controller/justifier/justifier.cpp
+--- higan_v094-source/sfc/controller/justifier/justifier.cpp	2012-05-03 22:48:59.000000000 +0200
++++ bsneshle094/sfc/controller/justifier/justifier.cpp	2015-02-21 10:47:18.290028379 +0100
+@@ -91,6 +91,9 @@
+   case 30: return 0;
+   case 31: return 0;
+   }
++
++  // NOT REACHED
++  return 0;
+ }
+ 
+ void Justifier::latch(bool data) {
+diff -ru higan_v094-source/sfc/controller/superscope/superscope.cpp bsneshle094/sfc/controller/superscope/superscope.cpp
+--- higan_v094-source/sfc/controller/superscope/superscope.cpp	2012-04-28 17:39:56.000000000 +0200
++++ bsneshle094/sfc/controller/superscope/superscope.cpp	2015-02-21 10:47:18.290028379 +0100
+@@ -92,6 +92,9 @@
+   case 6: return offscreen;
+   case 7: return 0;  //noise (1 = yes)
+   }
++
++  // NOT REACHED
++  return 0;
+ }
+ 
+ void SuperScope::latch(bool data) {
 diff -ru higan_v094-source/sfc/cpu/cpu.cpp bsneshle094/sfc/cpu/cpu.cpp
 --- higan_v094-source/sfc/cpu/cpu.cpp	2013-11-09 06:38:15.000000000 +0100
 +++ bsneshle094/sfc/cpu/cpu.cpp	2014-05-03 20:02:53.027110040 +0200
@@ -544,9 +1169,30 @@ diff -ru higan_v094-source/sfc/cpu/cpu.cpp bsneshle094/sfc/cpu/cpu.cpp
  }
  
  void CPU::power() {
+diff -ru higan_v094-source/sfc/cpu/timing/timing.cpp bsneshle094/sfc/cpu/timing/timing.cpp
+--- higan_v094-source/sfc/cpu/timing/timing.cpp	2012-02-12 07:25:08.000000000 +0100
++++ bsneshle094/sfc/cpu/timing/timing.cpp	2015-02-12 22:56:36.541886387 +0100
+@@ -8,6 +8,7 @@
+ }
+ 
+ void CPU::add_clocks(unsigned clocks) {
++again:
+   status.irq_lock = false;
+   unsigned ticks = clocks >> 1;
+   while(ticks--) {
+@@ -25,7 +26,8 @@
+ 
+   if(status.dram_refreshed == false && hcounter() >= status.dram_refresh_position) {
+     status.dram_refreshed = true;
+-    add_clocks(40);
++    clocks = 40;
++    goto again;
+   }
+ 
+   #if defined(DEBUGGER)
 diff -ru higan_v094-source/sfc/cpu/timing/timing.hpp bsneshle094/sfc/cpu/timing/timing.hpp
 --- higan_v094-source/sfc/cpu/timing/timing.hpp	2010-12-26 16:16:47.000000000 +0100
-+++ bsneshle094/sfc/cpu/timing/timing.hpp	2014-05-26 23:52:03.147625704 +0200
++++ bsneshle094/sfc/cpu/timing/timing.hpp	2015-02-12 22:36:02.421886534 +0100
 @@ -1,7 +1,7 @@
  //timing.cpp
  unsigned dma_counter();
@@ -587,31 +1233,122 @@ diff -ru higan_v094-source/sfc/interface/interface.hpp bsneshle094/sfc/interface
    double videoFrequency();
 diff -ru higan_v094-source/sfc/Makefile bsneshle094/sfc/Makefile
 --- higan_v094-source/sfc/Makefile	2013-01-23 00:07:55.000000000 +0100
-+++ bsneshle094/sfc/Makefile	2014-08-19 15:32:41.245770102 +0200
-@@ -9,6 +9,9 @@
++++ bsneshle094/sfc/Makefile	2015-04-23 17:11:57.475859018 +0200
+@@ -9,22 +9,24 @@
  sfc_objects += sfc-spc7110 sfc-sdd1 sfc-obc1
  sfc_objects += sfc-hsu1 sfc-msu1
  sfc_objects += sfc-satellaviewcart sfc-sufamiturbo
+-objects += $(sfc_objects)
 +sfc_objects += sfc-hledsp1 sfc-hledsp2 sfc-hledsp3 sfc-hledsp4
 +sfc_objects += sfc-hlecx4 sfc-hlest0010
 +sfc_objects += sfc-sgbexternal
- objects += $(sfc_objects)
  
  ifeq ($(profile),accuracy)
-@@ -70,3 +73,13 @@
+-  flags += -DPROFILE_ACCURACY
++  profflags := -DPROFILE_ACCURACY
+   sfccpu := $(sfc)/cpu
+   sfcsmp := $(sfc)/smp
+   sfcdsp := $(sfc)/dsp
+   sfcppu := $(sfc)/ppu
+ else ifeq ($(profile),balanced)
+-  flags += -DPROFILE_BALANCED
++  profflags := -DPROFILE_BALANCED
+   sfccpu := $(sfc)/cpu
+   sfcsmp := $(sfc)/smp
+   sfcdsp := $(sfc)/alt/dsp
+   sfcppu := $(sfc)/alt/ppu-balanced
+ else ifeq ($(profile),performance)
+-  flags += -DPROFILE_PERFORMANCE
++  profflags := -DPROFILE_PERFORMANCE
+   sfccpu := $(sfc)/alt/cpu
+   sfcsmp := $(sfc)/alt/smp
+   sfcdsp := $(sfc)/alt/dsp
+@@ -33,40 +35,50 @@
+   $(error unknown profile.)
+ endif
  
- obj/sfc-satellaviewcart.o: $(sfc)/slot/satellaview/satellaview.cpp $(call rwildcard,$(sfc)/slot/satellaview/)
- obj/sfc-sufamiturbo.o:     $(sfc)/slot/sufamiturbo/sufamiturbo.cpp $(call rwildcard,$(sfc)/slot/sufamiturbo/)
+-obj/sfc-interface.o:       $(sfc)/interface/interface.cpp $(call rwildcard,$(sfc)/interface)
+-obj/sfc-system.o:          $(sfc)/system/system.cpp $(call rwildcard,$(sfc)/system/)
+-obj/sfc-controller.o:      $(sfc)/controller/controller.cpp $(call rwildcard,$(sfc)/controller/)
+-obj/sfc-cartridge.o:       $(sfc)/cartridge/cartridge.cpp $(sfc)/cartridge/*
+-obj/sfc-cheat.o:           $(sfc)/cheat/cheat.cpp $(sfc)/cheat/*
+-obj/sfc-memory.o:          $(sfc)/memory/memory.cpp $(call rwildcard,$(sfc)/memory/)
+-obj/sfc-cpu.o:             $(sfccpu)/cpu.cpp $(call rwildcard,$(sfccpu)/)
+-obj/sfc-smp.o:             $(sfcsmp)/smp.cpp $(call rwildcard,$(sfcsmp)/)
+-obj/sfc-dsp.o:             $(sfcdsp)/dsp.cpp $(call rwildcard,$(sfcdsp)/)
+-obj/sfc-ppu.o:             $(sfcppu)/ppu.cpp $(call rwildcard,$(sfcppu)/)
+-
+-obj/sfc-satellaviewbase.o: $(sfc)/base/satellaview/satellaview.cpp $(call rwildcard,$(sfc)/base/satellaview/)
+-
+-obj/sfc-icd2.o:            $(sfc)/chip/icd2/icd2.cpp $(call rwildcard,$(sfc)/chip/icd2/)
+-obj/sfc-bsx.o:             $(sfc)/chip/bsx/bsx.cpp $(call rwildcard,$(sfc)/chip/bsx/)
+-obj/sfc-nss.o:             $(sfc)/chip/nss/nss.cpp $(call rwildcard,$(sfc)/chip/nss/)
+-obj/sfc-event.o:           $(sfc)/chip/event/event.cpp $(call rwildcard,$(sfc)/chip/event/)
+-
+-obj/sfc-sa1.o:             $(sfc)/chip/sa1/sa1.cpp $(call rwildcard,$(sfc)/chip/sa1/)
+-obj/sfc-superfx.o:         $(sfc)/chip/superfx/superfx.cpp $(call rwildcard,$(sfc)/chip/superfx/)
+-
+-obj/sfc-armdsp.o:          $(sfc)/chip/armdsp/armdsp.cpp $(call rwildcard,$(sfc)/chip/armdsp/)
+-obj/sfc-hitachidsp.o:      $(sfc)/chip/hitachidsp/hitachidsp.cpp $(call rwildcard,$(sfc)/chip/hitachidsp/)
+-obj/sfc-necdsp.o:          $(sfc)/chip/necdsp/necdsp.cpp $(call rwildcard,$(sfc)/chip/necdsp/)
+-
+-obj/sfc-epsonrtc.o:        $(sfc)/chip/epsonrtc/epsonrtc.cpp $(call rwildcard,$(sfc)/chip/epsonrtc/)
+-obj/sfc-sharprtc.o:        $(sfc)/chip/sharprtc/sharprtc.cpp $(call rwildcard,$(sfc)/chip/sharprtc/)
+-
+-obj/sfc-spc7110.o:         $(sfc)/chip/spc7110/spc7110.cpp $(sfc)/chip/spc7110/*
+-obj/sfc-sdd1.o:            $(sfc)/chip/sdd1/sdd1.cpp $(sfc)/chip/sdd1/*
+-obj/sfc-obc1.o:            $(sfc)/chip/obc1/obc1.cpp $(sfc)/chip/obc1/*
++obj/sfc-interface-$(profile).o:       $(sfc)/interface/interface.cpp $(call rwildcard,$(sfc)/interface)
++obj/sfc-system-$(profile).o:          $(sfc)/system/system.cpp $(call rwildcard,$(sfc)/system/)
++obj/sfc-controller-$(profile).o:      $(sfc)/controller/controller.cpp $(call rwildcard,$(sfc)/controller/)
++obj/sfc-cartridge-$(profile).o:       $(sfc)/cartridge/cartridge.cpp $(sfc)/cartridge/*
++obj/sfc-cheat-$(profile).o:           $(sfc)/cheat/cheat.cpp $(sfc)/cheat/*
++obj/sfc-memory-$(profile).o:          $(sfc)/memory/memory.cpp $(call rwildcard,$(sfc)/memory/)
++obj/sfc-cpu-$(profile).o:             $(sfccpu)/cpu.cpp $(call rwildcard,$(sfccpu)/)
++obj/sfc-smp-$(profile).o:             $(sfcsmp)/smp.cpp $(call rwildcard,$(sfcsmp)/)
++obj/sfc-dsp-$(profile).o:             $(sfcdsp)/dsp.cpp $(call rwildcard,$(sfcdsp)/)
++obj/sfc-ppu-$(profile).o:             $(sfcppu)/ppu.cpp $(call rwildcard,$(sfcppu)/)
 +
-+obj/sfc-hledsp1.o:         $(sfc)/chip/dsp1/dsp1.cpp $(sfc)/chip/dsp1/*
-+obj/sfc-hledsp2.o:         $(sfc)/chip/dsp2/dsp2.cpp $(sfc)/chip/dsp2/*
-+obj/sfc-hledsp3.o:         $(sfc)/chip/dsp3/dsp3.cpp $(sfc)/chip/dsp3/*
-+obj/sfc-hledsp4.o:         $(sfc)/chip/dsp4/dsp4.cpp $(sfc)/chip/dsp4/*
++obj/sfc-satellaviewbase-$(profile).o: $(sfc)/base/satellaview/satellaview.cpp $(call rwildcard,$(sfc)/base/satellaview/)
 +
-+obj/sfc-hlecx4.o:          $(sfc)/chip/cx4/cx4.cpp $(sfc)/chip/cx4/*
-+obj/sfc-hlest0010.o:       $(sfc)/chip/st0010/st0010.cpp $(sfc)/chip/st0010/*
++obj/sfc-icd2-$(profile).o:            $(sfc)/chip/icd2/icd2.cpp $(call rwildcard,$(sfc)/chip/icd2/)
++obj/sfc-bsx-$(profile).o:             $(sfc)/chip/bsx/bsx.cpp $(call rwildcard,$(sfc)/chip/bsx/)
++obj/sfc-nss-$(profile).o:             $(sfc)/chip/nss/nss.cpp $(call rwildcard,$(sfc)/chip/nss/)
++obj/sfc-event-$(profile).o:           $(sfc)/chip/event/event.cpp $(call rwildcard,$(sfc)/chip/event/)
 +
-+obj/sfc-sgbexternal.o:     $(sfc)/chip/sgb-external/sgb-external.cpp $(sfc)/chip/sgb-external/*
++obj/sfc-sa1-$(profile).o:             $(sfc)/chip/sa1/sa1.cpp $(call rwildcard,$(sfc)/chip/sa1/)
++obj/sfc-superfx-$(profile).o:         $(sfc)/chip/superfx/superfx.cpp $(call rwildcard,$(sfc)/chip/superfx/)
++
++obj/sfc-armdsp-$(profile).o:          $(sfc)/chip/armdsp/armdsp.cpp $(call rwildcard,$(sfc)/chip/armdsp/)
++obj/sfc-hitachidsp-$(profile).o:      $(sfc)/chip/hitachidsp/hitachidsp.cpp $(call rwildcard,$(sfc)/chip/hitachidsp/)
++obj/sfc-necdsp-$(profile).o:          $(sfc)/chip/necdsp/necdsp.cpp $(call rwildcard,$(sfc)/chip/necdsp/)
++
++obj/sfc-epsonrtc-$(profile).o:        $(sfc)/chip/epsonrtc/epsonrtc.cpp $(call rwildcard,$(sfc)/chip/epsonrtc/)
++obj/sfc-sharprtc-$(profile).o:        $(sfc)/chip/sharprtc/sharprtc.cpp $(call rwildcard,$(sfc)/chip/sharprtc/)
++
++obj/sfc-spc7110-$(profile).o:         $(sfc)/chip/spc7110/spc7110.cpp $(sfc)/chip/spc7110/*
++obj/sfc-sdd1-$(profile).o:            $(sfc)/chip/sdd1/sdd1.cpp $(sfc)/chip/sdd1/*
++obj/sfc-obc1-$(profile).o:            $(sfc)/chip/obc1/obc1.cpp $(sfc)/chip/obc1/*
++
++obj/sfc-hsu1-$(profile).o:            $(sfc)/chip/hsu1/hsu1.cpp $(sfc)/chip/hsu1/*
++obj/sfc-msu1-$(profile).o:            $(sfc)/chip/msu1/msu1.cpp $(sfc)/chip/msu1/*
++
++obj/sfc-satellaviewcart-$(profile).o: $(sfc)/slot/satellaview/satellaview.cpp $(call rwildcard,$(sfc)/slot/satellaview/)
++obj/sfc-sufamiturbo-$(profile).o:     $(sfc)/slot/sufamiturbo/sufamiturbo.cpp $(call rwildcard,$(sfc)/slot/sufamiturbo/)
++
++obj/sfc-hledsp1-$(profile).o:         $(sfc)/chip/dsp1/dsp1.cpp $(sfc)/chip/dsp1/*
++obj/sfc-hledsp2-$(profile).o:         $(sfc)/chip/dsp2/dsp2.cpp $(sfc)/chip/dsp2/*
++obj/sfc-hledsp3-$(profile).o:         $(sfc)/chip/dsp3/dsp3.cpp $(sfc)/chip/dsp3/*
++obj/sfc-hledsp4-$(profile).o:         $(sfc)/chip/dsp4/dsp4.cpp $(sfc)/chip/dsp4/*
+ 
+-obj/sfc-hsu1.o:            $(sfc)/chip/hsu1/hsu1.cpp $(sfc)/chip/hsu1/*
+-obj/sfc-msu1.o:            $(sfc)/chip/msu1/msu1.cpp $(sfc)/chip/msu1/*
++obj/sfc-hlecx4-$(profile).o:          $(sfc)/chip/cx4/cx4.cpp $(sfc)/chip/cx4/*
++obj/sfc-hlest0010-$(profile).o:       $(sfc)/chip/st0010/st0010.cpp $(sfc)/chip/st0010/*
+ 
+-obj/sfc-satellaviewcart.o: $(sfc)/slot/satellaview/satellaview.cpp $(call rwildcard,$(sfc)/slot/satellaview/)
+-obj/sfc-sufamiturbo.o:     $(sfc)/slot/sufamiturbo/sufamiturbo.cpp $(call rwildcard,$(sfc)/slot/sufamiturbo/)
++obj/sfc-sgbexternal-$(profile).o:     $(sfc)/chip/sgb-external/sgb-external.cpp $(sfc)/chip/sgb-external/*
 diff -ru higan_v094-source/sfc/memory/memory.cpp bsneshle094/sfc/memory/memory.cpp
 --- higan_v094-source/sfc/memory/memory.cpp	2013-05-05 09:29:50.000000000 +0200
 +++ bsneshle094/sfc/memory/memory.cpp	2014-06-05 22:10:02.955293881 +0200
@@ -861,6 +1598,19 @@ diff -ru higan_v094-source/sfc/ppu/background/background.hpp bsneshle094/sfc/ppu
  
    PPU& self;
    friend class PPU;
+diff -ru higan_v094-source/sfc/ppu/screen/screen.cpp bsneshle094/sfc/ppu/screen/screen.cpp
+--- higan_v094-source/sfc/ppu/screen/screen.cpp	2013-12-17 04:58:08.000000000 +0100
++++ bsneshle094/sfc/ppu/screen/screen.cpp	2015-02-21 10:47:18.290028379 +0100
+@@ -56,7 +56,8 @@
+     priority = self.sprite.output.sub.priority;
+     math.sub.color = get_color(self.sprite.output.sub.palette);
+   }
+-  if(math.transparent = (priority == 0)) math.sub.color = get_color(0);
++  math.transparent = (priority == 0);
++  if(math.transparent) math.sub.color = get_color(0);
+ 
+   if(!hires) return 0;
+   if(!math.sub.color_enable) return math.main.color_enable ? math.sub.color : 0;
 diff -ru higan_v094-source/sfc/ppu/screen/screen.hpp bsneshle094/sfc/ppu/screen/screen.hpp
 --- higan_v094-source/sfc/ppu/screen/screen.hpp	2013-05-05 09:36:42.000000000 +0200
 +++ bsneshle094/sfc/ppu/screen/screen.hpp	2014-05-03 23:19:20.659331336 +0200
@@ -962,6 +1712,24 @@ diff -ru higan_v094-source/sfc/ppu/window/window.hpp bsneshle094/sfc/ppu/window/
  
    PPU& self;
    friend class PPU;
+diff -ru higan_v094-source/sfc/system/input.cpp bsneshle094/sfc/system/input.cpp
+--- higan_v094-source/sfc/system/input.cpp	2013-11-09 06:34:32.000000000 +0100
++++ bsneshle094/sfc/system/input.cpp	2015-02-21 10:47:18.290028379 +0100
+@@ -20,10 +20,10 @@
+   case Device::USART: controller = new USART(port); break;
+   }
+ 
+-  switch(port) {
+-  case Controller::Port1: configuration.controller_port1 = id; break;
+-  case Controller::Port2: configuration.controller_port2 = id; break;
+-  }
++  if (port == Controller::Port1)
++    configuration.controller_port1 = id;
++  else
++    configuration.controller_port2 = id;
+ }
+ 
+ Input::Input() {
 diff -ru higan_v094-source/sfc/system/serialization.cpp bsneshle094/sfc/system/serialization.cpp
 --- higan_v094-source/sfc/system/serialization.cpp	2013-05-05 09:48:32.000000000 +0200
 +++ bsneshle094/sfc/system/serialization.cpp	2014-08-19 16:07:51.405809717 +0200
@@ -1075,4 +1843,28 @@ diff -ru higan_v094-source/sfc/system/system.cpp bsneshle094/sfc/system/system.c
    scheduler.init();
    input.connect(0, configuration.controller_port1);
    input.connect(1, configuration.controller_port2);
+diff -ru higan_v094-source/sfc/system/video.cpp bsneshle094/sfc/system/video.cpp
+--- higan_v094-source/sfc/system/video.cpp	2013-12-21 07:49:58.000000000 +0100
++++ bsneshle094/sfc/system/video.cpp	2015-02-21 10:47:18.290028379 +0100
+@@ -121,6 +121,8 @@
+       draw_cursor(0x02e0, device.player2.x, device.player2.y);
+     }
+     break;
++  default:
++    break;
+   }
+ 
+   uint32_t* data = (uint32_t*)ppu.output;
+diff -ru higan_v094-source/target-ethos/Makefile bsneshle094/target-ethos/Makefile
+--- higan_v094-source/target-ethos/Makefile	2014-01-13 06:26:29.000000000 +0100
++++ bsneshle094/target-ethos/Makefile	2015-04-23 17:11:57.475859018 +0200
+@@ -43,6 +43,8 @@
+ # rules
+ objects := $(ui_objects) $(objects)
+ objects := $(patsubst %,obj/%.o,$(objects))
++sfc_objects := $(patsubst %,obj/%-$(profile).o,$(sfc_objects))
++objects += $(sfc_objects)
+ 
+ obj/ui-ethos.o: $(ui)/ethos.cpp $(call rwildcard,$(ui)/)
+ obj/ui-configuration.o: $(ui)/configuration/configuration.cpp $(call rwildcard,$(ui)/)
 Only in bsneshle094: target-libretro

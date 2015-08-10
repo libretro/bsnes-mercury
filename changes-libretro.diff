@@ -1,5 +1,5 @@
---- ../bsnes-libretro/target-libretro/libretro.cpp	2014-09-27 16:33:06.651246150 +0200
-+++ target-libretro/libretro.cpp	2014-12-05 17:39:13.869041787 +0100
+--- ../bsnes-libretro/target-libretro/libretro.cpp	2015-04-23 18:11:06.227925641 +0200
++++ target-libretro/libretro.cpp	2015-04-23 17:17:56.059865750 +0200
 @@ -64,9 +64,21 @@
  /*fffe*/  0xc0, 0xff         //reset vector location ($ffc0)
  };
@@ -23,22 +23,17 @@
    retro_input_poll_t pinput_poll;
    retro_input_state_t pinput_state;
    retro_environment_t penviron;
-@@ -121,7 +133,7 @@
- 
-   uint32_t video_buffer[512 * 480];
+@@ -129,7 +141,7 @@
+     uint16_t video_buffer_16[512 * 480];
+   };
  
 -  void videoRefresh(const uint32_t *palette, const uint32_t *data, unsigned pitch, unsigned width, unsigned height) {
 +  void videoRefresh(const uint32_t* palette, const uint32_t* data, unsigned pitch, unsigned width, unsigned height) override {
      if (!overscan) {
        data += 8 * 1024;
  
-@@ -136,24 +148,30 @@
-        for (unsigned x = 0; x < width; x++)
-           ptr[x] = palette[data[x]];
- 
--    pvideo_refresh(video_buffer, width, height, width << 2);
-+    pvideo_refresh(video_buffer, width, height, width*sizeof(uint32_t));
-     pinput_poll();
+@@ -161,20 +173,26 @@
+     }
    }
  
 -  void audioSample(int16_t left, int16_t right)
@@ -66,57 +61,57 @@
 -  void saveRequest(unsigned id, string p) {
 +  void saveRequest(unsigned id, string p) override {
      if (manifest) {
--      fprintf(stderr, "[bSNES]: [Save]: ID %u, Request \"%s\".\n", id, (const char*)p);
+-      fprintf(stderr, "[bsnes]: [Save]: ID %u, Request \"%s\".\n", id, (const char*)p);
 +      output(RETRO_LOG_INFO, "[Save]: ID %u, Request \"%s\".\n", id, (const char*)p);
        string save_path = {path(0), p};
        filestream stream(save_path, file::mode::write);
        iface->save(id, stream);
-@@ -175,11 +193,11 @@
+@@ -196,11 +214,11 @@
          mmapstream stream(load_path);
          iface->load(id, stream);
        } else {
--        fprintf(stderr, "[bSNES]: Cannot find requested file in system directory: \"%s\".\n", (const char*)load_path);
+-        fprintf(stderr, "[bsnes]: Cannot find requested file in system directory: \"%s\".\n", (const char*)load_path);
 +        output(RETRO_LOG_ERROR, "Cannot find requested file in system directory: \"%s\".\n", (const char*)load_path);
          load_request_error = true;
        }
      } else {
--      fprintf(stderr, "[bSNES]: Cannot find requested file: \"%s\" in ROM directory nor system directory.\n", (const char*)p);
+-      fprintf(stderr, "[bsnes]: Cannot find requested file: \"%s\" in ROM directory nor system directory.\n", (const char*)p);
 +      output(RETRO_LOG_ERROR, "Cannot find requested file: \"%s\" in ROM directory nor system directory.\n", (const char*)p);
        load_request_error = true;
      }
    }
-@@ -210,7 +228,7 @@
+@@ -231,7 +249,7 @@
    }
  
    void loadRequestManifest(unsigned id, const string& p) {
--    fprintf(stderr, "[bSNES]: [Manifest]: ID %u, Request \"%s\".\n", id, (const char*)p);
+-    fprintf(stderr, "[bsnes]: [Manifest]: ID %u, Request \"%s\".\n", id, (const char*)p);
 +    output(RETRO_LOG_INFO, "[Manifest]: ID %u, Request \"%s\".\n", id, (const char*)p);
      switch(id) {
        case SuperFamicom::ID::IPLROM:
          loadIPLROM(id);
-@@ -227,7 +245,7 @@
+@@ -248,7 +266,7 @@
    }
  
    void loadRequestMemory(unsigned id, const string& p) {
--    fprintf(stderr, "[bSNES]: [Memory]: ID %u, Request \"%s\".\n", id, (const char*)p);
+-    fprintf(stderr, "[bsnes]: [Memory]: ID %u, Request \"%s\".\n", id, (const char*)p);
 +    output(RETRO_LOG_INFO, "[Memory]: ID %u, Request \"%s\".\n", id, (const char*)p);
      switch(id) {
        case SuperFamicom::ID::Manifest:
          loadManifest(id);
-@@ -243,7 +261,7 @@
+@@ -264,7 +282,7 @@
        case SuperFamicom::ID::SDD1ROM:
        case SuperFamicom::ID::HitachiDSPROM:
        case SuperFamicom::ID::SPC7110PROM:
--        fprintf(stderr, "[bSNES]: Load ROM.\n");
+-        fprintf(stderr, "[bsnes]: Load ROM.\n");
 +        output(RETRO_LOG_INFO, "Load ROM.\n");
          loadROM(id);
          break;
  
-@@ -298,46 +316,79 @@
+@@ -319,37 +337,37 @@
          break;
  
        default:
--        fprintf(stderr, "[bSNES]: Load BIOS.\n");
+-        fprintf(stderr, "[bsnes]: Load BIOS.\n");
 +        output(RETRO_LOG_INFO, "Load BIOS.\n");
          loadFile(id, p);
          break;
@@ -129,7 +124,7 @@
         loadRequestManifest(id, p);
      else
         loadRequestMemory(id, p);
--    fprintf(stderr, "[bSNES]: Complete load request.\n");
+-    fprintf(stderr, "[bsnes]: Complete load request.\n");
 +    output(RETRO_LOG_INFO, "Complete load request.\n");
    }
  
@@ -137,13 +132,13 @@
 +  void loadRequest(unsigned id, string p, string manifest) override {
      switch (id) {
        case SuperFamicom::ID::SuperGameBoy:
--        fprintf(stderr, "[bSNES]: Loading GB ROM.\n");
+-        fprintf(stderr, "[bsnes]: Loading GB ROM.\n");
 +        output(RETRO_LOG_INFO, "Loading GB ROM.\n");
          loadSGBROMManifest(id);
          break;
  
        default:
--        fprintf(stderr, "[bSNES]: Didn't do anything with loadRequest (3 arg).\n");
+-        fprintf(stderr, "[bsnes]: Didn't do anything with loadRequest (3 arg).\n");
 +        output(RETRO_LOG_INFO, "Didn't do anything with loadRequest (3 arg).\n");
      }
    }
@@ -158,7 +153,9 @@
      r >>= 8;
      g >>= 8;
      b >>= 8;
-     return (r << 16) | (g << 8) | (b << 0);
+@@ -357,10 +375,43 @@
+     if (video_fmt == video_fmt_16) return (r>>3 << 11) | (g>>2 << 5) | (b>>3 << 0);
+     if (video_fmt == video_fmt_15) return (r>>3 << 10) | (g>>3 << 5) | (b>>3 << 0);
    }
 +
 +  void notify(string text) {
@@ -200,7 +197,7 @@
  struct Interface : public SuperFamicom::Interface {
    SuperFamicomCartridge::Mode mode;
  
-@@ -403,10 +454,28 @@
+@@ -426,10 +477,28 @@
    return RETRO_API_VERSION;
  }
  
@@ -229,7 +226,7 @@
     static const retro_subsystem_memory_info sgb_memory[] = {
        { "srm", RETRO_MEMORY_SNES_GAME_BOY_RAM },
        { "rtc", RETRO_MEMORY_SNES_GAME_BOY_RTC },
-@@ -475,11 +544,19 @@
+@@ -498,11 +567,19 @@
     environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
  }
  
@@ -254,7 +251,7 @@
  
  void retro_set_controller_port_device(unsigned port, unsigned device) {
    if (port < 2)
-@@ -492,6 +569,8 @@
+@@ -515,6 +592,8 @@
  
    core_interface.init();
    core_gb_interface.init();
@@ -263,7 +260,7 @@
  
    SuperFamicom::system.init();
    SuperFamicom::input.connect(SuperFamicom::Controller::Port1, SuperFamicom::Input::Device::Joypad);
-@@ -507,7 +586,14 @@
+@@ -530,7 +609,14 @@
  }
  
  void retro_run(void) {
@@ -278,7 +275,7 @@
  }
  
  size_t retro_serialize_size(void) {
-@@ -527,6 +613,7 @@
+@@ -550,6 +636,7 @@
    return SuperFamicom::system.unserialize(s);
  }
  
@@ -286,7 +283,7 @@
  struct CheatList {
    bool enable;
    string code;
-@@ -534,27 +621,33 @@
+@@ -557,27 +644,33 @@
  };
  
  static vector<CheatList> cheatList;
@@ -318,13 +315,13 @@
  
  void retro_get_system_info(struct retro_system_info *info) {
    static string version("v", Emulator::Version, " (", Emulator::Profile, ")");
--  info->library_name     = "bSNES";
+-  info->library_name     = "bsnes";
 +  info->library_name     = "bsnes-mercury";
    info->library_version  = version;
    info->valid_extensions = "sfc|smc|bml";
    info->need_fullpath    = false;
-@@ -578,6 +671,19 @@
-   core_bind.penviron(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt);
+@@ -615,6 +708,19 @@
+   }
  }
  
 +static void output_multiline(enum retro_log_level level, char * data)
@@ -343,22 +340,22 @@
  static bool snes_load_cartridge_normal(
    const char *rom_xml, const uint8_t *rom_data, unsigned rom_size
  ) {
-@@ -586,7 +692,8 @@
+@@ -623,7 +729,8 @@
    core_bind.rom_data = rom_data;
    core_bind.rom_size = rom_size;
    core_bind.xmlrom   = xmlrom;
--  fprintf(stderr, "[bSNES]: XML map:\n%s\n", (const char*)xmlrom);
+-  fprintf(stderr, "[bsnes]: XML map:\n%s\n", (const char*)xmlrom);
 +  output(RETRO_LOG_INFO, "BML map:\n");
 +  output_multiline(RETRO_LOG_INFO, xmlrom.data());
    core_bind.iface->load(SuperFamicom::ID::SuperFamicom);
    SuperFamicom::system.power();
    return !core_bind.load_request_error;
-@@ -652,8 +759,10 @@
+@@ -689,8 +796,10 @@
  ) {
    string xmlrom_sgb = (rom_xml && *rom_xml) ? string(rom_xml) : SuperFamicomCartridge(rom_data, rom_size).markup;
    string xmlrom_gb  = (dmg_xml && *dmg_xml) ? string(dmg_xml) : GameBoyCartridge((uint8_t*)dmg_data, dmg_size).markup;
--  fprintf(stderr, "[bSNES]: Markup SGB: %s\n", (const char*)xmlrom_sgb);
--  fprintf(stderr, "[bSNES]: Markup GB: %s\n", (const char*)xmlrom_gb);
+-  fprintf(stderr, "[bsnes]: Markup SGB: %s\n", (const char*)xmlrom_sgb);
+-  fprintf(stderr, "[bsnes]: Markup GB: %s\n", (const char*)xmlrom_gb);
 +  output(RETRO_LOG_INFO, "Markup SGB:\n");
 +  output_multiline(RETRO_LOG_INFO, xmlrom_sgb.data());
 +  output(RETRO_LOG_INFO, "Markup GB:\n");
@@ -366,92 +363,142 @@
  
    core_bind.rom_data    = rom_data;
    core_bind.rom_size    = rom_size;
-@@ -668,9 +777,84 @@
-   return !core_bind.load_request_error;
- }
+@@ -708,70 +817,70 @@
+ static void init_descriptors(void)
+ {
+    struct retro_input_descriptor desc[] = {
+-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
+-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
+-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
+-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
+-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
+-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
+-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
+-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
+-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
+-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
+-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
+-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
+-
+-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
+-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
+-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
+-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
+-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
+-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
+-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
+-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
+-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
+-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
+-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
+-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
+-
+-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
+-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
+-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
+-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
+-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
+-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
+-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
+-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
+-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
+-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
+-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
+-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
+-
+-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
+-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
+-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
+-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
+-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
+-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
+-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
+-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
+-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
+-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
+-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
+-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
+-
+-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
+-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
+-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
+-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
+-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
+-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
+-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
+-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
+-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
+-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
+-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
+-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
++      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left" },
++      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up" },
++      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down" },
++      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right" },
++      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "B" },
++      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "A" },
++      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "X" },
++      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Y" },
++      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,      "L" },
++      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,      "R" },
++      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Select" },
++      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
++
++      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left" },
++      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up" },
++      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down" },
++      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right" },
++      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "B" },
++      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "A" },
++      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "X" },
++      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Y" },
++      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,      "L" },
++      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,      "R" },
++      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Select" },
++      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
++
++      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left" },
++      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up" },
++      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down" },
++      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right" },
++      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "B" },
++      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "A" },
++      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "X" },
++      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Y" },
++      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,      "L" },
++      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,      "R" },
++      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Select" },
++      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
++
++      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left" },
++      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up" },
++      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down" },
++      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right" },
++      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "B" },
++      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "A" },
++      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "X" },
++      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Y" },
++      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,      "L" },
++      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,      "R" },
++      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Select" },
++      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
++
++      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left" },
++      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up" },
++      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down" },
++      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right" },
++      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "B" },
++      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "A" },
++      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "X" },
++      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Y" },
++      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,      "L" },
++      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,      "R" },
++      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Select" },
++      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
  
-+static void init_descriptors(void)
-+{
-+   struct retro_input_descriptor desc[] = {
-+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
-+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
-+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
-+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
-+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
-+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
-+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
-+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
-+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
-+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
-+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
-+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
-+
-+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
-+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
-+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
-+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
-+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
-+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
-+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
-+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
-+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
-+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
-+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
-+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
-+
-+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
-+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
-+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
-+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
-+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
-+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
-+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
-+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
-+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
-+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
-+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
-+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
-+
-+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
-+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
-+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
-+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
-+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
-+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
-+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
-+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
-+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
-+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
-+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
-+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
-+
-+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
-+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
-+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
-+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
-+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
-+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
-+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
-+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
-+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
-+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
-+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
-+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
-+
-+      { 0 },
-+   };
-+
-+   core_bind.penviron(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc);
-+}
-+
- bool retro_load_game(const struct retro_game_info *info) {
-   // Support loading a manifest directly.
-   core_bind.manifest = info->path && string(info->path).endsWith(".bml");
-+  init_descriptors();
- 
-   const uint8_t *data = (const uint8_t*)info->data;
-   size_t size = info->size;
-@@ -699,12 +883,23 @@
+       { 0 },
+    };
+@@ -811,9 +920,19 @@
    std::string manifest;
    if (core_bind.manifest)
      manifest = std::string((const char*)info->data, info->size); // Might not be 0 terminated.
@@ -472,11 +519,7 @@
  bool retro_load_game_special(unsigned game_type,
        const struct retro_game_info *info, size_t num_info) {
    core_bind.manifest = false;
-+  init_descriptors();
-   const uint8_t *data = (const uint8_t*)info[0].data;
-   size_t size = info[0].size;
-   if ((size & 0x7ffff) == 512) {
-@@ -785,7 +980,7 @@
+@@ -898,7 +1017,7 @@
  }
  
  unsigned retro_get_region(void) {
@@ -485,11 +528,11 @@
  }
  
  void* retro_get_memory_data(unsigned id) {
-@@ -829,7 +1024,7 @@
+@@ -942,7 +1061,7 @@
    switch(id) {
      case RETRO_MEMORY_SAVE_RAM:
        size = core_bind.sram_size;
--      fprintf(stderr, "[bSNES]: SRAM memory size: %u.\n", (unsigned)size);
+-      fprintf(stderr, "[bsnes]: SRAM memory size: %u.\n", (unsigned)size);
 +      output(RETRO_LOG_INFO, "SRAM memory size: %u.\n", (unsigned)size);
        break;
      case RETRO_MEMORY_RTC:
