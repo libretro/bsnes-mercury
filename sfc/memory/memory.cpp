@@ -113,14 +113,4 @@ void Bus::map_xml() {
   }
 }
 
-Bus::Bus() {
-  lookup = new uint8 [16 * 1024 * 1024];
-  target = new uint32[16 * 1024 * 1024];
-}
-
-Bus::~Bus() {
-  delete[] lookup;
-  delete[] target;
-}
-
 }

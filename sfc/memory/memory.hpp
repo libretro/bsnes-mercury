@@ -54,9 +54,6 @@ struct Bus {
   alwaysinline uint8 read(unsigned addr);
   alwaysinline void write(unsigned addr, uint8 data);
 
-  uint8* lookup;
-  uint32* target;
-
   unsigned idcount;
   function<uint8 (unsigned)> reader[256];
   function<void (unsigned, uint8)> writer[256];
@@ -79,12 +76,12 @@ struct Bus {
   void map_reset();
   void map_xml();
 
-  Bus();
-  ~Bus();
-
 #ifdef __LIBRETRO__
   vector<retro_memory_descriptor> libretro_mem_map;
 #endif
+
+  uint8 lookup[16 * 1024 * 1024];
+  uint32 target[16 * 1024 * 1024];
 };
 
 extern Bus bus;
