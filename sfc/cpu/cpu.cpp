@@ -86,11 +86,13 @@ void CPU::enter() {
 
 void CPU::op_step() {
   debugger.op_exec(regs.pc.d);
+#ifdef DEBUGGER
   if(interface->tracer.open()) {
     char text[4096];
     disassemble_opcode(text, regs.pc.d);
     interface->tracer.print(text, "\n");
   }
+#endif
 
   (this->*opcode_table[op_readpc()])();
 }
