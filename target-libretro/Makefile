@@ -14,16 +14,16 @@ else ifeq ($(platform),bsd)
   flags += -fPIC
 else ifeq ($(platform),macosx)
   flags += -fPIC
-else ifeq ($(platform),ios)
+else ifneq (,$(findstring ios,$(platform)))
   ifeq ($(IOSSDK),)
     IOSSDK := $(shell xcodebuild -version -sdk iphoneos Path)
   endif
   flags += -arch armv7 -fPIC -isysroot $(IOSSDK) -marm -DHAVE_POSIX_MEMALIGN=1 -DIOS -w
-  OSXVER = `sw_vers -productVersion | cut -d. -f 2`
-  OSX_LT_MAVERICKS = `(( $(OSXVER) <= 9)) && echo "YES"`
-  ifeq ($(OSX_LT_MAVERICKS),"YES")
-    flags += -miphoneos-version-min=5.0
-  endif
+ifeq ($(platform),ios9)
+	flags += -miphoneos-version-min=8.0
+else
+	flags += -miphoneos-version-min=5.0
+endif
 endif
 
 flags += -D__LIBRETRO__
@@ -42,7 +42,7 @@ ifeq ($(platform),linux)
 	$(compiler) -o out/bsnes_mercury_$(profile)_libretro.so -shared $(objects) -ldl -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T $(link)
 else ifeq ($(platform),bsd)
 	$(compiler) -o out/bsnes_mercury_$(profile)_libretro.so -shared $(objects) -ldl -Wl,--no-undefined -Wl,--version-script=$(ui)/link.T $(link)
-else ifeq ($(platform),ios)
+else ifneq (,$(findstring ios,$(platform)))
 	$(compiler) -o out/bsnes_mercury_$(profile)_libretro_ios.dylib -dynamiclib $(objects) -isysroot $(IOSSDK) -arch armv7 $(link)
 else ifeq ($(platform),macosx)
 ifdef ($(NOUNIVERSAL))
@@ -63,7 +63,7 @@ else ifeq ($(platform),bsd)
 	install -D -m 755 out/bsnes_mercury_$(profile)_libretro.so $(DESTDIR)$(prefix)/lib/bsnes_mercury_$(profile)_libretro.so
 else ifeq ($(platform),macosx)
 	cp out/bsnes_mercury_$(profile)_libretro.dylib $(DESTDIR)$(prefix)/lib/bsnes_mercury_$(profile)_libretro.dylib
-else ifeq ($(platform),ios)
+else ifneq (,$(findstring ios,$(platform)))
 	cp out/bsnes_mercury_$(profile)_libretro_ios.dylib $(DESTDIR)$(prefix)/lib/bsnes_mercury_$(profile)_libretro_ios.dylib
 endif
 
@@ -74,7 +74,7 @@ else ifeq ($(platform),bsd)
 	rm $(DESTDIR)$(prefix)/lib/bsnes_mercury_$(profile)_libretro.so
 else ifeq ($(platform),macosx)
 	rm /usr/local/lib/bsnes_mercury_$(profile)_libretro.dylib
-else ifeq ($(platform),ios)
+else ifneq (,$(findstring ios,$(platform)))
 	rm /usr/local/lib/bsnes_mercury_$(profile)_libretro_ios.dylib
 endif
 
