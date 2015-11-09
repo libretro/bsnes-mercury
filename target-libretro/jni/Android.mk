@@ -27,22 +27,20 @@ ifeq ($(profile),performance)
 							$(SRCDIR)/sfc/alt/smp/smp.cpp \
 							$(SRCDIR)/sfc/alt/dsp/dsp.cpp \
 							$(SRCDIR)/sfc/alt/ppu-performance/ppu.cpp
-  LOCAL_MODULE := retro_bsnes_performance
 else ifeq ($(profile),balanced)
   LOCAL_CFLAGS += -DPROFILE_BALANCED
   LOCAL_SRC_FILES += $(SRCDIR)/sfc/cpu/cpu.cpp \
 							$(SRCDIR)/sfc/smp/smp.cpp \
 							$(SRCDIR)/sfc/alt/dsp/dsp.cpp \
 							$(SRCDIR)/sfc/alt/ppu-balanced/ppu.cpp
-  LOCAL_MODULE := retro_bsnes_balanced
 else ifeq ($(profile),accuracy) # If you're batshit insane
   LOCAL_CFLAGS += -DPROFILE_ACCURACY
   LOCAL_SRC_FILES += $(SRCDIR)/sfc/cpu/cpu.cpp \
 							$(SRCDIR)/sfc/smp/smp.cpp \
 							$(SRCDIR)/sfc/dsp/dsp.cpp \
 							$(SRCDIR)/sfc/ppu/ppu.cpp
-  LOCAL_MODULE := retro_bsnes_accuracy
 endif
+LOCAL_MODULE := retro_bsnes_mercury_${profile}
 
 LOCAL_SRC_FILES += $(SRCDIR)/libco/libco.c \
 						 $(SRCDIR)/processor/arm/arm.cpp \
