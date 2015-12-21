@@ -1,6 +1,6 @@
 --- ../bsnes-libretro/target-libretro/libretro.cpp	2015-12-21 17:25:14.550262562 +0100
 +++ target-libretro/libretro.cpp	2015-12-21 17:27:19.846262782 +0100
-@@ -79,6 +79,8 @@
+@@ -79,6 +79,8 @@ static void retro_log_default(enum retro
  }
  static retro_log_printf_t output;
  
@@ -9,7 +9,7 @@
  struct Callbacks : Emulator::Interface::Bind {
    retro_video_refresh_t pvideo_refresh;
    retro_audio_sample_batch_t paudio;
-@@ -392,10 +394,32 @@
+@@ -392,10 +394,32 @@ struct Callbacks : Emulator::Interface::
      if (video_fmt == video_fmt_16) return (r>>3 << 11) | (g>>2 << 5) | (b>>3 << 0);
      if (video_fmt == video_fmt_15) return (r>>3 << 10) | (g>>3 << 5) | (b>>3 << 0);
    }
@@ -42,7 +42,7 @@
  struct LibretroInterface : public SuperFamicom::Interface {
    enum Mode {
      ModeNormal,
-@@ -467,10 +491,25 @@
+@@ -467,10 +491,25 @@ unsigned retro_api_version(void) {
    return RETRO_API_VERSION;
  }
  
@@ -68,7 +68,7 @@
     static const retro_subsystem_memory_info sgb_memory[] = {
        { "srm", RETRO_MEMORY_SNES_GAME_BOY_RAM },
        { "rtc", RETRO_MEMORY_SNES_GAME_BOY_RTC },
-@@ -539,6 +578,14 @@
+@@ -539,6 +578,14 @@ void retro_set_environment(retro_environ
     environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
  }
  
@@ -83,7 +83,7 @@
  void retro_set_video_refresh(retro_video_refresh_t cb)           { core_bind.pvideo_refresh = cb; }
  void retro_set_audio_sample(retro_audio_sample_t)                { }
  void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) { core_bind.paudio         = cb; }
-@@ -630,7 +677,7 @@
+@@ -630,7 +677,7 @@ void retro_cheat_set(unsigned index, boo
  
  void retro_get_system_info(struct retro_system_info *info) {
    static string version("v", Emulator::Version, " (", Emulator::Profile, ")");
@@ -92,7 +92,7 @@
    info->library_version  = version;
    info->valid_extensions = "sfc|smc|bml";
    info->need_fullpath    = false;
-@@ -880,7 +927,16 @@
+@@ -880,7 +927,16 @@ bool retro_load_game(const struct retro_
    std::string manifest;
    if (core_bind.manifest)
      manifest = std::string((const char*)info->data, info->size); // Might not be 0 terminated.
