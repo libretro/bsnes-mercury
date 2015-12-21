@@ -1,0 +1,1212 @@
+Only in bsneshle096: changes.diff
+Only in bsneshle096: COPYING
+Only in bsneshle096: diff.sh
+diff -ru higan_v096-source/emulator/interface.hpp bsneshle096/emulator/interface.hpp
+--- higan_v096-source/emulator/interface.hpp	2015-12-20 18:50:18.000000000 +0100
++++ bsneshle096/emulator/interface.hpp	2015-12-21 14:59:57.862247260 +0100
+@@ -58,6 +58,7 @@
+     virtual auto dipSettings(const Markup::Node&) -> uint { return 0; }
+     virtual auto path(uint) -> string { return ""; }
+     virtual auto notify(string text) -> void { print(text, "\n"); }
++    virtual auto altImplementation(unsigned) -> unsigned { return 0; }
+   };
+   Bind* bind = nullptr;
+ 
+Only in bsneshle096: .git
+Only in bsneshle096: .gitignore
+diff -ru higan_v096-source/GNUmakefile bsneshle096/GNUmakefile
+--- higan_v096-source/GNUmakefile	2015-12-04 08:34:08.000000000 +0100
++++ bsneshle096/GNUmakefile	2015-12-21 15:00:40.518247335 +0100
+@@ -1,16 +1,32 @@
+ include nall/GNUmakefile
+ 
++ifeq ($(platform),win)
++  override platform = windows
++else ifeq ($(platform),mingw)
++  override platform = windows
++else ifeq ($(platform),osx)
++  override platform = macosx
++else ifeq ($(platform),unix)
++  override platform = linux
++else ifeq ($(platform),x)
++  override platform = linux
++endif
++
+ fc  := fc
+ sfc := sfc
+ gb  := gb
+ gba := gba
+ 
+ profile := accuracy
+-target := tomoko
++target := libretro
+ # console := true
+ 
+ # compiler
+-flags += -I. -O3
++ifneq ($(debug),)
++  flags := -I. -Ilibco -O0 -g
++else
++  flags := -I. -Ilibco -O3 -fomit-frame-pointer
++endif
+ objects := libco
+ 
+ # profile-guided optimization mode
+@@ -24,35 +40,56 @@
+   flags += -fprofile-use
+ endif
+ 
++ui := target-$(target)
++
+ # platform
+-ifeq ($(platform),windows)
+-  ifeq ($(console),true)
+-    link += -mconsole
++ifeq ($(findstring libretro,$(ui)),)
++  ifeq ($(platform),windows)
++    ifeq ($(console),true)
++      link += -mconsole
++    else
++      link += -mwindows
++    endif
++    link += -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32
++    link += -Wl,-enable-auto-import
++    link += -Wl,-enable-runtime-pseudo-reloc
++  else ifeq ($(platform),macosx)
++    flags += -march=native
++  else ifeq ($(platform),linux)
++    flags += -march=native -fopenmp
++    link += -fopenmp
++    link += -Wl,-export-dynamic
++    link += -lX11 -lXext
++  else ifeq ($(platform),bsd)
++    flags += -march=native -fopenmp
++    link += -fopenmp
++    link += -Wl,-export-dynamic
++    link += -lX11 -lXext
+   else
+-    link += -mwindows
++    $(error unsupported platform.)
+   endif
+-  link += -mthreads -luuid -lkernel32 -luser32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32
+-  link += -Wl,-enable-auto-import
+-  link += -Wl,-enable-runtime-pseudo-reloc
+-else ifeq ($(platform),macosx)
+-  flags += -march=native
+-else ifeq ($(platform),linux)
+-  flags += -march=native -fopenmp
+-  link += -fopenmp
+-  link += -Wl,-export-dynamic
+-  link += -lX11 -lXext
+-else ifeq ($(platform),bsd)
+-  flags += -march=native -fopenmp
+-  link += -fopenmp
+-  link += -Wl,-export-dynamic
+-  link += -lX11 -lXext
+-else
+-  $(error unsupported platform.)
+ endif
+ 
+-ui := target-$(target)
++ifeq ($(platform),osx)
++   ifndef ($(NOUNIVERSAL))
++      flags += $(ARCHFLAGS)
++      link += $(ARCHFLAGS)
++   endif
++endif
+ 
+ # implicit rules
++compile-profile = \
++  $(strip \
++    $(if $(filter %.c,$<), \
++      $(compiler) $(cflags) $(flags) $(profflags) $1 -c $< -o $@, \
++      $(if $(filter %.cpp,$<), \
++        $(compiler) $(cppflags) $(flags) $(profflags) $1 -c $< -o $@ \
++      ) \
++    ) \
++  )
++
++%-$(profile).o: $<; $(call compile-profile)
++
+ compile = \
+   $(strip \
+     $(if $(filter %.c,$<), \
+@@ -103,3 +140,9 @@
+ endif
+ 
+ help:;
++
++#this must be last because other things may have altered $(flags)
++ifneq ($(lto),)
++  flags += -flto
++  link += $(flags)
++endif
+Only in bsneshle096: install.sh
+Only in higan_v096-source: libco
+Only in bsneshle096: libretro-sdk
+Only in bsneshle096: LICENSE
+Only in bsneshle096: make.sh
+diff -ru higan_v096-source/nall/GNUmakefile bsneshle096/nall/GNUmakefile
+--- higan_v096-source/nall/GNUmakefile	2015-12-20 18:20:53.000000000 +0100
++++ bsneshle096/nall/GNUmakefile	2015-12-21 13:38:23.994238000 +0100
+@@ -6,6 +6,7 @@
+ [a-z] = a b c d e f g h i j k l m n o p q r s t u v w x y z
+ [0-9] = 0 1 2 3 4 5 6 7 8 9
+ [markup] = ` ~ ! @ \# $$ % ^ & * ( ) - _ = + [ { ] } \ | ; : ' " , < . > / ?
++# Some editors need this for proper syntax highlighting: '
+ [all] = $([A-Z]) $([a-z]) $([0-9]) $([markup])
+ [space] :=
+ [space] +=
+Only in bsneshle096/obj: gb-apu.o
+Only in bsneshle096/obj: gb-cartridge.o
+Only in bsneshle096/obj: gb-cheat.o
+Only in bsneshle096/obj: gb-cpu.o
+Only in bsneshle096/obj: gb-interface.o
+Only in bsneshle096/obj: gb-memory.o
+Only in bsneshle096/obj: gb-ppu.o
+Only in bsneshle096/obj: gb-scheduler.o
+Only in bsneshle096/obj: gb-system.o
+Only in bsneshle096/obj: gb-video.o
+Only in bsneshle096/obj: .gitignore
+Only in bsneshle096/obj: libco.o
+Only in bsneshle096/obj: libretro-accuracy.o
+Only in bsneshle096/obj: processor-arm.o
+Only in bsneshle096/obj: processor-gsu.o
+Only in bsneshle096/obj: processor-hg51b.o
+Only in bsneshle096/obj: processor-lr35902.o
+Only in bsneshle096/obj: processor-r65816.o
+Only in bsneshle096/obj: processor-spc700.o
+Only in bsneshle096/obj: processor-upd96050.o
+Only in bsneshle096/obj: sfc-armdsp-accuracy.o
+Only in bsneshle096/obj: sfc-bsmemory-accuracy.o
+Only in bsneshle096/obj: sfc-cartridge-accuracy.o
+Only in bsneshle096/obj: sfc-cheat-accuracy.o
+Only in bsneshle096/obj: sfc-controller-accuracy.o
+Only in bsneshle096/obj: sfc-cpu-accuracy.o
+Only in bsneshle096/obj: sfc-dsp-accuracy.o
+Only in bsneshle096/obj: sfc-eboot-accuracy.o
+Only in bsneshle096/obj: sfc-epsonrtc-accuracy.o
+Only in bsneshle096/obj: sfc-event-accuracy.o
+Only in bsneshle096/obj: sfc-hitachidsp-accuracy.o
+Only in bsneshle096/obj: sfc-hlecx4-accuracy.o
+Only in bsneshle096/obj: sfc-hledsp1-accuracy.o
+Only in bsneshle096/obj: sfc-hledsp2-accuracy.o
+Only in bsneshle096/obj: sfc-hledsp3-accuracy.o
+Only in bsneshle096/obj: sfc-hledsp4-accuracy.o
+Only in bsneshle096/obj: sfc-hlest0010-accuracy.o
+Only in bsneshle096/obj: sfc-icd2-accuracy.o
+Only in bsneshle096/obj: sfc-interface-accuracy.o
+Only in bsneshle096/obj: sfc-mcc-accuracy.o
+Only in bsneshle096/obj: sfc-memory-accuracy.o
+Only in bsneshle096/obj: sfc-msu1-accuracy.o
+Only in bsneshle096/obj: sfc-necdsp-accuracy.o
+Only in bsneshle096/obj: sfc-nss-accuracy.o
+Only in bsneshle096/obj: sfc-obc1-accuracy.o
+Only in bsneshle096/obj: sfc-ppu-accuracy.o
+Only in bsneshle096/obj: sfc-sa1-accuracy.o
+Only in bsneshle096/obj: sfc-satellaview-accuracy.o
+Only in bsneshle096/obj: sfc-sdd1-accuracy.o
+Only in bsneshle096/obj: sfc-sharprtc-accuracy.o
+Only in bsneshle096/obj: sfc-smp-accuracy.o
+Only in bsneshle096/obj: sfc-spc7110-accuracy.o
+Only in bsneshle096/obj: sfc-sufamiturbo-accuracy.o
+Only in bsneshle096/obj: sfc-superfx-accuracy.o
+Only in bsneshle096/obj: sfc-system-accuracy.o
+Only in bsneshle096/out: bsnes_accuracy_libretro.so
+Only in bsneshle096/out: .gitignore
+Only in bsneshle096: README
+diff -ru higan_v096-source/sfc/alt/cpu/cpu.cpp bsneshle096/sfc/alt/cpu/cpu.cpp
+--- higan_v096-source/sfc/alt/cpu/cpu.cpp	2015-12-19 14:38:08.000000000 +0100
++++ bsneshle096/sfc/alt/cpu/cpu.cpp	2015-12-21 15:01:23.990247411 +0100
+@@ -98,9 +98,9 @@
+   reader = [](uint addr, uint8 data) { return cpu.wram[addr]; };
+   writer = [](uint addr, uint8 data) { cpu.wram[addr] = data; };
+ 
+-  bus.map(reader, writer, 0x00, 0x3f, 0x0000, 0x1fff, 0x002000);
+-  bus.map(reader, writer, 0x80, 0xbf, 0x0000, 0x1fff, 0x002000);
+-  bus.map(reader, writer, 0x7e, 0x7f, 0x0000, 0xffff, 0x020000);
++  bus.map(reader, writer, 0x00, 0x3f, 0x0000, 0x1fff, 0x002000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
++  bus.map(reader, writer, 0x80, 0xbf, 0x0000, 0x1fff, 0x002000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
++  bus.map(reader, writer, 0x7e, 0x7f, 0x0000, 0xffff, 0x020000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
+ }
+ 
+ auto CPU::power() -> void {
+diff -ru higan_v096-source/sfc/cartridge/cartridge.cpp bsneshle096/sfc/cartridge/cartridge.cpp
+--- higan_v096-source/sfc/cartridge/cartridge.cpp	2015-12-18 14:28:15.000000000 +0100
++++ bsneshle096/sfc/cartridge/cartridge.cpp	2015-12-21 15:02:07.254247487 +0100
+@@ -73,6 +73,13 @@
+   hasOBC1       = false;
+   hasMSU1       = false;
+ 
++  hasDSP1       = false;
++  hasDSP2       = false;
++  hasDSP3       = false;
++  hasDSP4       = false;
++  hasCX4        = false;
++  hasST0010     = false;
++
+   hasGameBoySlot      = false;
+   hasBSMemorySlot     = false;
+   hasSufamiTurboSlots = false;
+diff -ru higan_v096-source/sfc/cartridge/cartridge.hpp bsneshle096/sfc/cartridge/cartridge.hpp
+--- higan_v096-source/sfc/cartridge/cartridge.hpp	2015-12-18 14:14:11.000000000 +0100
++++ bsneshle096/sfc/cartridge/cartridge.hpp	2015-12-21 16:15:10.210255181 +0100
+@@ -24,6 +24,13 @@
+   readonly<bool> hasOBC1;
+   readonly<bool> hasMSU1;
+ 
++  readonly<bool> hasDSP1;
++  readonly<bool> hasDSP2;
++  readonly<bool> hasDSP3;
++  readonly<bool> hasDSP4;
++  readonly<bool> hasCX4;
++  readonly<bool> hasST0010;
++
+   readonly<bool> hasGameBoySlot;
+   readonly<bool> hasBSMemorySlot;
+   readonly<bool> hasSufamiTurboSlots;
+@@ -47,6 +54,9 @@
+     uint base = 0;
+     uint mask = 0;
+ 
++    enum fastmode_t { fastmode_slow, fastmode_readonly, fastmode_readwrite } fastmode;
++    uint8* fastptr;
++
+     Mapping() = default;
+     Mapping(const function<uint8 (uint, uint8)>&, const function<void (uint, uint8)>&);
+     Mapping(SuperFamicom::Memory&);
+@@ -87,6 +97,7 @@
+   //markup.cpp
+   auto parseMarkup(const string&) -> void;
+   auto parseMarkupMap(Markup::Node, SuperFamicom::Memory&) -> void;
++  auto parseMarkupMap(Markup::Node, SuperFamicom::MappedRAM&) -> void;
+   auto parseMarkupMap(Markup::Node, const function<uint8 (uint, uint8)>&, const function<void (uint, uint8)>&) -> void;
+   auto parseMarkupMemory(MappedRAM&, Markup::Node, unsigned id, bool writable) -> void;
+ 
+@@ -110,6 +121,9 @@
+   auto parseMarkupOBC1(Markup::Node) -> void;
+   auto parseMarkupMSU1(Markup::Node) -> void;
+ 
++  void parseMarkupHitachiDSPHLE(Markup::Node);
++  void parseMarkupNecDSPHLE(Markup::Node);
++
+   bool _loaded = false;
+   string _sha256;
+   Region _region = Region::NTSC;
+diff -ru higan_v096-source/sfc/cartridge/markup.cpp bsneshle096/sfc/cartridge/markup.cpp
+--- higan_v096-source/sfc/cartridge/markup.cpp	2015-12-19 14:14:00.000000000 +0100
++++ bsneshle096/sfc/cartridge/markup.cpp	2015-12-21 16:20:16.274255718 +0100
+@@ -1,11 +1,13 @@
+ Cartridge::Mapping::Mapping(SuperFamicom::Memory& memory) {
+   this->reader = {&SuperFamicom::Memory::read,  &memory};
+   this->writer = {&SuperFamicom::Memory::write, &memory};
++  fastmode = Mapping::fastmode_slow;
+ }
+ 
+ Cartridge::Mapping::Mapping(const function<uint8 (uint, uint8)>& reader, const function<void (uint, uint8)>& writer) {
+   this->reader = reader;
+   this->writer = writer;
++  fastmode = Mapping::fastmode_slow;
+ }
+ 
+ auto Cartridge::parseMarkup(const string& markup) -> void {
+@@ -49,6 +51,18 @@
+   if(m.size != 0) mapping.append(m);
+ }
+ 
++auto Cartridge::parseMarkupMap(Markup::Node map, SuperFamicom::MappedRAM& memory) -> void {
++  Mapping m{memory};
++  m.addr = map["address"].text();
++  m.size = map["size"].natural();
++  m.base = map["base"].natural();
++  m.mask = map["mask"].natural();
++  m.fastmode = (memory.write_protected() ? Mapping::fastmode_readonly : Mapping::fastmode_readwrite);
++  m.fastptr = memory.data();
++  if(m.size == 0) m.size = memory.size();
++  if(m.size != 0) mapping.append(m);
++}
++
+ auto Cartridge::parseMarkupMap(
+   Markup::Node map,
+   const function<uint8 (uint, uint8)>& reader,
+@@ -251,6 +265,13 @@
+ }
+ 
+ auto Cartridge::parseMarkupHitachiDSP(Markup::Node root, uint roms) -> void {
++  if(interface->bind->altImplementation(Alt::ForDSP) == Alt::DSP::HLE)
++  {
++    //this is after checking existence because we don't want to ask which DSP to use and then use none of them
++    parseMarkupHitachiDSPHLE(root);
++    return;
++  }
++
+   hasHitachiDSP = true;
+ 
+   hitachidsp.Frequency = root["frequency"].natural();
+@@ -284,6 +305,12 @@
+ }
+ 
+ auto Cartridge::parseMarkupNECDSP(Markup::Node root) -> void {
++  if(interface->bind->altImplementation(Alt::ForDSP)==Alt::DSP::HLE)
++  {
++    parseMarkupNecDSPHLE(root);
++    return;
++  }
++
+   hasNECDSP = true;
+ 
+   necdsp.frequency = root["frequency"].natural();
+@@ -398,3 +425,74 @@
+     parseMarkupMap(node, {&MSU1::mmioRead, &msu1}, {&MSU1::mmioWrite, &msu1});
+   }
+ }
++
++void Cartridge::parseMarkupHitachiDSPHLE(Markup::Node root) {
++//untested.
++  hasCX4 = true;
++
++  for(auto node : root.find("map")) {
++    parseMarkupMap(node, {&Cx4::read, &cx4}, {&Cx4::write, &cx4});
++  }
++
++  for(auto node : root["rom"].find("map")) {
++    parseMarkupMap(node, {&Cx4::read, &cx4}, {&Cx4::write, &cx4});
++  }
++
++  for(auto node : root["ram"].find("map")) {
++    parseMarkupMap(node, {&Cx4::read, &cx4}, {&Cx4::write, &cx4});
++  }
++
++  for(auto node : root["dram"].find("map")) {
++    parseMarkupMap(node, {&Cx4::read, &cx4}, {&Cx4::write, &cx4});
++  }
++}
++
++void Cartridge::parseMarkupNecDSPHLE(Markup::Node root) {
++//I don't even know
++//  if (root["model"].data == "uPD7725") {
++//    Mapping m;
++//    unsigned int select=0;
++//    unsigned int * selectaddr=NULL;
++//    for(auto& node : root) {
++//      if (node.name == "rom" && node["id"].data == "program") {
++//        if (node["name"].data == "dsp1.program.rom" || node["name"].data == "dsp1b.program.rom") {
++//          has_dsp1 = true;
++//          m.reader = {&DSP1::read, &dsp1};
++//          m.writer = {&DSP1::write, &dsp1};
++//          selectaddr = &dsp1.Select;
++//        }
++//        if (node["name"].data == "dsp2.program.rom") {
++//          has_dsp2 = true;
++//          m.reader = {&DSP2::read, &dsp2};
++//          m.writer = {&DSP2::write, &dsp2};
++//          selectaddr = &dsp2.Select;
++//        }
++//        if (node["name"].data == "dsp3.program.rom") {
++//          has_dsp3 = true;
++//          m.reader = {&DSP3::read, &dsp3};
++//          m.writer = {&DSP3::write, &dsp3};
++//          //some of the chips hardcode the Select value
++//        }
++//        if (node["name"].data == "dsp4.program.rom") {
++//          has_dsp4 = true;
++//          m.reader = {&DSP4::read, &dsp4};
++//          m.writer = {&DSP4::write, &dsp4};
++//        }
++//      }
++//      if (node.name == "map" && node["id"].data == "io") {
++//        parse_markup_map(m, node);
++//        select = numeral(node["select"].data);
++//      }
++//    }
++//    if (selectaddr) *selectaddr=select;
++//    mapping.append(m);
++//  } else {
++//    Mapping m({&ST0010::read, &st0010}, {&ST0010::write, &st0010});
++//    for(auto& node : root) {
++//      if(node.name != "map") continue;
++//
++//      parse_markup_map(m, node);
++//      mapping.append(m);
++//    }
++//  }
++}
+diff -ru higan_v096-source/sfc/coprocessor/coprocessor.hpp bsneshle096/sfc/coprocessor/coprocessor.hpp
+--- higan_v096-source/sfc/coprocessor/coprocessor.hpp	2015-12-14 08:45:35.000000000 +0100
++++ bsneshle096/sfc/coprocessor/coprocessor.hpp	2015-12-21 15:42:40.434251758 +0100
+@@ -24,6 +24,14 @@
+ 
+ #include <sfc/coprocessor/msu1/msu1.hpp>
+ 
++#include <sfc/coprocessor/dsp1/dsp1.hpp>
++#include <sfc/coprocessor/dsp2/dsp2.hpp>
++#include <sfc/coprocessor/dsp3/dsp3.hpp>
++#include <sfc/coprocessor/dsp4/dsp4.hpp>
++
++#include <sfc/coprocessor/cx4/cx4.hpp>
++#include <sfc/coprocessor/st0010/st0010.hpp>
++
+ auto Coprocessor::step(uint clocks) -> void {
+   clock += clocks * (uint64)cpu.frequency;
+ }
+Only in bsneshle096/sfc/coprocessor: cx4
+Only in bsneshle096/sfc/coprocessor: dsp1
+Only in bsneshle096/sfc/coprocessor: dsp2
+Only in bsneshle096/sfc/coprocessor: dsp3
+Only in bsneshle096/sfc/coprocessor: dsp4
+Only in bsneshle096/sfc/coprocessor: st0010
+diff -ru higan_v096-source/sfc/cpu/cpu.cpp bsneshle096/sfc/cpu/cpu.cpp
+--- higan_v096-source/sfc/cpu/cpu.cpp	2015-12-14 08:12:40.000000000 +0100
++++ bsneshle096/sfc/cpu/cpu.cpp	2015-12-21 15:44:04.946251907 +0100
+@@ -111,9 +111,9 @@
+   reader = [](uint addr, uint8) -> uint8 { return cpu.wram[addr]; };
+   writer = [](uint addr, uint8 data) -> void { cpu.wram[addr] = data; };
+ 
+-  bus.map(reader, writer, 0x00, 0x3f, 0x0000, 0x1fff, 0x002000);
+-  bus.map(reader, writer, 0x80, 0xbf, 0x0000, 0x1fff, 0x002000);
+-  bus.map(reader, writer, 0x7e, 0x7f, 0x0000, 0xffff, 0x020000);
++  bus.map(reader, writer, 0x00, 0x3f, 0x0000, 0x1fff, 0x002000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
++  bus.map(reader, writer, 0x80, 0xbf, 0x0000, 0x1fff, 0x002000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
++  bus.map(reader, writer, 0x7e, 0x7f, 0x0000, 0xffff, 0x020000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
+ }
+ 
+ auto CPU::power() -> void {
+diff -ru higan_v096-source/sfc/GNUmakefile bsneshle096/sfc/GNUmakefile
+--- higan_v096-source/sfc/GNUmakefile	2015-12-18 13:57:40.000000000 +0100
++++ bsneshle096/sfc/GNUmakefile	2015-12-21 16:25:00.174256217 +0100
+@@ -9,22 +9,23 @@
+ sfc_objects += sfc-spc7110 sfc-sdd1 sfc-obc1
+ sfc_objects += sfc-msu1
+ sfc_objects += sfc-bsmemory sfc-sufamiturbo
+-objects += $(sfc_objects)
++sfc_objects += sfc-hledsp1 sfc-hledsp2 sfc-hledsp3 sfc-hledsp4
++sfc_objects += sfc-hlecx4 sfc-hlest0010
+ 
+ ifeq ($(profile),accuracy)
+-  flags += -DPROFILE_ACCURACY
++  profflags += -DPROFILE_ACCURACY
+   sfccpu := $(sfc)/cpu
+   sfcsmp := $(sfc)/smp
+   sfcdsp := $(sfc)/dsp
+   sfcppu := $(sfc)/ppu
+ else ifeq ($(profile),balanced)
+-  flags += -DPROFILE_BALANCED
++  profflags += -DPROFILE_BALANCED
+   sfccpu := $(sfc)/cpu
+   sfcsmp := $(sfc)/smp
+   sfcdsp := $(sfc)/alt/dsp
+   sfcppu := $(sfc)/alt/ppu-balanced
+ else ifeq ($(profile),performance)
+-  flags += -DPROFILE_PERFORMANCE
++  profflags += -DPROFILE_PERFORMANCE
+   sfccpu := $(sfc)/alt/cpu
+   sfcsmp := $(sfc)/alt/smp
+   sfcdsp := $(sfc)/alt/dsp
+@@ -33,40 +34,48 @@
+   $(error unknown Super Famicom profile)
+ endif
+ 
+-obj/sfc-interface.o:   $(sfc)/interface/interface.cpp $(call rwildcard,$(sfc)/interface)
+-obj/sfc-system.o:      $(sfc)/system/system.cpp $(call rwildcard,$(sfc)/system/)
+-obj/sfc-controller.o:  $(sfc)/controller/controller.cpp $(call rwildcard,$(sfc)/controller/)
+-obj/sfc-cartridge.o:   $(sfc)/cartridge/cartridge.cpp $(call rwildcard,$(sfc)/cartridge/)
+-obj/sfc-cheat.o:       $(sfc)/cheat/cheat.cpp $(call rwildcard,$(sfc)/cheat/)
+-obj/sfc-memory.o:      $(sfc)/memory/memory.cpp $(call rwildcard,$(sfc)/memory/)
+-obj/sfc-cpu.o:         $(sfccpu)/cpu.cpp $(call rwildcard,$(sfccpu)/)
+-obj/sfc-smp.o:         $(sfcsmp)/smp.cpp $(call rwildcard,$(sfcsmp)/)
+-obj/sfc-dsp.o:         $(sfcdsp)/dsp.cpp $(call rwildcard,$(sfcdsp)/)
+-obj/sfc-ppu.o:         $(sfcppu)/ppu.cpp $(call rwildcard,$(sfcppu)/)
+-
+-obj/sfc-satellaview.o: $(sfc)/expansion/satellaview/satellaview.cpp $(call rwildcard,$(sfc)/expansion/satellaview/)
+-obj/sfc-eboot.o:       $(sfc)/expansion/eboot/eboot.cpp $(call rwildcard,$(sfc)/expansion/eboot/)
+-
+-obj/sfc-icd2.o:        $(sfc)/coprocessor/icd2/icd2.cpp $(call rwildcard,$(sfc)/coprocessor/icd2/)
+-obj/sfc-mcc.o:         $(sfc)/coprocessor/mcc/mcc.cpp $(call rwildcard,$(sfc)/coprocessor/mcc/)
+-obj/sfc-nss.o:         $(sfc)/coprocessor/nss/nss.cpp $(call rwildcard,$(sfc)/coprocessor/nss/)
+-obj/sfc-event.o:       $(sfc)/coprocessor/event/event.cpp $(call rwildcard,$(sfc)/coprocessor/event/)
+-
+-obj/sfc-sa1.o:         $(sfc)/coprocessor/sa1/sa1.cpp $(call rwildcard,$(sfc)/coprocessor/sa1/)
+-obj/sfc-superfx.o:     $(sfc)/coprocessor/superfx/superfx.cpp $(call rwildcard,$(sfc)/coprocessor/superfx/)
+-
+-obj/sfc-armdsp.o:      $(sfc)/coprocessor/armdsp/armdsp.cpp $(call rwildcard,$(sfc)/coprocessor/armdsp/)
+-obj/sfc-hitachidsp.o:  $(sfc)/coprocessor/hitachidsp/hitachidsp.cpp $(call rwildcard,$(sfc)/coprocessor/hitachidsp/)
+-obj/sfc-necdsp.o:      $(sfc)/coprocessor/necdsp/necdsp.cpp $(call rwildcard,$(sfc)/coprocessor/necdsp/)
+-
+-obj/sfc-epsonrtc.o:    $(sfc)/coprocessor/epsonrtc/epsonrtc.cpp $(call rwildcard,$(sfc)/coprocessor/epsonrtc/)
+-obj/sfc-sharprtc.o:    $(sfc)/coprocessor/sharprtc/sharprtc.cpp $(call rwildcard,$(sfc)/coprocessor/sharprtc/)
+-
+-obj/sfc-spc7110.o:     $(sfc)/coprocessor/spc7110/spc7110.cpp $(call rwildcard,$(sfc)/coprocessor/spc7110/)
+-obj/sfc-sdd1.o:        $(sfc)/coprocessor/sdd1/sdd1.cpp $(call rwildcard,$(sfc)/coprocessor/sdd1/)
+-obj/sfc-obc1.o:        $(sfc)/coprocessor/obc1/obc1.cpp $(call rwildcard,$(sfc)/coprocessor/obc1/)
++obj/sfc-interface-$(profile).o:   $(sfc)/interface/interface.cpp $(call rwildcard,$(sfc)/interface)
++obj/sfc-system-$(profile).o:      $(sfc)/system/system.cpp $(call rwildcard,$(sfc)/system/)
++obj/sfc-controller-$(profile).o:  $(sfc)/controller/controller.cpp $(call rwildcard,$(sfc)/controller/)
++obj/sfc-cartridge-$(profile).o:   $(sfc)/cartridge/cartridge.cpp $(call rwildcard,$(sfc)/cartridge/)
++obj/sfc-cheat-$(profile).o:       $(sfc)/cheat/cheat.cpp $(call rwildcard,$(sfc)/cheat/)
++obj/sfc-memory-$(profile).o:      $(sfc)/memory/memory.cpp $(call rwildcard,$(sfc)/memory/)
++obj/sfc-cpu-$(profile).o:         $(sfccpu)/cpu.cpp $(call rwildcard,$(sfccpu)/)
++obj/sfc-smp-$(profile).o:         $(sfcsmp)/smp.cpp $(call rwildcard,$(sfcsmp)/)
++obj/sfc-dsp-$(profile).o:         $(sfcdsp)/dsp.cpp $(call rwildcard,$(sfcdsp)/)
++obj/sfc-ppu-$(profile).o:         $(sfcppu)/ppu.cpp $(call rwildcard,$(sfcppu)/)
++
++obj/sfc-satellaview-$(profile).o: $(sfc)/expansion/satellaview/satellaview.cpp $(call rwildcard,$(sfc)/expansion/satellaview/)
++obj/sfc-eboot-$(profile).o:       $(sfc)/expansion/eboot/eboot.cpp $(call rwildcard,$(sfc)/expansion/eboot/)
++
++obj/sfc-icd2-$(profile).o:        $(sfc)/coprocessor/icd2/icd2.cpp $(call rwildcard,$(sfc)/coprocessor/icd2/)
++obj/sfc-mcc-$(profile).o:         $(sfc)/coprocessor/mcc/mcc.cpp $(call rwildcard,$(sfc)/coprocessor/mcc/)
++obj/sfc-nss-$(profile).o:         $(sfc)/coprocessor/nss/nss.cpp $(call rwildcard,$(sfc)/coprocessor/nss/)
++obj/sfc-event-$(profile).o:       $(sfc)/coprocessor/event/event.cpp $(call rwildcard,$(sfc)/coprocessor/event/)
++
++obj/sfc-sa1-$(profile).o:         $(sfc)/coprocessor/sa1/sa1.cpp $(call rwildcard,$(sfc)/coprocessor/sa1/)
++obj/sfc-superfx-$(profile).o:     $(sfc)/coprocessor/superfx/superfx.cpp $(call rwildcard,$(sfc)/coprocessor/superfx/)
++
++obj/sfc-armdsp-$(profile).o:      $(sfc)/coprocessor/armdsp/armdsp.cpp $(call rwildcard,$(sfc)/coprocessor/armdsp/)
++obj/sfc-hitachidsp-$(profile).o:  $(sfc)/coprocessor/hitachidsp/hitachidsp.cpp $(call rwildcard,$(sfc)/coprocessor/hitachidsp/)
++obj/sfc-necdsp-$(profile).o:      $(sfc)/coprocessor/necdsp/necdsp.cpp $(call rwildcard,$(sfc)/coprocessor/necdsp/)
++
++obj/sfc-epsonrtc-$(profile).o:    $(sfc)/coprocessor/epsonrtc/epsonrtc.cpp $(call rwildcard,$(sfc)/coprocessor/epsonrtc/)
++obj/sfc-sharprtc-$(profile).o:    $(sfc)/coprocessor/sharprtc/sharprtc.cpp $(call rwildcard,$(sfc)/coprocessor/sharprtc/)
++
++obj/sfc-spc7110-$(profile).o:     $(sfc)/coprocessor/spc7110/spc7110.cpp $(call rwildcard,$(sfc)/coprocessor/spc7110/)
++obj/sfc-sdd1-$(profile).o:        $(sfc)/coprocessor/sdd1/sdd1.cpp $(call rwildcard,$(sfc)/coprocessor/sdd1/)
++obj/sfc-obc1-$(profile).o:        $(sfc)/coprocessor/obc1/obc1.cpp $(call rwildcard,$(sfc)/coprocessor/obc1/)
++
++obj/sfc-msu1-$(profile).o:        $(sfc)/coprocessor/msu1/msu1.cpp $(call rwildcard,$(sfc)/coprocessor/msu1/)
++
++obj/sfc-bsmemory-$(profile).o:    $(sfc)/slot/bsmemory/bsmemory.cpp $(call rwildcard,$(sfc)/slot/bsmemory/)
++obj/sfc-sufamiturbo-$(profile).o: $(sfc)/slot/sufamiturbo/sufamiturbo.cpp $(call rwildcard,$(sfc)/slot/sufamiturbo/)
++
++obj/sfc-hledsp1-$(profile).o:     $(sfc)/coprocessor/dsp1/dsp1.cpp $(sfc)/coprocessor/dsp1/*
++obj/sfc-hledsp2-$(profile).o:     $(sfc)/coprocessor/dsp2/dsp2.cpp $(sfc)/coprocessor/dsp2/*
++obj/sfc-hledsp3-$(profile).o:     $(sfc)/coprocessor/dsp3/dsp3.cpp $(sfc)/coprocessor/dsp3/*
++obj/sfc-hledsp4-$(profile).o:     $(sfc)/coprocessor/dsp4/dsp4.cpp $(sfc)/coprocessor/dsp4/*
+ 
+-obj/sfc-msu1.o:        $(sfc)/coprocessor/msu1/msu1.cpp $(call rwildcard,$(sfc)/coprocessor/msu1/)
+-
+-obj/sfc-bsmemory.o:    $(sfc)/slot/bsmemory/bsmemory.cpp $(call rwildcard,$(sfc)/slot/bsmemory/)
+-obj/sfc-sufamiturbo.o: $(sfc)/slot/sufamiturbo/sufamiturbo.cpp $(call rwildcard,$(sfc)/slot/sufamiturbo/)
++obj/sfc-hlecx4-$(profile).o:      $(sfc)/coprocessor/cx4/cx4.cpp $(sfc)/coprocessor/cx4/*
++obj/sfc-hlest0010-$(profile).o:   $(sfc)/coprocessor/st0010/st0010.cpp $(sfc)/coprocessor/st0010/*
+\ No newline at end of file
+diff -ru higan_v096-source/sfc/interface/interface.hpp bsneshle096/sfc/interface/interface.hpp
+--- higan_v096-source/sfc/interface/interface.hpp	2015-12-18 14:09:31.000000000 +0100
++++ bsneshle096/sfc/interface/interface.hpp	2015-12-21 15:44:40.082251969 +0100
+@@ -89,6 +89,19 @@
+   };
+ };
+ 
++struct Alt {
++  enum : unsigned {
++    ForDSP,
++    ForSuperGameBoy,
++  };
++  struct DSP {
++    enum : unsigned {
++      LLE,
++      HLE,
++    };
++  };
++};
++
+ struct Interface : Emulator::Interface {
+   Interface();
+ 
+diff -ru higan_v096-source/sfc/memory/memory.cpp bsneshle096/sfc/memory/memory.cpp
+--- higan_v096-source/sfc/memory/memory.cpp	2015-12-14 07:33:59.000000000 +0100
++++ bsneshle096/sfc/memory/memory.cpp	2015-12-21 16:17:26.770255421 +0100
+@@ -18,6 +18,10 @@
+   function<auto (uint, uint8) -> uint8> reader = [](uint, uint8 data) { return data; };
+   function<auto (uint, uint8) -> void> writer = [](uint, uint8) {};
+ 
++#ifdef __LIBRETRO__
++  libretro_mem_map.reset();
++#endif
++
+   idcount = 0;
+   map(reader, writer, 0x00, 0xff, 0x0000, 0xffff);
+ }
+@@ -35,7 +39,7 @@
+         uint bankhi = hex(bankpart(1, bankpart(0)));
+         uint addrlo = hex(addrpart(0));
+         uint addrhi = hex(addrpart(1, addrpart(0)));
+-        map(m.reader, m.writer, banklo, bankhi, addrlo, addrhi, m.size, m.base, m.mask);
++        map(m.reader, m.writer, banklo, bankhi, addrlo, addrhi, m.size, m.base, m.mask, m.fastmode, m.fastptr);
+       }
+     }
+   }
+@@ -45,22 +49,73 @@
+   const function<uint8 (uint, uint8)>& reader,
+   const function<void (uint, uint8)>& writer,
+   uint banklo, uint bankhi, uint addrlo, uint addrhi,
+-  uint size, uint base, uint mask
++  uint size, uint base, uint mask,
++  uint fastmode, uint8* fastptr
+ ) -> void {
+   assert(banklo <= bankhi && bankhi <= 0xff);
+   assert(addrlo <= addrhi && addrhi <= 0xffff);
+   assert(idcount < 255);
+ 
++  bool do_fast=(size%(addrhi+1-addrlo)==0 && !((mask|addrlo|addrhi|size)&fast_page_size_mask));
++  bool do_fast_read =(fastmode!=Cartridge::Mapping::fastmode_slow      && do_fast);
++  bool do_fast_write=(fastmode==Cartridge::Mapping::fastmode_readwrite && do_fast);
++  for(unsigned bank = banklo; bank <= bankhi; bank++) {
++    for(unsigned addr = addrlo&~fast_page_size_mask; addr<=addrhi; addr+=fast_page_size) {
++      unsigned origpos = (bank << 16 | addr);
++      unsigned fastoffset = origpos >> fast_page_size_bits;
++
++      unsigned accesspos = reduce(origpos, mask);
++      if(size) accesspos = base + mirror(accesspos, size - base);
++      if(do_fast_read)  fast_read[fastoffset] = fastptr - origpos + accesspos;
++      else fast_read[fastoffset] = NULL;
++      if(do_fast_write) fast_write[fastoffset] = fastptr - origpos + accesspos;
++      else fast_write[fastoffset] = NULL;
++    }
++  }
++
++#ifdef __LIBRETRO__
++  if (((banklo&-banklo)|0x01000000)>(bankhi-banklo) && (bankhi&(bankhi+1)&~banklo)==0 &&
++      ((addrlo&-addrlo)|0x01000000)>(addrhi-addrlo) && (addrhi&(addrhi+1)&~addrlo)==0)
++  {
++    retro_memory_descriptor desc;
++    desc.flags=(fastmode==Cartridge::Mapping::fastmode_readwrite ? 0 : RETRO_MEMDESC_CONST);
++    desc.ptr=fastptr;
++    desc.offset=0;
++    desc.start=banklo<<16 | addrlo;
++    desc.select=(banklo<<16 | addrlo) ^ (bankhi<<16 | addrhi) ^ 0xFFFFFF;
++    desc.disconnect=mask;
++    desc.len=size;
++    if (!size) desc.len=0x01000000;
++    desc.addrspace=NULL;
++    libretro_mem_map.append(desc);
++  }
++#endif
++
+   uint id = idcount++;
+   this->reader[id] = reader;
+   this->writer[id] = writer;
+ 
+-  for(uint bank = banklo; bank <= bankhi; bank++) {
+-    for(uint addr = addrlo; addr <= addrhi; addr++) {
+-      uint offset = reduce(bank << 16 | addr, mask);
+-      if(size) offset = base + mirror(offset, size - base);
+-      lookup[bank << 16 | addr] = id;
+-      target[bank << 16 | addr] = offset;
++  if (!(mask & (addrlo^addrhi)) && size%(addrhi+1-addrlo)==0) {
++    //fastpath for common cases
++    for(unsigned bank = banklo; bank <= bankhi; bank++) {
++      unsigned offset = reduce(bank << 16 | addrlo, mask);
++      if (size) offset = base + mirror(offset, size - base);
++      unsigned pos = (bank<<16 | addrlo);
++      unsigned end = (bank<<16 | addrhi);
++      while (pos <= end) {
++        lookup[pos] = id;
++        target[pos] = offset++;
++        pos++;
++      }
++    }
++  } else {
++    for(unsigned bank = banklo; bank <= bankhi; bank++) {
++      for(unsigned addr = addrlo; addr <= addrhi; addr++) {
++        unsigned offset = reduce(bank << 16 | addr, mask);
++        if(size) offset = base + mirror(offset, size - base);
++        lookup[bank << 16 | addr] = id;
++        target[bank << 16 | addr] = offset;
++      }
+     }
+   }
+ }
+diff -ru higan_v096-source/sfc/memory/memory.hpp bsneshle096/sfc/memory/memory.hpp
+--- higan_v096-source/sfc/memory/memory.hpp	2015-12-14 08:16:09.000000000 +0100
++++ bsneshle096/sfc/memory/memory.hpp	2015-12-21 15:48:37.598252385 +0100
+@@ -1,7 +1,12 @@
++#ifdef __LIBRETRO__
++#include "../../target-libretro/libretro.h"
++#endif
++
+ struct Memory {
+   virtual inline auto size() const -> uint;
+   virtual auto read(uint addr, uint8 data = 0) -> uint8 = 0;
+   virtual auto write(uint addr, uint8 data) -> void = 0;
++  virtual uint8* data() { return NULL; }
+ };
+ 
+ struct StaticRAM : Memory {
+@@ -28,6 +33,7 @@
+   inline auto read(const stream& memory) -> void;
+ 
+   inline auto write_protect(bool status) -> void;
++  inline auto write_protected() -> bool;
+   inline auto data() -> uint8*;
+   inline auto size() const -> uint;
+ 
+@@ -57,7 +63,8 @@
+     const function<uint8 (uint, uint8)>& reader,
+     const function<void (uint, uint8)>& writer,
+     uint banklo, uint bankhi, uint addrlo, uint addrhi,
+-    uint size = 0, uint base = 0, uint mask = 0
++    uint size = 0, uint base = 0, uint mask = 0,
++    uint fastmode = 0, uint8* fast_ptr = NULL
+   ) -> void;
+ 
+   uint8* lookup = nullptr;
+@@ -66,6 +73,16 @@
+   uint idcount = 0;
+   function<auto (uint, uint8) -> uint8> reader[256];
+   function<auto (uint, uint8) -> void> writer[256];
++
++  static const uint32 fast_page_size_bits = 13;//keep at 13 or lower so the RAM mirrors can be on the fast path
++  static const uint32 fast_page_size = (1 << fast_page_size_bits);
++  static const uint32 fast_page_size_mask = (fast_page_size - 1);
++  uint8* fast_read[0x1000000>>fast_page_size_bits];
++  uint8* fast_write[0x1000000>>fast_page_size_bits];
++
++#ifdef __LIBRETRO__
++  vector<retro_memory_descriptor> libretro_mem_map;
++#endif
+ };
+ 
+ extern Bus bus;
+diff -ru higan_v096-source/sfc/memory/memory-inline.hpp bsneshle096/sfc/memory/memory-inline.hpp
+--- higan_v096-source/sfc/memory/memory-inline.hpp	2015-12-14 07:40:19.000000000 +0100
++++ bsneshle096/sfc/memory/memory-inline.hpp	2015-12-21 15:49:55.518252522 +0100
+@@ -45,6 +45,7 @@
+ }
+ 
+ auto MappedRAM::write_protect(bool status) -> void { write_protect_ = status; }
++auto MappedRAM::write_protected() -> bool { return write_protect_; }
+ auto MappedRAM::data() -> uint8* { return data_; }
+ auto MappedRAM::size() const -> uint { return size_; }
+ 
+@@ -80,15 +81,19 @@
+ }
+ 
+ auto Bus::read(uint addr, uint8 data) -> uint8 {
+-  data = reader[lookup[addr]](target[addr], data);
++  if (fast_read[addr>>fast_page_size_bits]) data = fast_read[addr>>fast_page_size_bits][addr];
++  else data = reader[lookup[addr]](target[addr], data);
+ 
++#ifndef __LIBRETRO__
+   if(cheat.enable()) {
+     if(auto result = cheat.find(addr, data)) return result();
+   }
++#endif
+ 
+   return data;
+ }
+ 
+ auto Bus::write(uint addr, uint8 data) -> void {
+-  return writer[lookup[addr]](target[addr], data);
++  if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data;
++  else writer[lookup[addr]](target[addr], data);
+ }
+diff -ru higan_v096-source/sfc/ppu/background/background.hpp bsneshle096/sfc/ppu/background/background.hpp
+--- higan_v096-source/sfc/ppu/background/background.hpp	2015-11-11 13:07:10.000000000 +0100
++++ bsneshle096/sfc/ppu/background/background.hpp	2015-12-21 15:54:33.806253011 +0100
+@@ -62,20 +62,20 @@
+     uint8 data[8];
+   };
+ 
+-  auto frame() -> void;
+-  auto scanline() -> void;
+-  auto begin() -> void;
+-  auto run(bool screen) -> void;
+-  auto reset() -> void;
++  inline auto frame() -> void;
++  inline auto scanline() -> void;
++  inline auto begin() -> void;
++  inline auto run(bool screen) -> void;
++  inline auto reset() -> void;
+ 
+-  auto get_tile() -> void;
+-  auto get_tile_color() -> uint;
+-  auto get_tile(uint x, uint y) -> uint;
++  inline auto get_tile() -> void;
++  inline auto get_tile_color() -> uint;
++  inline auto get_tile(uint x, uint y) -> uint;
+   alwaysinline auto clip(int n) -> int;
+-  auto begin_mode7() -> void;
+-  auto run_mode7() -> void;
++  inline auto begin_mode7() -> void;
++  inline auto run_mode7() -> void;
+ 
+-  auto serialize(serializer&) -> void;
++  inline auto serialize(serializer&) -> void;
+ 
+   PPU& self;
+   friend class PPU;
+diff -ru higan_v096-source/sfc/ppu/mmio/mmio.hpp bsneshle096/sfc/ppu/mmio/mmio.hpp
+--- higan_v096-source/sfc/ppu/mmio/mmio.hpp	2015-12-14 08:13:28.000000000 +0100
++++ bsneshle096/sfc/ppu/mmio/mmio.hpp	2015-12-21 15:55:58.574253160 +0100
+@@ -1,6 +1,6 @@
+ public:
+-  auto mmio_read(uint addr, uint8 data) -> uint8;
+-  auto mmio_write(uint addr, uint8 data) -> void;
++  inline auto mmio_read(uint addr, uint8 data) -> uint8;
++  inline auto mmio_write(uint addr, uint8 data) -> void;
+ 
+ privileged:
+ struct {
+@@ -95,71 +95,71 @@
+ alwaysinline auto cgram_read(uint addr) -> uint8;
+ alwaysinline auto cgram_write(uint addr, uint8 data) -> void;
+ 
+-auto mmio_update_video_mode() -> void;
++inline auto mmio_update_video_mode() -> void;
+ 
+-auto mmio_w2100(uint8) -> void;  //INIDISP
+-auto mmio_w2101(uint8) -> void;  //OBSEL
+-auto mmio_w2102(uint8) -> void;  //OAMADDL
+-auto mmio_w2103(uint8) -> void;  //OAMADDH
+-auto mmio_w2104(uint8) -> void;  //OAMDATA
+-auto mmio_w2105(uint8) -> void;  //BGMODE
+-auto mmio_w2106(uint8) -> void;  //MOSAIC
+-auto mmio_w2107(uint8) -> void;  //BG1SC
+-auto mmio_w2108(uint8) -> void;  //BG2SC
+-auto mmio_w2109(uint8) -> void;  //BG3SC
+-auto mmio_w210a(uint8) -> void;  //BG4SC
+-auto mmio_w210b(uint8) -> void;  //BG12NBA
+-auto mmio_w210c(uint8) -> void;  //BG34NBA
+-auto mmio_w210d(uint8) -> void;  //BG1HOFS
+-auto mmio_w210e(uint8) -> void;  //BG1VOFS
+-auto mmio_w210f(uint8) -> void;  //BG2HOFS
+-auto mmio_w2110(uint8) -> void;  //BG2VOFS
+-auto mmio_w2111(uint8) -> void;  //BG3HOFS
+-auto mmio_w2112(uint8) -> void;  //BG3VOFS
+-auto mmio_w2113(uint8) -> void;  //BG4HOFS
+-auto mmio_w2114(uint8) -> void;  //BG4VOFS
+-auto mmio_w2115(uint8) -> void;  //VMAIN
+-auto mmio_w2116(uint8) -> void;  //VMADDL
+-auto mmio_w2117(uint8) -> void;  //VMADDH
+-auto mmio_w2118(uint8) -> void;  //VMDATAL
+-auto mmio_w2119(uint8) -> void;  //VMDATAH
+-auto mmio_w211a(uint8) -> void;  //M7SEL
+-auto mmio_w211b(uint8) -> void;  //M7A
+-auto mmio_w211c(uint8) -> void;  //M7B
+-auto mmio_w211d(uint8) -> void;  //M7C
+-auto mmio_w211e(uint8) -> void;  //M7D
+-auto mmio_w211f(uint8) -> void;  //M7X
+-auto mmio_w2120(uint8) -> void;  //M7Y
+-auto mmio_w2121(uint8) -> void;  //CGADD
+-auto mmio_w2122(uint8) -> void;  //CGDATA
+-auto mmio_w2123(uint8) -> void;  //W12SEL
+-auto mmio_w2124(uint8) -> void;  //W34SEL
+-auto mmio_w2125(uint8) -> void;  //WOBJSEL
+-auto mmio_w2126(uint8) -> void;  //WH0
+-auto mmio_w2127(uint8) -> void;  //WH1
+-auto mmio_w2128(uint8) -> void;  //WH2
+-auto mmio_w2129(uint8) -> void;  //WH3
+-auto mmio_w212a(uint8) -> void;  //WBGLOG
+-auto mmio_w212b(uint8) -> void;  //WOBJLOG
+-auto mmio_w212c(uint8) -> void;  //TM
+-auto mmio_w212d(uint8) -> void;  //TS
+-auto mmio_w212e(uint8) -> void;  //TMW
+-auto mmio_w212f(uint8) -> void;  //TSW
+-auto mmio_w2130(uint8) -> void;  //CGWSEL
+-auto mmio_w2131(uint8) -> void;  //CGADDSUB
+-auto mmio_w2132(uint8) -> void;  //COLDATA
+-auto mmio_w2133(uint8) -> void;  //SETINI
+-auto mmio_r2134() -> uint8;  //MPYL
+-auto mmio_r2135() -> uint8;  //MPYM
+-auto mmio_r2136() -> uint8;  //MPYH
+-auto mmio_r2137() -> uint8;  //SLHV
+-auto mmio_r2138() -> uint8;  //OAMDATAREAD
+-auto mmio_r2139() -> uint8;  //VMDATALREAD
+-auto mmio_r213a() -> uint8;  //VMDATAHREAD
+-auto mmio_r213b() -> uint8;  //CGDATAREAD
+-auto mmio_r213c() -> uint8;  //OPHCT
+-auto mmio_r213d() -> uint8;  //OPVCT
+-auto mmio_r213e() -> uint8;  //STAT77
+-auto mmio_r213f() -> uint8;  //STAT78
++inline auto mmio_w2100(uint8) -> void;  //INIDISP
++inline auto mmio_w2101(uint8) -> void;  //OBSEL
++inline auto mmio_w2102(uint8) -> void;  //OAMADDL
++inline auto mmio_w2103(uint8) -> void;  //OAMADDH
++inline auto mmio_w2104(uint8) -> void;  //OAMDATA
++inline auto mmio_w2105(uint8) -> void;  //BGMODE
++inline auto mmio_w2106(uint8) -> void;  //MOSAIC
++inline auto mmio_w2107(uint8) -> void;  //BG1SC
++inline auto mmio_w2108(uint8) -> void;  //BG2SC
++inline auto mmio_w2109(uint8) -> void;  //BG3SC
++inline auto mmio_w210a(uint8) -> void;  //BG4SC
++inline auto mmio_w210b(uint8) -> void;  //BG12NBA
++inline auto mmio_w210c(uint8) -> void;  //BG34NBA
++inline auto mmio_w210d(uint8) -> void;  //BG1HOFS
++inline auto mmio_w210e(uint8) -> void;  //BG1VOFS
++inline auto mmio_w210f(uint8) -> void;  //BG2HOFS
++inline auto mmio_w2110(uint8) -> void;  //BG2VOFS
++inline auto mmio_w2111(uint8) -> void;  //BG3HOFS
++inline auto mmio_w2112(uint8) -> void;  //BG3VOFS
++inline auto mmio_w2113(uint8) -> void;  //BG4HOFS
++inline auto mmio_w2114(uint8) -> void;  //BG4VOFS
++inline auto mmio_w2115(uint8) -> void;  //VMAIN
++inline auto mmio_w2116(uint8) -> void;  //VMADDL
++inline auto mmio_w2117(uint8) -> void;  //VMADDH
++inline auto mmio_w2118(uint8) -> void;  //VMDATAL
++inline auto mmio_w2119(uint8) -> void;  //VMDATAH
++inline auto mmio_w211a(uint8) -> void;  //M7SEL
++inline auto mmio_w211b(uint8) -> void;  //M7A
++inline auto mmio_w211c(uint8) -> void;  //M7B
++inline auto mmio_w211d(uint8) -> void;  //M7C
++inline auto mmio_w211e(uint8) -> void;  //M7D
++inline auto mmio_w211f(uint8) -> void;  //M7X
++inline auto mmio_w2120(uint8) -> void;  //M7Y
++inline auto mmio_w2121(uint8) -> void;  //CGADD
++inline auto mmio_w2122(uint8) -> void;  //CGDATA
++inline auto mmio_w2123(uint8) -> void;  //W12SEL
++inline auto mmio_w2124(uint8) -> void;  //W34SEL
++inline auto mmio_w2125(uint8) -> void;  //WOBJSEL
++inline auto mmio_w2126(uint8) -> void;  //WH0
++inline auto mmio_w2127(uint8) -> void;  //WH1
++inline auto mmio_w2128(uint8) -> void;  //WH2
++inline auto mmio_w2129(uint8) -> void;  //WH3
++inline auto mmio_w212a(uint8) -> void;  //WBGLOG
++inline auto mmio_w212b(uint8) -> void;  //WOBJLOG
++inline auto mmio_w212c(uint8) -> void;  //TM
++inline auto mmio_w212d(uint8) -> void;  //TS
++inline auto mmio_w212e(uint8) -> void;  //TMW
++inline auto mmio_w212f(uint8) -> void;  //TSW
++inline auto mmio_w2130(uint8) -> void;  //CGWSEL
++inline auto mmio_w2131(uint8) -> void;  //CGADDSUB
++inline auto mmio_w2132(uint8) -> void;  //COLDATA
++inline auto mmio_w2133(uint8) -> void;  //SETINI
++inline auto mmio_r2134() -> uint8;  //MPYL
++inline auto mmio_r2135() -> uint8;  //MPYM
++inline auto mmio_r2136() -> uint8;  //MPYH
++inline auto mmio_r2137() -> uint8;  //SLHV
++inline auto mmio_r2138() -> uint8;  //OAMDATAREAD
++inline auto mmio_r2139() -> uint8;  //VMDATALREAD
++inline auto mmio_r213a() -> uint8;  //VMDATAHREAD
++inline auto mmio_r213b() -> uint8;  //CGDATAREAD
++inline auto mmio_r213c() -> uint8;  //OPHCT
++inline auto mmio_r213d() -> uint8;  //OPVCT
++inline auto mmio_r213e() -> uint8;  //STAT77
++inline auto mmio_r213f() -> uint8;  //STAT78
+ 
+-auto mmio_reset() -> void;
++inline auto mmio_reset() -> void;
+diff -ru higan_v096-source/sfc/ppu/ppu.hpp bsneshle096/sfc/ppu/ppu.hpp
+--- higan_v096-source/sfc/ppu/ppu.hpp	2015-11-11 12:59:09.000000000 +0100
++++ bsneshle096/sfc/ppu/ppu.hpp	2015-12-21 16:44:18.694258251 +0100
+@@ -12,7 +12,7 @@
+   auto overscan() const -> bool;
+   auto hires() const -> bool;
+ 
+-  auto enter() -> void;
++  inline auto enter() -> void;
+   auto enable() -> void;
+   auto power() -> void;
+   auto reset() -> void;
+@@ -49,11 +49,11 @@
+   Window window;
+   Screen screen;
+ 
+-  static auto Enter() -> void;
++  inline static auto Enter() -> void;
+   alwaysinline auto add_clocks(uint) -> void;
+ 
+-  auto scanline() -> void;
+-  auto frame() -> void;
++  inline auto scanline() -> void;
++  inline auto frame() -> void;
+ 
+   friend class PPU::Background;
+   friend class PPU::Sprite;
+diff -ru higan_v096-source/sfc/ppu/screen/screen.hpp bsneshle096/sfc/ppu/screen/screen.hpp
+--- higan_v096-source/sfc/ppu/screen/screen.hpp	2015-11-11 13:27:35.000000000 +0100
++++ bsneshle096/sfc/ppu/screen/screen.hpp	2015-12-21 15:56:11.902253183 +0100
+@@ -29,20 +29,20 @@
+     bool color_halve;
+   } math;
+ 
+-  Screen(PPU& self);
++  inline Screen(PPU& self);
+ 
+-  auto scanline() -> void;
++  inline auto scanline() -> void;
+   alwaysinline auto run() -> void;
+-  auto reset() -> void;
++  inline auto reset() -> void;
+ 
+-  auto get_pixel_sub(bool hires) -> uint16;
+-  auto get_pixel_main() -> uint16;
+-  auto addsub(uint x, uint y) -> uint16;
++  inline auto get_pixel_sub(bool hires) -> uint16;
++  inline auto get_pixel_main() -> uint16;
++  inline auto addsub(uint x, uint y) -> uint16;
+   alwaysinline auto get_color(uint palette) -> uint16;
+   alwaysinline auto get_direct_color(uint palette, uint tile) -> uint16;
+   alwaysinline auto fixed_color() const -> uint16;
+ 
+-  auto serialize(serializer&) -> void;
++  inline auto serialize(serializer&) -> void;
+ 
+   PPU& self;
+   friend class PPU;
+diff -ru higan_v096-source/sfc/ppu/sprite/sprite.hpp bsneshle096/sfc/ppu/sprite/sprite.hpp
+--- higan_v096-source/sfc/ppu/sprite/sprite.hpp	2015-11-11 13:34:47.000000000 +0100
++++ bsneshle096/sfc/ppu/sprite/sprite.hpp	2015-12-21 15:56:25.502253207 +0100
+@@ -62,21 +62,21 @@
+   Sprite(PPU& self);
+ 
+   //list.cpp
+-  auto update(uint addr, uint8 data) -> void;
+-  auto synchronize() -> void;
++  inline auto update(uint addr, uint8 data) -> void;
++  inline auto synchronize() -> void;
+ 
+   //sprite.cpp
+   alwaysinline auto address_reset() -> void;
+   alwaysinline auto set_first_sprite() -> void;
+-  auto frame() -> void;
+-  auto scanline() -> void;
+-  auto run() -> void;
+-  auto tilefetch() -> void;
+-  auto reset() -> void;
++  inline auto frame() -> void;
++  inline auto scanline() -> void;
++  inline auto run() -> void;
++  inline auto tilefetch() -> void;
++  inline auto reset() -> void;
+ 
+-  auto on_scanline(SpriteItem&) -> bool;
++  inline auto on_scanline(SpriteItem&) -> bool;
+ 
+-  auto serialize(serializer&) -> void;
++  inline auto serialize(serializer&) -> void;
+ 
+   PPU& self;
+   friend class PPU;
+diff -ru higan_v096-source/sfc/ppu/window/window.hpp bsneshle096/sfc/ppu/window/window.hpp
+--- higan_v096-source/sfc/ppu/window/window.hpp	2015-11-11 13:30:46.000000000 +0100
++++ bsneshle096/sfc/ppu/window/window.hpp	2015-12-21 15:56:34.314253222 +0100
+@@ -71,18 +71,18 @@
+ 
+   Window(PPU& self);
+ 
+-  auto scanline() -> void;
+-  auto run() -> void;
+-  auto reset() -> void;
++  inline auto scanline() -> void;
++  inline auto run() -> void;
++  inline auto reset() -> void;
+ 
+-  auto test(
++  inline auto test(
+     bool& main, bool& sub,
+     bool one_enable, bool one_invert,
+     bool two_enable, bool two_invert,
+     uint8 mask, bool main_enable, bool sub_enable
+   ) -> void;
+ 
+-  auto serialize(serializer&) -> void;
++  inline auto serialize(serializer&) -> void;
+ 
+   PPU& self;
+   friend class PPU;
+diff -ru higan_v096-source/sfc/system/serialization.cpp bsneshle096/sfc/system/serialization.cpp
+--- higan_v096-source/sfc/system/serialization.cpp	2015-11-11 13:42:18.000000000 +0100
++++ bsneshle096/sfc/system/serialization.cpp	2015-12-21 15:58:16.906253402 +0100
+@@ -71,6 +71,13 @@
+   if(cartridge.hasMSU1()) msu1.serialize(s);
+ 
+   if(cartridge.hasSufamiTurboSlots()) sufamiturboA.serialize(s), sufamiturboB.serialize(s);
++
++  if(cartridge.hasDSP1()) dsp1.serialize(s);
++  if(cartridge.hasDSP2()) dsp2.serialize(s);
++  //if(cartridge.hasDSP3()) dsp3.serialize(s);
++  //if(cartridge.hasDSP4()) dsp4.serialize(s);
++  if(cartridge.hasCX4()) cx4.serialize(s);
++  if(cartridge.hasST0010()) st0010.serialize(s);
+ }
+ 
+ //perform dry-run state save:
+diff -ru higan_v096-source/sfc/system/system.cpp bsneshle096/sfc/system/system.cpp
+--- higan_v096-source/sfc/system/system.cpp	2015-12-18 14:12:22.000000000 +0100
++++ bsneshle096/sfc/system/system.cpp	2015-12-21 16:02:09.982253812 +0100
+@@ -89,6 +89,13 @@
+ 
+   bsmemory.init();
+ 
++  dsp1.init();
++  dsp2.init();
++  dsp3.init();
++  dsp4.init();
++  cx4.init();
++  st0010.init();
++
+   video.init();
+   audio.init();
+ 
+@@ -101,11 +108,15 @@
+ 
+ auto System::load() -> void {
+   interface->loadRequest(ID::SystemManifest, "manifest.bml", true);
++#ifdef __LIBRETRO__
++  interface->loadRequest(ID::IPLROM, "ipl.rom", true);
++#else
+   auto document = BML::unserialize(information.manifest);
+ 
+   if(auto iplrom = document["system/smp/rom/name"].text()) {
+     interface->loadRequest(ID::IPLROM, iplrom, true);
+   }
++#endif
+ 
+   region = configuration.region;
+   if(region == Region::Autodetect) {
+@@ -145,6 +156,13 @@
+   if(cartridge.hasBSMemorySlot()) bsmemory.load();
+   if(cartridge.hasSufamiTurboSlots()) sufamiturboA.load(), sufamiturboB.load();
+ 
++  if(cartridge.hasDSP1()) dsp1.load();
++  if(cartridge.hasDSP2()) dsp2.load();
++  if(cartridge.hasDSP3()) dsp3.load();
++  if(cartridge.hasDSP4()) dsp4.load();
++  if(cartridge.hasCX4()) cx4.load();
++  if(cartridge.hasST0010()) st0010.load();
++
+   serializeInit();
+ }
+ 
+@@ -170,6 +188,13 @@
+ 
+   if(cartridge.hasBSMemorySlot()) bsmemory.unload();
+   if(cartridge.hasSufamiTurboSlots()) sufamiturboA.unload(), sufamiturboB.unload();
++
++  if(cartridge.hasDSP1()) dsp1.unload();
++  if(cartridge.hasDSP2()) dsp2.unload();
++  if(cartridge.hasDSP3()) dsp3.unload();
++  if(cartridge.hasDSP4()) dsp4.unload();
++  if(cartridge.hasCX4()) cx4.unload();
++  if(cartridge.hasST0010()) st0010.unload();
+ }
+ 
+ auto System::power() -> void {
+@@ -201,6 +226,13 @@
+ 
+   if(cartridge.hasBSMemorySlot()) bsmemory.power();
+ 
++  if(cartridge.hasDSP1()) dsp1.power();
++  if(cartridge.hasDSP2()) dsp2.power();
++  if(cartridge.hasDSP3()) dsp3.power();
++  if(cartridge.hasDSP4()) dsp4.power();
++  if(cartridge.hasCX4()) cx4.power();
++  if(cartridge.hasST0010()) st0010.power();
++
+   reset();
+ }
+ 
+@@ -231,6 +263,13 @@
+ 
+   if(cartridge.hasBSMemorySlot()) bsmemory.reset();
+ 
++  if(cartridge.hasDSP1()) dsp1.reset();
++  if(cartridge.hasDSP2()) dsp2.reset();
++  if(cartridge.hasDSP3()) dsp3.reset();
++  if(cartridge.hasDSP4()) dsp4.reset();
++  if(cartridge.hasCX4()) cx4.reset();
++  if(cartridge.hasST0010()) st0010.reset();
++
+   if(cartridge.hasICD2()) cpu.coprocessors.append(&icd2);
+   if(cartridge.hasEvent()) cpu.coprocessors.append(&event);
+   if(cartridge.hasSA1()) cpu.coprocessors.append(&sa1);
+Only in bsneshle096: target-libretro

@@ -1,0 +1,122 @@
+--- ../bsnes-libretro/target-libretro/libretro.cpp	2015-12-21 17:25:14.550262562 +0100
++++ target-libretro/libretro.cpp	2015-12-21 16:22:41.698255974 +0100
+@@ -79,6 +79,8 @@
+ }
+ static retro_log_printf_t output;
+ 
++static const char * read_opt(const char * name, const char * defval);
++
+ struct Callbacks : Emulator::Interface::Bind {
+   retro_video_refresh_t pvideo_refresh;
+   retro_audio_sample_batch_t paudio;
+@@ -392,10 +394,32 @@
+     if (video_fmt == video_fmt_16) return (r>>3 << 11) | (g>>2 << 5) | (b>>3 << 0);
+     if (video_fmt == video_fmt_15) return (r>>3 << 10) | (g>>3 << 5) | (b>>3 << 0);
+   }
++
++  unsigned altImplementation(unsigned item) override {
++    if (item==SuperFamicom::Alt::ForDSP)
++    {
++      if (!strcmp(read_opt("bsnes_chip_hle", "LLE"), "HLE")) return SuperFamicom::Alt::DSP::HLE;
++      else return SuperFamicom::Alt::DSP::LLE;
++    }
++    return 0;
++  }
+ };
+ 
+ static Callbacks core_bind;
+ 
++static const char * read_opt(const char * name, const char * defval)
++{
++	struct retro_variable allowvar = { "bsnes_violate_accuracy", "No" };
++	core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&allowvar);
++	if (!strcmp(allowvar.value, "Yes"))
++	{
++		struct retro_variable var = {name, defval};
++		core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
++		return var.value;
++	}
++	else return defval;
++}
++
+ struct LibretroInterface : public SuperFamicom::Interface {
+   enum Mode {
+     ModeNormal,
+@@ -467,10 +491,25 @@
+   return RETRO_API_VERSION;
+ }
+ 
++static unsigned superfx_freq_orig;
++
+ void retro_set_environment(retro_environment_t environ_cb)
+ {
+    core_bind.penviron = environ_cb;
+ 
++   static const struct retro_variable vars[] = {
++      { "bsnes_violate_accuracy", "Respect accuracy-impacting settings; No|Yes" },
++      { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
++      { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
++         //Any integer is usable here, but there is no such thing as "any integer" in core options.
++      { NULL, NULL },
++   };
++   core_bind.penviron(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);
++
++   static struct retro_log_callback log={retro_log_default};
++   core_bind.penviron(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, (void*)&log);
++   output=log.log;
++
+    static const retro_subsystem_memory_info sgb_memory[] = {
+       { "srm", RETRO_MEMORY_SNES_GAME_BOY_RAM },
+       { "rtc", RETRO_MEMORY_SNES_GAME_BOY_RTC },
+@@ -539,11 +578,19 @@
+    environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
+ }
+ 
+-void retro_set_video_refresh(retro_video_refresh_t cb)           { core_bind.pvideo_refresh = cb; }
+-void retro_set_audio_sample(retro_audio_sample_t)                { }
+-void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) { core_bind.paudio         = cb; }
+-void retro_set_input_poll(retro_input_poll_t cb)                 { core_bind.pinput_poll    = cb; }
+-void retro_set_input_state(retro_input_state_t cb)               { core_bind.pinput_state   = cb; }
++static void update_variables(void) {
++   if (SuperFamicom::cartridge.hasSuperFX()) {
++      const char * speed=read_opt("bsnes_superfx_overclock", "100%");
++      unsigned percent=strtoul(speed, NULL, 10);//we can assume that the input is one of our advertised options
++      SuperFamicom::superfx.frequency=(uint64)superfx_freq_orig*percent/100;
++   }
++}
++
++void retro_set_video_refresh(retro_video_refresh_t video_refresh) { core_bind.pvideo_refresh = video_refresh; }
++void retro_set_audio_sample(retro_audio_sample_t)    { }
++void retro_set_audio_sample_batch(retro_audio_sample_batch_t audio_sample) { core_bind.paudio  = audio_sample; }
++void retro_set_input_poll(retro_input_poll_t input_poll)          { core_bind.pinput_poll    = input_poll; }
++void retro_set_input_state(retro_input_state_t input_state)       { core_bind.pinput_state   = input_state; }
+ 
+ void retro_set_controller_port_device(unsigned port, unsigned device) {
+   if (port < 2)
+@@ -630,7 +677,7 @@
+ 
+ void retro_get_system_info(struct retro_system_info *info) {
+   static string version("v", Emulator::Version, " (", Emulator::Profile, ")");
+-  info->library_name     = "bsnes";
++  info->library_name     = "bsnes-mercury";
+   info->library_version  = version;
+   info->valid_extensions = "sfc|smc|bml";
+   info->need_fullpath    = false;
+@@ -880,7 +927,16 @@
+   std::string manifest;
+   if (core_bind.manifest)
+     manifest = std::string((const char*)info->data, info->size); // Might not be 0 terminated.
+-  return snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size);
++  
++  bool ret=snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size);
++  SuperFamicom::bus.libretro_mem_map.reverse();
++  retro_memory_map map={SuperFamicom::bus.libretro_mem_map.data(), SuperFamicom::bus.libretro_mem_map.size()};
++  core_bind.penviron(RETRO_ENVIRONMENT_SET_MEMORY_MAPS, (void*)&map);
++  
++  if (SuperFamicom::cartridge.hasSuperFX())
++    superfx_freq_orig=SuperFamicom::superfx.frequency;
++  
++  return ret;
+ }
+ 
+ bool retro_load_game_special(unsigned game_type,
