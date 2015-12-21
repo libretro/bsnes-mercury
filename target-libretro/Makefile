@@ -1,8 +1,8 @@
 processors := arm hg51b upd96050 gsu r65816 spc700 lr35902
-include processor/GNUmakefile
+include processor/Makefile
 
-include sfc/GNUmakefile
-include gb/GNUmakefile
+include sfc/Makefile
+include gb/Makefile
 output := libretro
 
 ifeq ($(platform),linux)

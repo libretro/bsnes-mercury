@@ -40,7 +40,7 @@ else ifeq ($(profile),accuracy) # If you're batshit insane
 							$(SRCDIR)/sfc/dsp/dsp.cpp \
 							$(SRCDIR)/sfc/ppu/ppu.cpp
 endif
-LOCAL_MODULE := retro_bsnes_$(profile)
+LOCAL_MODULE := retro_bsnes_mercury_${profile}
 
 LOCAL_SRC_FILES += $(SRCDIR)/libco/libco.c \
 						 $(SRCDIR)/processor/arm/arm.cpp \
