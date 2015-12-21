@@ -1,4 +1,4 @@
-void CPU::serialize(serializer& s) {
+auto CPU::serialize(serializer& s) -> void {
   ARM::serialize(s);
   Thread::serialize(s);
 
@@ -9,6 +9,7 @@ void CPU::serialize(serializer& s) {
     s.integer(dma.source);
     s.integer(dma.target);
     s.integer(dma.length);
+    s.integer(dma.data);
     s.integer(dma.control.targetmode);
     s.integer(dma.control.sourcemode);
     s.integer(dma.control.repeat);
@@ -25,6 +26,7 @@ void CPU::serialize(serializer& s) {
   for(auto& timer : regs.timer) {
     s.integer(timer.period);
     s.integer(timer.reload);
+    s.integer(timer.pending);
     s.integer(timer.control.frequency);
     s.integer(timer.control.cascade);
     s.integer(timer.control.irq);
@@ -101,7 +103,7 @@ void CPU::serialize(serializer& s) {
   s.integer(regs.memory.control.unknown2);
 
   s.integer(regs.postboot);
-  s.integer((unsigned&)regs.mode);
+  s.integer((uint&)regs.mode);
   s.integer(regs.clock);
 
   s.integer(pending.dma.vblank);

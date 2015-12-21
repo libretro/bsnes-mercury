@@ -1,32 +1,34 @@
 struct PPU : Thread, public PPUcounter {
-  uint8 vram[64 * 1024];
-  uint8 oam[544];
-  uint8 cgram[512];
-
   enum : bool { Threaded = true };
-  alwaysinline void step(unsigned clocks);
-  alwaysinline void synchronize_cpu();
 
-  void latch_counters();
-  bool interlace() const;
-  bool overscan() const;
-  bool hires() const;
-
-  void enter();
-  void enable();
-  void power();
-  void reset();
-
-  void serialize(serializer&);
   PPU();
   ~PPU();
 
-privileged:
-  unsigned ppu1_version = 1;  //allowed: 1
-  unsigned ppu2_version = 3;  //allowed: 1, 2, 3
+  alwaysinline auto step(uint clocks) -> void;
+  alwaysinline auto synchronizeCPU() -> void;
 
-  uint32* surface;
-  uint32* output;
+  auto latch_counters() -> void;
+  auto interlace() const -> bool;
+  auto overscan() const -> bool;
+  auto hires() const -> bool;
+
+  inline auto enter() -> void;
+  auto enable() -> void;
+  auto power() -> void;
+  auto reset() -> void;
+
+  auto serialize(serializer&) -> void;
+
+  uint8 vram[64 * 1024] = {0};
+  uint8 oam[544] = {0};
+  uint8 cgram[512] = {0};
+
+privileged:
+  uint ppu1_version = 1;  //allowed: 1
+  uint ppu2_version = 3;  //allowed: 1, 2, 3
+
+  uint32* surface = nullptr;
+  uint32* output = nullptr;
 
   struct {
     bool interlace;
@@ -47,11 +49,11 @@ privileged:
   Window window;
   Screen screen;
 
-  static void Enter();
-  void add_clocks(unsigned);
+  inline static auto Enter() -> void;
+  alwaysinline auto add_clocks(uint) -> void;
 
-  void scanline();
-  void frame();
+  inline auto scanline() -> void;
+  inline auto frame() -> void;
 
   friend class PPU::Background;
   friend class PPU::Sprite;
@@ -60,9 +62,9 @@ privileged:
   friend class Video;
 
   struct Debugger {
-    hook<void (uint16)> vram_read;
-    hook<void (uint16)> oam_read;
-    hook<void (uint16)> cgram_read;
+    hook<void (uint16, uint8)> vram_read;
+    hook<void (uint16, uint8)> oam_read;
+    hook<void (uint16, uint8)> cgram_read;
     hook<void (uint16, uint8)> vram_write;
     hook<void (uint16, uint8)> oam_write;
     hook<void (uint16, uint8)> cgram_write;

@@ -1,6 +1,5 @@
 #include <sfc/sfc.hpp>
 
-#define CPU_CPP
 namespace SuperFamicom {
 
 CPU cpu;
@@ -11,19 +10,23 @@ CPU cpu;
 #include "mmio/mmio.cpp"
 #include "timing/timing.cpp"
 
-void CPU::step(unsigned clocks) {
+CPU::CPU() {
+  PPUcounter::scanline = {&CPU::scanline, this};
+}
+
+auto CPU::step(uint clocks) -> void {
   smp.clock -= clocks * (uint64)smp.frequency;
   ppu.clock -= clocks;
   for(unsigned i = 0; i < coprocessors.size(); i++) {
     auto& chip = *coprocessors[i];
     chip.clock -= clocks * (uint64)chip.frequency;
   }
-  input.port1->clock -= clocks * (uint64)input.port1->frequency;
-  input.port2->clock -= clocks * (uint64)input.port2->frequency;
-  synchronize_controllers();
+  device.controllerPort1->clock -= clocks * (uint64)device.controllerPort1->frequency;
+  device.controllerPort2->clock -= clocks * (uint64)device.controllerPort2->frequency;
+  synchronizeDevices();
 }
 
-void CPU::synchronize_smp() {
+auto CPU::synchronizeSMP() -> void {
   if(SMP::Threaded == true) {
     if(smp.clock < 0) co_switch(smp.thread);
   } else {
@@ -31,7 +34,7 @@ void CPU::synchronize_smp() {
   }
 }
 
-void CPU::synchronize_ppu() {
+auto CPU::synchronizePPU() -> void {
   if(PPU::Threaded == true) {
     if(ppu.clock < 0) co_switch(ppu.thread);
   } else {
@@ -39,21 +42,21 @@ void CPU::synchronize_ppu() {
   }
 }
 
-void CPU::synchronize_coprocessors() {
+auto CPU::synchronizeCoprocessors() -> void {
   for(unsigned i = 0; i < coprocessors.size(); i++) {
     auto& chip = *coprocessors[i];
     if(chip.clock < 0) co_switch(chip.thread);
   }
 }
 
-void CPU::synchronize_controllers() {
-  if(input.port1->clock < 0) co_switch(input.port1->thread);
-  if(input.port2->clock < 0) co_switch(input.port2->thread);
+auto CPU::synchronizeDevices() -> void {
+  if(device.controllerPort1->clock < 0) co_switch(device.controllerPort1->thread);
+  if(device.controllerPort2->clock < 0) co_switch(device.controllerPort2->thread);
 }
 
-void CPU::Enter() { cpu.enter(); }
+auto CPU::Enter() -> void { cpu.enter(); }
 
-void CPU::enter() {
+auto CPU::enter() -> void {
   while(true) {
     if(scheduler.sync == Scheduler::SynchronizeMode::CPU) {
       scheduler.sync = Scheduler::SynchronizeMode::All;
@@ -75,8 +78,8 @@ void CPU::enter() {
       } else if(status.reset_pending) {
         status.reset_pending = false;
         add_clocks(186);
-        regs.pc.l = bus.read(0xfffc);
-        regs.pc.h = bus.read(0xfffd);
+        regs.pc.l = bus.read(0xfffc, regs.mdr);
+        regs.pc.h = bus.read(0xfffd, regs.mdr);
       }
     }
 
@@ -84,22 +87,14 @@ void CPU::enter() {
   }
 }
 
-void CPU::op_step() {
+auto CPU::op_step() -> void {
   debugger.op_exec(regs.pc.d);
-#ifdef DEBUGGER
-  if(interface->tracer.open()) {
-    char text[4096];
-    disassemble_opcode(text, regs.pc.d);
-    interface->tracer.print(text, "\n");
-  }
-#endif
-
-  (this->*opcode_table[op_readpc()])();
+  op_exec();
 }
 
-void CPU::enable() {
-  function<uint8 (unsigned)> reader = {&CPU::mmio_read, (CPU*)&cpu};
-  function<void (unsigned, uint8)> writer = {&CPU::mmio_write, (CPU*)&cpu};
+auto CPU::enable() -> void {
+  function<auto (uint, uint8) -> uint8> reader{&CPU::mmio_read, (CPU*)&cpu};
+  function<auto (uint, uint8) -> void> writer{&CPU::mmio_write, (CPU*)&cpu};
 
   bus.map(reader, writer, 0x00, 0x3f, 0x2140, 0x2183);
   bus.map(reader, writer, 0x80, 0xbf, 0x2140, 0x2183);
@@ -113,15 +108,15 @@ void CPU::enable() {
   bus.map(reader, writer, 0x00, 0x3f, 0x4300, 0x437f);
   bus.map(reader, writer, 0x80, 0xbf, 0x4300, 0x437f);
 
-  reader = [](unsigned addr) { return cpu.wram[addr]; };
-  writer = [](unsigned addr, uint8 data) { cpu.wram[addr] = data; };
+  reader = [](uint addr, uint8) -> uint8 { return cpu.wram[addr]; };
+  writer = [](uint addr, uint8 data) -> void { cpu.wram[addr] = data; };
 
   bus.map(reader, writer, 0x00, 0x3f, 0x0000, 0x1fff, 0x002000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
   bus.map(reader, writer, 0x80, 0xbf, 0x0000, 0x1fff, 0x002000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
   bus.map(reader, writer, 0x7e, 0x7f, 0x0000, 0xffff, 0x020000, 0,0, Cartridge::Mapping::fastmode_readwrite, cpu.wram);
 }
 
-void CPU::power() {
+auto CPU::power() -> void {
   for(auto& byte : wram) byte = random(0x55);
 
   regs.a = regs.x = regs.y = 0x0000;
@@ -132,8 +127,8 @@ void CPU::power() {
   timing_power();
 }
 
-void CPU::reset() {
-  create(Enter, system.cpu_frequency());
+auto CPU::reset() -> void {
+  create(Enter, system.cpuFrequency());
   coprocessors.reset();
   PPUcounter::reset();
 
@@ -149,18 +144,10 @@ void CPU::reset() {
   regs.mdr    = 0x00;
   regs.wai    = false;
   regs.vector = 0xfffc;  //reset vector address
-  update_table();
 
   mmio_reset();
   dma_reset();
   timing_reset();
-}
-
-CPU::CPU() {
-  PPUcounter::scanline = {&CPU::scanline, this};
-}
-
-CPU::~CPU() {
 }
 
 }

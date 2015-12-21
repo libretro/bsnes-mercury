@@ -11,10 +11,6 @@
 #include <string.h>
 #include <stdint.h>
 
-#ifndef IOS
-#include <malloc.h>
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -8,10 +8,10 @@ static bool cycle_accurate;
 struct opcode_t {
   string name;
   lstring args;
-  unsigned opcode;
+  uint opcode;
 };
 
-void generate(const char* sourceFilename, const char* targetFilename) {
+auto generate(const char* sourceFilename, const char* targetFilename) -> void {
   file fp;
   fp.open(targetFilename, file::mode::write);
 
@@ -28,7 +28,7 @@ void generate(const char* sourceFilename, const char* targetFilename) {
 
     linear_vector<opcode_t> array;
 
-    unsigned sourceStart = 0;
+    uint sourceStart = 0;
     foreach(line, lines, currentLine) {
       line.transform("()", "``");
       lstring part;
@@ -42,9 +42,9 @@ void generate(const char* sourceFilename, const char* targetFilename) {
       opcode.opcode = hex(arguments[0]);
       array.append(opcode);
 
-      line.rtrim<1>(",");
+      line.rtrim(",", 1L);
       if(line.endswith(" {")) {
-        line.rtrim<1>("{ ");
+        line.rtrim("{ ", 1L);
         sourceStart = currentLine + 1;
         break;
       }
@@ -52,9 +52,9 @@ void generate(const char* sourceFilename, const char* targetFilename) {
 
     if(cycle_accurate == false) {
       foreach(opcode, array) {
-        fp.print("case 0x", hex<2>(opcode.opcode), ": {\n");
+        fp.print("case 0x", hex(opcode.opcode, 2L), ": {\n");
 
-        for(unsigned n = sourceStart; n < lines.size(); n++) {
+        for(uint n = sourceStart; n < lines.size(); n++) {
           if(lines[n] == "}") break;
 
           string output;
@@ -85,10 +85,10 @@ void generate(const char* sourceFilename, const char* targetFilename) {
       }
     } else {
       foreach(opcode, array) {
-        fp.print("case 0x", hex<2>(opcode.opcode), ": {\n");
+        fp.print("case 0x", hex(opcode.opcode, 2L), ": {\n");
         fp.print("  switch(opcode_cycle++) {\n");
 
-        for(unsigned n = sourceStart; n < lines.size(); n++) {
+        for(uint n = sourceStart; n < lines.size(); n++) {
           if(lines[n] == "}") break;
 
           bool nextLineEndsCycle = false;
@@ -101,7 +101,7 @@ void generate(const char* sourceFilename, const char* targetFilename) {
             output = { "  ", lines[n] };
           } else {
             lstring part;
-            part.split<1>(":", lines[n]);
+            part.split(":", lines[n], 1L);
             fp.print("  case ", (unsigned)decimal(part[0]), ":\n");
             output = { "    ", part[1] };
           }
@@ -135,7 +135,7 @@ void generate(const char* sourceFilename, const char* targetFilename) {
   fp.close();
 }
 
-int main() {
+auto main() -> int {
   cycle_accurate = false;
   generate("op_misc.b", "op_misc.cpp");
   generate("op_mov.b",  "op_mov.cpp" );

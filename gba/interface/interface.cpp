@@ -4,115 +4,6 @@ namespace GameBoyAdvance {
 
 Interface* interface = nullptr;
 
-string Interface::title() {
-  return cartridge.title();
-}
-
-double Interface::videoFrequency() {
-  return 16777216.0 / (228.0 * 1232.0);
-}
-
-double Interface::audioFrequency() {
-  return 16777216.0 / 512.0;
-}
-
-bool Interface::loaded() {
-  return cartridge.loaded();
-}
-
-unsigned Interface::group(unsigned id) {
-  switch(id) {
-  case ID::BIOS:
-    return ID::System;
-  case ID::Manifest:
-  case ID::ROM:
-  case ID::RAM:
-  case ID::EEPROM:
-  case ID::FlashROM:
-    return ID::GameBoyAdvance;
-  }
-
-  throw;
-}
-
-void Interface::load(unsigned id) {
-  cartridge.load();
-}
-
-void Interface::save() {
-  for(auto& memory : cartridge.memory) {
-    interface->saveRequest(memory.id, memory.name);
-  }
-}
-
-void Interface::load(unsigned id, const stream& stream) {
-  if(id == ID::BIOS) {
-    stream.read(bios.data, min(bios.size, stream.size()));
-  }
-
-  if(id == ID::Manifest) cartridge.information.markup = stream.text();
-
-  if(id == ID::ROM) {
-    stream.read(cartridge.rom.data, min(cartridge.rom.size, stream.size()));
-  }
-
-  if(id == ID::RAM) {
-    stream.read(cartridge.ram.data, min(cartridge.ram.size, stream.size()));
-  }
-
-  if(id == ID::EEPROM) {
-    stream.read(cartridge.eeprom.data, min(cartridge.eeprom.size, stream.size()));
-  }
-
-  if(id == ID::FlashROM) {
-    stream.read(cartridge.flashrom.data, min(cartridge.flashrom.size, stream.size()));
-  }
-}
-
-void Interface::save(unsigned id, const stream& stream) {
-  if(id == ID::RAM) {
-    stream.write(cartridge.ram.data, cartridge.ram.size);
-  }
-
-  if(id == ID::EEPROM) {
-    stream.write(cartridge.eeprom.data, cartridge.eeprom.size);
-  }
-
-  if(id == ID::FlashROM) {
-    stream.write(cartridge.flashrom.data, cartridge.flashrom.size);
-  }
-}
-
-void Interface::unload() {
-  save();
-  cartridge.unload();
-}
-
-void Interface::power() {
-  system.power();
-}
-
-void Interface::reset() {
-  system.power();
-}
-
-void Interface::run() {
-  system.run();
-}
-
-serializer Interface::serialize() {
-  system.runtosave();
-  return system.serialize();
-}
-
-bool Interface::unserialize(serializer& s) {
-  return system.unserialize(s);
-}
-
-void Interface::paletteUpdate(PaletteMode mode) {
-  video.generate_palette(mode);
-}
-
 Interface::Interface() {
   interface = this;
 
@@ -127,8 +18,7 @@ Interface::Interface() {
 
   media.append({ID::GameBoyAdvance, "Game Boy Advance", "gba", true});
 
-  {
-    Device device{0, ID::Device, "Controller"};
+  { Device device{0, ID::Device, "Controller"};
     device.input.append({ 0, 0, "A"     });
     device.input.append({ 1, 0, "B"     });
     device.input.append({ 2, 0, "Select"});
@@ -145,6 +35,126 @@ Interface::Interface() {
   }
 
   port.append({0, "Device", {device[0]}});
+}
+
+auto Interface::manifest() -> string {
+  return cartridge.manifest();
+}
+
+auto Interface::title() -> string {
+  return cartridge.title();
+}
+
+auto Interface::videoFrequency() -> double {
+  return 16777216.0 / (228.0 * 1232.0);
+}
+
+auto Interface::audioFrequency() -> double {
+  return 16777216.0 / 512.0;
+}
+
+auto Interface::loaded() -> bool {
+  return cartridge.loaded();
+}
+
+auto Interface::group(uint id) -> uint {
+  switch(id) {
+  case ID::SystemManifest:
+  case ID::BIOS:
+    return ID::System;
+  case ID::Manifest:
+  case ID::MROM:
+  case ID::SRAM:
+  case ID::EEPROM:
+  case ID::FLASH:
+    return ID::GameBoyAdvance;
+  }
+
+  throw;
+}
+
+auto Interface::load(uint id) -> void {
+  cartridge.load();
+}
+
+auto Interface::save() -> void {
+  for(auto& memory : cartridge.memory) {
+    interface->saveRequest(memory.id, memory.name);
+  }
+}
+
+auto Interface::load(uint id, const stream& stream) -> void {
+  if(id == ID::SystemManifest) {
+    system.information.manifest = stream.text();
+  }
+
+  if(id == ID::BIOS) {
+    stream.read(bios.data, min(bios.size, stream.size()));
+  }
+
+  if(id == ID::Manifest) {
+    cartridge.information.markup = stream.text();
+  }
+
+  if(id == ID::MROM) {
+    stream.read(cartridge.mrom.data, min(cartridge.mrom.size, stream.size()));
+  }
+
+  if(id == ID::SRAM) {
+    stream.read(cartridge.sram.data, min(cartridge.sram.size, stream.size()));
+  }
+
+  if(id == ID::EEPROM) {
+    stream.read(cartridge.eeprom.data, min(cartridge.eeprom.size, stream.size()));
+  }
+
+  if(id == ID::FLASH) {
+    stream.read(cartridge.flash.data, min(cartridge.flash.size, stream.size()));
+  }
+}
+
+auto Interface::save(uint id, const stream& stream) -> void {
+  if(id == ID::SRAM) {
+    stream.write(cartridge.sram.data, cartridge.sram.size);
+  }
+
+  if(id == ID::EEPROM) {
+    stream.write(cartridge.eeprom.data, cartridge.eeprom.size);
+  }
+
+  if(id == ID::FLASH) {
+    stream.write(cartridge.flash.data, cartridge.flash.size);
+  }
+}
+
+auto Interface::unload() -> void {
+  save();
+  cartridge.unload();
+}
+
+auto Interface::power() -> void {
+  system.power();
+}
+
+auto Interface::reset() -> void {
+  system.power();
+}
+
+auto Interface::run() -> void {
+  system.run();
+}
+
+auto Interface::serialize() -> serializer {
+  system.runtosave();
+  return system.serialize();
+}
+
+auto Interface::unserialize(serializer& s) -> bool {
+  return system.unserialize(s);
+}
+
+auto Interface::paletteUpdate(PaletteMode mode) -> void {
+  video.generatePalette(mode);
 }
 
 }

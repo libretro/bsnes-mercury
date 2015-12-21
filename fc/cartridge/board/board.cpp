@@ -19,18 +19,52 @@
 #include "nes-uxrom.cpp"
 #include "sunsoft-5b.cpp"
 
-uint8 Board::Memory::read(unsigned addr) const {
+Board::Board(Markup::Node& document) {
+  cartridge.board = this;
+  auto board = document["board"];
+
+  information.type = board["id"].text();
+  information.battery = (bool)board["prg/ram/name"];
+
+  auto prom = board["prg/rom"];
+  auto pram = board["prg/ram"];
+  auto crom = board["chr/rom"];
+  auto cram = board["chr/ram"];
+
+  prgrom.size = prom["size"].natural();
+  prgram.size = pram["size"].natural();
+  chrrom.size = crom["size"].natural();
+  chrram.size = cram["size"].natural();
+
+  if(prgrom.size) prgrom.data = new uint8[prgrom.size]();
+  if(prgram.size) prgram.data = new uint8[prgram.size]();
+  if(chrrom.size) chrrom.data = new uint8[chrrom.size]();
+  if(chrram.size) chrram.data = new uint8[chrram.size]();
+
+  if(auto name = prom["name"].text()) interface->loadRequest(ID::ProgramROM, name, true);
+  if(auto name = pram["name"].text()) interface->loadRequest(ID::ProgramRAM, name, false);
+  if(auto name = crom["name"].text()) interface->loadRequest(ID::CharacterROM, name, true);
+  if(auto name = cram["name"].text()) interface->loadRequest(ID::CharacterRAM, name, false);
+
+  if(auto name = pram["name"].text()) Famicom::cartridge.memory.append({ID::ProgramRAM, name});
+  if(auto name = cram["name"].text()) Famicom::cartridge.memory.append({ID::CharacterRAM, name});
+
+  prgram.writable = true;
+  chrram.writable = true;
+}
+
+auto Board::Memory::read(uint addr) const -> uint8 {
   return data[mirror(addr, size)];
 }
 
-void Board::Memory::write(unsigned addr, uint8 byte) {
+auto Board::Memory::write(uint addr, uint8 byte) -> void {
   if(writable) data[mirror(addr, size)] = byte;
 }
 
-unsigned Board::mirror(unsigned addr, unsigned size) {
-  unsigned base = 0;
+auto Board::mirror(uint addr, uint size) -> uint {
+  uint base = 0;
   if(size) {
-    unsigned mask = 1 << 23;
+    uint mask = 1 << 23;
     while(addr >= size) {
       while(!(addr & mask)) mask >>= 1;
       addr -= mask;
@@ -45,7 +79,7 @@ unsigned Board::mirror(unsigned addr, unsigned size) {
   return base;
 }
 
-void Board::main() {
+auto Board::main() -> void {
   while(true) {
     if(scheduler.sync == Scheduler::SynchronizeMode::All) {
       scheduler.exit(Scheduler::ExitReason::SynchronizeEvent);
@@ -56,74 +90,37 @@ void Board::main() {
   }
 }
 
-void Board::tick() {
+auto Board::tick() -> void {
   cartridge.clock += 12;
   if(cartridge.clock >= 0 && scheduler.sync != Scheduler::SynchronizeMode::All) co_switch(cpu.thread);
 }
 
-uint8 Board::chr_read(unsigned addr) {
+auto Board::chr_read(uint addr) -> uint8 {
   if(chrram.size) return chrram.data[mirror(addr, chrram.size)];
   if(chrrom.size) return chrrom.data[mirror(addr, chrrom.size)];
   return 0u;
 }
 
-void Board::chr_write(unsigned addr, uint8 data) {
+auto Board::chr_write(uint addr, uint8 data) -> void {
   if(chrram.size) chrram.data[mirror(addr, chrram.size)] = data;
 }
 
-void Board::power() {
+auto Board::power() -> void {
 }
 
-void Board::reset() {
+auto Board::reset() -> void {
 }
 
-void Board::serialize(serializer& s) {
+auto Board::serialize(serializer& s) -> void {
   if(prgram.size) s.array(prgram.data, prgram.size);
   if(chrram.size) s.array(chrram.data, chrram.size);
 }
 
-Board::Board(Markup::Node& document) {
-  cartridge.board = this;
-  auto cartridge = document["cartridge"];
-
-  information.type = cartridge["board/type"].data;
-  information.battery = cartridge["prg/ram/name"].exists();
-
-  auto prom = cartridge["prg/rom"];
-  auto pram = cartridge["prg/ram"];
-  auto crom = cartridge["chr/rom"];
-  auto cram = cartridge["chr/ram"];
-
-  prgrom.size = numeral(prom["size"].data);
-  prgram.size = numeral(pram["size"].data);
-  chrrom.size = numeral(crom["size"].data);
-  chrram.size = numeral(cram["size"].data);
-
-  if(prgrom.size) prgrom.data = new uint8[prgrom.size]();
-  if(prgram.size) prgram.data = new uint8[prgram.size]();
-  if(chrrom.size) chrrom.data = new uint8[chrrom.size]();
-  if(chrram.size) chrram.data = new uint8[chrram.size]();
-
-  if(prom["name"].data) interface->loadRequest(ID::ProgramROM, prom["name"].data);
-  if(pram["name"].data) interface->loadRequest(ID::ProgramRAM, pram["name"].data);
-  if(crom["name"].data) interface->loadRequest(ID::CharacterROM, crom["name"].data);
-  if(cram["name"].data) interface->loadRequest(ID::CharacterRAM, cram["name"].data);
-
-  if(pram["name"].data) Famicom::cartridge.memory.append({ID::ProgramRAM, pram["name"].data});
-  if(cram["name"].data) Famicom::cartridge.memory.append({ID::CharacterRAM, cram["name"].data});
-
-  prgram.writable = true;
-  chrram.writable = true;
-}
-
-Board::~Board() {
-}
-
-Board* Board::load(string manifest) {
-  auto document = Markup::Document(manifest);
+auto Board::load(string manifest) -> Board* {
+  auto document = BML::unserialize(manifest);
   cartridge.information.title = document["information/title"].text();
 
-  string type = document["cartridge/board/type"].text();
+  string type = document["board/id"].text();
 
   if(type == "BANDAI-FCG"  ) return new BandaiFCG(document);
 

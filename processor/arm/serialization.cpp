@@ -1,4 +1,4 @@
-void ARM::PSR::serialize(serializer& s) {
+auto ARM::PSR::serialize(serializer& s) -> void {
   s.integer(n);
   s.integer(z);
   s.integer(c);
@@ -9,7 +9,7 @@ void ARM::PSR::serialize(serializer& s) {
   s.integer(m);
 }
 
-void ARM::serialize(serializer& s) {
+auto ARM::serialize(serializer& s) -> void {
   s.integer(processor.r0.data);
   s.integer(processor.r1.data);
   s.integer(processor.r2.data);
@@ -55,10 +55,10 @@ void ARM::serialize(serializer& s) {
   s.integer(processor.pc.data);
   processor.cpsr.serialize(s);
   s.integer(processor.carryout);
-  s.integer(processor.sequential);
   s.integer(processor.irqline);
 
   s.integer(pipeline.reload);
+  s.integer(pipeline.nonsequential);
   s.integer(pipeline.execute.address);
   s.integer(pipeline.execute.instruction);
   s.integer(pipeline.decode.address);

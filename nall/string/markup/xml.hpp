@@ -1,21 +1,29 @@
 #ifdef NALL_STRING_INTERNAL_HPP
 
 //XML v1.0 subset parser
-//revision 0.03
+//revision 0.04
 
 namespace nall {
 namespace XML {
 
-struct Node : Markup::Node {
+//metadata:
+//  0 = element
+//  1 = attribute
+
+struct ManagedNode;
+using SharedNode = shared_pointer<ManagedNode>;
+
+struct ManagedNode : Markup::ManagedNode {
 protected:
   inline string escape() const {
-    string result = data;
+    string result = _value;
     result.replace("&", "&amp;");
     result.replace("<", "&lt;");
     result.replace(">", "&gt;");
-    if(attribute == false) return result;
-    result.replace("\'", "&apos;");
-    result.replace("\"", "&quot;");
+    if(_metadata == 1) {
+      result.replace("\'", "&apos;");
+      result.replace("\"", "&quot;");
+    }
     return result;
   }
 
@@ -35,38 +43,38 @@ protected:
   }
 
   //copy part of string from source document into target string; decode markup while copying
-  inline void copy(string& target, const char* source, unsigned length) {
+  inline void copy(string& target, const char* source, uint length) {
     target.reserve(length + 1);
 
     #if defined(NALL_XML_LITERAL)
-    memcpy(target(), source, length);
+    memory::copy(target.pointer(), source, length);
     target[length] = 0;
     return;
     #endif
 
-    char* output = target.data();
+    char* output = target.get();
     while(length) {
       if(*source == '&') {
-        if(!memcmp(source, "&lt;",   4)) { *output++ = '<';  source += 4; length -= 4; continue; }
-        if(!memcmp(source, "&gt;",   4)) { *output++ = '>';  source += 4; length -= 4; continue; }
-        if(!memcmp(source, "&amp;",  5)) { *output++ = '&';  source += 5; length -= 5; continue; }
-        if(!memcmp(source, "&apos;", 6)) { *output++ = '\''; source += 6; length -= 6; continue; }
-        if(!memcmp(source, "&quot;", 6)) { *output++ = '\"'; source += 6; length -= 6; continue; }
+        if(!memory::compare(source, "&lt;",   4)) { *output++ = '<';  source += 4; length -= 4; continue; }
+        if(!memory::compare(source, "&gt;",   4)) { *output++ = '>';  source += 4; length -= 4; continue; }
+        if(!memory::compare(source, "&amp;",  5)) { *output++ = '&';  source += 5; length -= 5; continue; }
+        if(!memory::compare(source, "&apos;", 6)) { *output++ = '\''; source += 6; length -= 6; continue; }
+        if(!memory::compare(source, "&quot;", 6)) { *output++ = '\"'; source += 6; length -= 6; continue; }
       }
 
-      if(attribute == false && source[0] == '<' && source[1] == '!') {
+      if(_metadata == 0 && source[0] == '<' && source[1] == '!') {
         //comment
-        if(!memcmp(source, "<!--", 4)) {
+        if(!memory::compare(source, "<!--", 4)) {
           source += 4, length -= 4;
-          while(memcmp(source, "-->", 3)) source++, length--;
+          while(memory::compare(source, "-->", 3)) source++, length--;
           source += 3, length -= 3;
           continue;
         }
 
         //CDATA
-        if(!memcmp(source, "<![CDATA[", 9)) {
+        if(!memory::compare(source, "<![CDATA[", 9)) {
           source += 9, length -= 9;
-          while(memcmp(source, "]]>", 3)) *output++ = *source++, length--;
+          while(memory::compare(source, "]]>", 3)) *output++ = *source++, length--;
           source += 3, length -= 3;
           continue;
         }
@@ -81,24 +89,24 @@ protected:
     if(*(p + 1) != '!') return false;
 
     //comment
-    if(!memcmp(p, "<!--", 4)) {
-      while(*p && memcmp(p, "-->", 3)) p++;
+    if(!memory::compare(p, "<!--", 4)) {
+      while(*p && memory::compare(p, "-->", 3)) p++;
       if(!*p) throw "unclosed comment";
       p += 3;
       return true;
     }
 
     //CDATA
-    if(!memcmp(p, "<![CDATA[", 9)) {
-      while(*p && memcmp(p, "]]>", 3)) p++;
+    if(!memory::compare(p, "<![CDATA[", 9)) {
+      while(*p && memory::compare(p, "]]>", 3)) p++;
       if(!*p) throw "unclosed CDATA";
       p += 3;
       return true;
     }
 
     //DOCTYPE
-    if(!memcmp(p, "<!DOCTYPE", 9)) {
-      unsigned counter = 0;
+    if(!memory::compare(p, "<!DOCTYPE", 9)) {
+      uint counter = 0;
       do {
         char n = *p++;
         if(!n) throw "unclosed DOCTYPE";
@@ -117,8 +125,8 @@ protected:
     const char* nameStart = ++p;  //skip '<'
     while(isName(*p)) p++;
     const char* nameEnd = p;
-    copy(name, nameStart, nameEnd - nameStart);
-    if(name.empty()) throw "missing element name";
+    copy(_name, nameStart, nameEnd - nameStart);
+    if(_name.empty()) throw "missing element name";
 
     //parse attributes
     while(*p) {
@@ -127,14 +135,14 @@ protected:
       if(*p == '?' || *p == '/' || *p == '>') break;
 
       //parse attribute name
-      Node attribute;
-      attribute.attribute = true;
+      SharedNode attribute(new ManagedNode);
+      attribute->_metadata = 1;
 
       const char* nameStart = p;
       while(isName(*p)) p++;
       const char* nameEnd = p;
-      copy(attribute.name, nameStart, nameEnd - nameStart);
-      if(attribute.name.empty()) throw "missing attribute name";
+      copy(attribute->_name, nameStart, nameEnd - nameStart);
+      if(attribute->_name.empty()) throw "missing attribute name";
 
       //parse attribute data
       if(*p++ != '=') throw "missing attribute value";
@@ -145,8 +153,8 @@ protected:
       if(!*p) throw "missing attribute data terminal";
       const char* dataEnd = p++;  //skip closing terminal
 
-      copy(attribute.data, dataStart, dataEnd - dataStart);
-      children.append(attribute);
+      copy(attribute->_value, dataStart, dataEnd - dataStart);
+      _children.append(attribute);
     }
 
     //parse closure
@@ -158,9 +166,9 @@ protected:
 
   //parse element and all of its child elements
   inline void parseElement(const char*& p) {
-    Node node;
-    if(node.parseHead(p) == false) node.parse(p);
-    children.append(node);
+    SharedNode node(new ManagedNode);
+    if(node->parseHead(p) == false) node->parse(p);
+    _children.append(node);
   }
 
   //return true if </tag> matches this node's name
@@ -171,7 +179,7 @@ protected:
     while(*p && *p != '>') p++;
     if(*p != '>') throw "unclosed closure element";
     const char* nameEnd = p++;
-    if(memcmp(name, nameStart, nameEnd - nameStart)) throw "closure element name mismatch";
+    if(memory::compare(_name.data(), nameStart, nameEnd - nameStart)) throw "closure element name mismatch";
     return true;
   }
 
@@ -189,29 +197,23 @@ protected:
       parseElement(p);
     }
 
-    copy(data, dataStart, dataEnd - dataStart);
-  }
-};
-
-struct Document : Node {
-  string error;
-
-  inline bool load(const char* document) {
-    if(document == nullptr) return false;
-    reset();
-    try {
-      parse(document);
-    } catch(const char* error) {
-      reset();
-      this->error = error;
-      return false;
-    }
-    return true;
+    copy(_value, dataStart, dataEnd - dataStart);
   }
 
-  inline Document() {}
-  inline Document(const char* document) { load(document); }
+  friend auto unserialize(const string&) -> Markup::SharedNode;
 };
+
+inline auto unserialize(const string& markup) -> Markup::SharedNode {
+  auto node = new ManagedNode;
+  try {
+    const char* p = markup;
+    node->parse(p);
+  } catch(const char* error) {
+    delete node;
+    node = nullptr;
+  }
+  return node;
+}
 
 }
 }

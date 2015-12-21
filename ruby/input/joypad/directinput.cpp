@@ -1,15 +1,16 @@
 #ifndef RUBY_INPUT_JOYPAD_DIRECTINPUT
 #define RUBY_INPUT_JOYPAD_DIRECTINPUT
 
-namespace ruby {
-
-BOOL CALLBACK DirectInput_EnumJoypadsCallback(const DIDEVICEINSTANCE* instance, void* p);
-BOOL CALLBACK DirectInput_EnumJoypadAxesCallback(const DIDEVICEOBJECTINSTANCE* instance, void* p);
-BOOL CALLBACK DirectInput_EnumJoypadEffectsCallback(const DIDEVICEOBJECTINSTANCE* instance, void* p);
+auto CALLBACK DirectInput_EnumJoypadsCallback(const DIDEVICEINSTANCE* instance, void* p) -> BOOL;
+auto CALLBACK DirectInput_EnumJoypadAxesCallback(const DIDEVICEOBJECTINSTANCE* instance, void* p) -> BOOL;
+auto CALLBACK DirectInput_EnumJoypadEffectsCallback(const DIDEVICEOBJECTINSTANCE* instance, void* p) -> BOOL;
 
 struct InputJoypadDirectInput {
+  Input& input;
+  InputJoypadDirectInput(Input& input) : input(input) {}
+
   struct Joypad {
-    HID::Joypad hid;
+    shared_pointer<HID::Joypad> hid{new HID::Joypad};
 
     LPDIRECTINPUTDEVICE8 device = nullptr;
     LPDIRECTINPUTEFFECT effect = nullptr;
@@ -27,14 +28,14 @@ struct InputJoypadDirectInput {
   bool xinputAvailable = false;
   unsigned effects = 0;
 
-  void assign(HID::Joypad& hid, unsigned groupID, unsigned inputID, int16_t value) {
-    auto& group = hid.group[groupID];
-    if(group.input[inputID].value == value) return;
-    if(input.onChange) input.onChange(hid, groupID, inputID, group.input[inputID].value, value);
-    group.input[inputID].value = value;
+  auto assign(shared_pointer<HID::Joypad> hid, unsigned groupID, unsigned inputID, int16_t value) -> void {
+    auto& group = hid->group(groupID);
+    if(group.input(inputID).value() == value) return;
+    input.doChange(hid, groupID, inputID, group.input(inputID).value(), value);
+    group.input(inputID).setValue(value);
   }
 
-  void poll(vector<HID::Device*>& devices) {
+  auto poll(vector<shared_pointer<HID::Device>>& devices) -> void {
     for(auto& jp : joypads) {
       if(FAILED(jp.device->Poll())) jp.device->Acquire();
 
@@ -68,13 +69,13 @@ struct InputJoypadDirectInput {
         assign(jp.hid, HID::Joypad::GroupID::Button, n, (bool)state.rgbButtons[n]);
       }
 
-      devices.append(&jp.hid);
+      devices.append(jp.hid);
     }
   }
 
-  bool rumble(uint64_t id, bool enable) {
+  auto rumble(uint64_t id, bool enable) -> bool {
     for(auto& jp : joypads) {
-      if(jp.hid.id != id) continue;
+      if(jp.hid->id() != id) continue;
       if(jp.effect == nullptr) continue;
 
       if(enable) jp.effect->Start(1, 0);
@@ -85,7 +86,7 @@ struct InputJoypadDirectInput {
     return false;
   }
 
-  bool init(uintptr_t handle, LPDIRECTINPUT8 context, bool xinputAvailable) {
+  auto init(uintptr_t handle, LPDIRECTINPUT8 context, bool xinputAvailable) -> bool {
     this->handle = handle;
     this->context = context;
     this->xinputAvailable = xinputAvailable;
@@ -93,7 +94,7 @@ struct InputJoypadDirectInput {
     return true;
   }
 
-  void term() {
+  auto term() -> void {
     for(auto& jp : joypads) {
       jp.device->Unacquire();
       if(jp.effect) jp.effect->Release();
@@ -103,17 +104,13 @@ struct InputJoypadDirectInput {
     context = nullptr;
   }
 
-  bool initJoypad(const DIDEVICEINSTANCE* instance) {
+  auto initJoypad(const DIDEVICEINSTANCE* instance) -> bool {
     Joypad jp;
     jp.vendorID = instance->guidProduct.Data1 >> 0;
     jp.productID = instance->guidProduct.Data1 >> 16;
+    jp.isXInputDevice = false;
     if(auto device = rawinput.find(jp.vendorID, jp.productID)) {
-      jp.pathID = crc32_calculate((const uint8_t*)device().path.data(), device().path.size());
-      jp.hid.id = (uint64_t)jp.pathID << 32 | jp.vendorID << 16 | jp.productID << 0;
       jp.isXInputDevice = device().isXInputDevice;
-    } else {
-      //this should never occur
-      return DIENUM_CONTINUE;
     }
 
     //Microsoft has intentionally imposed artificial restrictions on XInput devices when used with DirectInput
@@ -131,9 +128,20 @@ struct InputJoypadDirectInput {
     effects = 0;
     device->EnumObjects(DirectInput_EnumJoypadAxesCallback, (void*)this, DIDFT_ABSAXIS);
     device->EnumObjects(DirectInput_EnumJoypadEffectsCallback, (void*)this, DIDFT_FFACTUATOR);
-    jp.hid.rumble = effects > 0;
+    jp.hid->setRumble(effects > 0);
 
-    if(jp.hid.rumble) {
+    DIPROPGUIDANDPATH property;
+    memset(&property, 0, sizeof(DIPROPGUIDANDPATH));
+    property.diph.dwSize = sizeof(DIPROPGUIDANDPATH);
+    property.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+    property.diph.dwObj = 0;
+    property.diph.dwHow = DIPH_DEVICE;
+    device->GetProperty(DIPROP_GUIDANDPATH, &property.diph);
+    string devicePath = (const char*)utf8_t(property.wszPath);
+    jp.pathID = Hash::CRC32(devicePath.data(), devicePath.size()).value();
+    jp.hid->setID((uint64_t)jp.pathID << 32 | jp.vendorID << 16 | jp.productID << 0);
+
+    if(jp.hid->rumble()) {
       //disable auto-centering spring for rumble support
       DIPROPDWORD property;
       memset(&property, 0, sizeof(DIPROPDWORD));
@@ -144,7 +152,7 @@ struct InputJoypadDirectInput {
       property.dwData = false;
       device->SetProperty(DIPROP_AUTOCENTER, &property.diph);
 
-      DWORD dwAxes[2] = {DIJOFS_X, DIJOFS_Y};
+      DWORD dwAxes[2] = {(DWORD)DIJOFS_X, (DWORD)DIJOFS_Y};
       LONG lDirection[2] = {0, 0};
       DICONSTANTFORCE force;
       force.lMagnitude = DI_FFNOMINALMAX;  //full force
@@ -167,15 +175,15 @@ struct InputJoypadDirectInput {
       device->CreateEffect(GUID_ConstantForce, &effect, &jp.effect, NULL);
     }
 
-    for(unsigned n = 0; n < 6; n++) jp.hid.axis().append({n});
-    for(unsigned n = 0; n < 8; n++) jp.hid.hat().append({n});
-    for(unsigned n = 0; n < 128; n++) jp.hid.button().append({n});
+    for(unsigned n = 0; n < 6; n++) jp.hid->axes().append(n);
+    for(unsigned n = 0; n < 8; n++) jp.hid->hats().append(n);
+    for(unsigned n = 0; n < 128; n++) jp.hid->buttons().append(n);
     joypads.append(jp);
 
     return DIENUM_CONTINUE;
   }
 
-  bool initAxis(const DIDEVICEOBJECTINSTANCE* instance) {
+  auto initAxis(const DIDEVICEOBJECTINSTANCE* instance) -> bool {
     DIPROPRANGE range;
     memset(&range, 0, sizeof(DIPROPRANGE));
     range.diph.dwSize = sizeof(DIPROPRANGE);
@@ -188,24 +196,22 @@ struct InputJoypadDirectInput {
     return DIENUM_CONTINUE;
   }
 
-  bool initEffect(const DIDEVICEOBJECTINSTANCE* instance) {
+  auto initEffect(const DIDEVICEOBJECTINSTANCE* instance) -> bool {
     effects++;
     return DIENUM_CONTINUE;
   }
 };
 
-BOOL CALLBACK DirectInput_EnumJoypadsCallback(const DIDEVICEINSTANCE* instance, void* p) {
+auto CALLBACK DirectInput_EnumJoypadsCallback(const DIDEVICEINSTANCE* instance, void* p) -> BOOL {
   return ((InputJoypadDirectInput*)p)->initJoypad(instance);
 }
 
-BOOL CALLBACK DirectInput_EnumJoypadAxesCallback(const DIDEVICEOBJECTINSTANCE* instance, void* p) {
+auto CALLBACK DirectInput_EnumJoypadAxesCallback(const DIDEVICEOBJECTINSTANCE* instance, void* p) -> BOOL {
   return ((InputJoypadDirectInput*)p)->initAxis(instance);
 }
 
-BOOL CALLBACK DirectInput_EnumJoypadEffectsCallback(const DIDEVICEOBJECTINSTANCE* instance, void* p) {
+auto CALLBACK DirectInput_EnumJoypadEffectsCallback(const DIDEVICEOBJECTINSTANCE* instance, void* p) -> BOOL {
   return ((InputJoypadDirectInput*)p)->initEffect(instance);
-}
-
 }
 
 #endif

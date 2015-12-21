@@ -1,4 +1,4 @@
-void PPU::serialize(serializer& s) {
+auto PPU::serialize(serializer& s) -> void {
   Thread::serialize(s);
 
   s.array(vram, 96 * 1024);
@@ -28,6 +28,7 @@ void PPU::serialize(serializer& s) {
   for(auto& bg : regs.bg) {
     s.integer(bg.control.priority);
     s.integer(bg.control.characterbaseblock);
+    s.integer(bg.control.unused);
     s.integer(bg.control.mosaic);
     s.integer(bg.control.colormode);
     s.integer(bg.control.screenbaseblock);
@@ -71,8 +72,8 @@ void PPU::serialize(serializer& s) {
   s.integer(regs.blend.evb);
   s.integer(regs.blend.evy);
 
-  for(unsigned l = 0; l < 6; l++) {
-    for(unsigned p = 0; p < 240; p++) {
+  for(auto l : range(6)) {
+    for(auto p : range(240)) {
       auto& pixel = layer[l][p];
       s.integer(pixel.enable);
       s.integer(pixel.priority);
@@ -82,8 +83,8 @@ void PPU::serialize(serializer& s) {
     }
   }
 
-  for(unsigned w = 0; w < 3; w++) {
-    for(unsigned p = 0; p < 240; p++) {
+  for(auto w : range(3)) {
+    for(auto p : range(240)) {
       s.integer(windowmask[w][p]);
     }
   }

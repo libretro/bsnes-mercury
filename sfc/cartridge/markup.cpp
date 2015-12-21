@@ -1,716 +1,498 @@
-#ifdef CARTRIDGE_CPP
+Cartridge::Mapping::Mapping(SuperFamicom::Memory& memory) {
+  this->reader = {&SuperFamicom::Memory::read,  &memory};
+  this->writer = {&SuperFamicom::Memory::write, &memory};
+  fastmode = Mapping::fastmode_slow;
+}
 
-void Cartridge::parse_markup(const char* markup) {
-  auto document = Markup::Document(markup);
-  information.title.cartridge = document["information/title"].text();
+Cartridge::Mapping::Mapping(const function<uint8 (uint, uint8)>& reader, const function<void (uint, uint8)>& writer) {
+  this->reader = reader;
+  this->writer = writer;
+  fastmode = Mapping::fastmode_slow;
+}
 
-  auto cartridge = document["cartridge"];
-  region = cartridge["region"].data != "PAL" ? Region::NTSC : Region::PAL;
+auto Cartridge::parseMarkup(const string& markup) -> void {
+  auto document = BML::unserialize(markup);
+  auto information = document["information"];
+  auto board = document["board"];
+
+  this->information.title.cartridge = information["title"].text();
+  _region = board["cic"].text() == "413" ? Region::PAL : Region::NTSC;
 
   mapping.reset();
-  parse_markup_cartridge(cartridge);
-  parse_markup_icd2(cartridge["icd2"]);
-  parse_markup_bsx(cartridge["bsx"]);
-  parse_markup_satellaview(cartridge["satellaview"]);
-  parse_markup_sufamiturbo(cartridge["sufamiturbo[0]"], 0);
-  parse_markup_sufamiturbo(cartridge["sufamiturbo[1]"], 1);
-  parse_markup_nss(cartridge["nss"]);
-  parse_markup_event(cartridge["event"]);
-  parse_markup_sa1(cartridge["sa1"]);
-  parse_markup_superfx(cartridge["superfx"]);
-  parse_markup_armdsp(cartridge["armdsp"]);
-  parse_markup_hitachidsp(cartridge["hitachidsp"], cartridge["board/type"].data.match("2DC*") ? 2 : 1);
-  parse_markup_necdsp(cartridge["necdsp"]);
-  parse_markup_epsonrtc(cartridge["epsonrtc"]);
-  parse_markup_sharprtc(cartridge["sharprtc"]);
-  parse_markup_spc7110(cartridge["spc7110"]);
-  parse_markup_sdd1(cartridge["sdd1"]);
-  parse_markup_obc1(cartridge["obc1"]);
-  parse_markup_hsu1(cartridge["hsu1"]);
-  parse_markup_msu1(cartridge["msu1"]);
+  if(auto node = board["rom"]) parseMarkupROM(node);
+  if(auto node = board["ram"]) parseMarkupRAM(node);
+  if(auto node = board["icd2"]) parseMarkupICD2(node);
+  if(auto node = board["mcc"]) parseMarkupMCC(node);
+  if(auto node = board["bsmemory"]) parseMarkupBSMemory(node);
+  if(auto node = board.find("sufamiturbo")) if(node(0)) parseMarkupSufamiTurbo(node(0), 0);
+  if(auto node = board.find("sufamiturbo")) if(node(1)) parseMarkupSufamiTurbo(node(1), 1);
+  if(auto node = board["nss"]) parseMarkupNSS(node);
+  if(auto node = board["event"]) parseMarkupEvent(node);
+  if(auto node = board["sa1"]) parseMarkupSA1(node);
+  if(auto node = board["superfx"]) parseMarkupSuperFX(node);
+  if(auto node = board["armdsp"]) parseMarkupARMDSP(node);
+  if(auto node = board["hitachidsp"]) parseMarkupHitachiDSP(node, document["information/board"].text().match("2DC*") ? 2 : 1);
+  if(auto node = board["necdsp"]) parseMarkupNECDSP(node);
+  if(auto node = board["epsonrtc"]) parseMarkupEpsonRTC(node);
+  if(auto node = board["sharprtc"]) parseMarkupSharpRTC(node);
+  if(auto node = board["spc7110"]) parseMarkupSPC7110(node);
+  if(auto node = board["sdd1"]) parseMarkupSDD1(node);
+  if(auto node = board["obc1"]) parseMarkupOBC1(node);
+  if(auto node = board["msu1"]) parseMarkupMSU1(node);
 }
 
-//
-
-void Cartridge::parse_markup_map(Mapping& m, Markup::Node map) {
-  m.addr = map["address"].data;
-  m.size = numeral(map["size"].data);
-  m.base = numeral(map["base"].data);
-  m.mask = numeral(map["mask"].data);
+auto Cartridge::parseMarkupMap(Markup::Node map, SuperFamicom::Memory& memory) -> void {
+  Mapping m{memory};
+  m.addr = map["address"].text();
+  m.size = map["size"].natural();
+  m.base = map["base"].natural();
+  m.mask = map["mask"].natural();
+  if(m.size == 0) m.size = memory.size();
+  if(m.size != 0) mapping.append(m);
 }
 
-void Cartridge::parse_markup_memory(MappedRAM& ram, Markup::Node node, unsigned id, bool writable) {
-  string name = node["name"].data;
-  unsigned size = numeral(node["size"].data);
+auto Cartridge::parseMarkupMap(Markup::Node map, SuperFamicom::MappedRAM& memory) -> void {
+  Mapping m{memory};
+  m.addr = map["address"].text();
+  m.size = map["size"].natural();
+  m.base = map["base"].natural();
+  m.mask = map["mask"].natural();
+  m.fastmode = (memory.write_protected() ? Mapping::fastmode_readonly : Mapping::fastmode_readwrite);
+  m.fastptr = memory.data();
+  if(m.size == 0) m.size = memory.size();
+  if(m.size != 0) mapping.append(m);
+}
+
+auto Cartridge::parseMarkupMap(
+  Markup::Node map,
+  const function<uint8 (uint, uint8)>& reader,
+  const function<void (uint, uint8)>& writer
+) -> void {
+  Mapping m{reader, writer};
+  m.addr = map["address"].text();
+  m.size = map["size"].natural();
+  m.base = map["base"].natural();
+  m.mask = map["mask"].natural();
+  mapping.append(m);
+}
+
+auto Cartridge::parseMarkupMemory(MappedRAM& ram, Markup::Node node, uint id, bool writable) -> void {
+  string name = node["name"].text();
+  uint size = node["size"].natural();
+  bool save = !(bool)node["volatile"];
   ram.map(allocate<uint8>(size, 0xff), size);
-  if(name.empty() == false) {
-    interface->loadRequest(id, name);
-    if(writable) memory.append({id, name});
+  if(name) {
+    interface->loadRequest(id, name, !writable);  //treat ROM as required; RAM as optional
+    if(writable && save) memory.append({id, name});
   }
 }
 
-//
-
-void Cartridge::parse_markup_cartridge(Markup::Node root) {
-  if(root.exists() == false) return;
-
-  parse_markup_memory(rom, root["rom"], ID::ROM, false);
-  parse_markup_memory(ram, root["ram"], ID::RAM, true);
-
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "rom") {
-      Mapping m(rom);
-      parse_markup_map(m, node);
-      if(m.size == 0) m.size = rom.size();
-      m.fastmode = Mapping::fastmode_readonly;
-      m.fastptr = rom.data();
-      mapping.append(m);
-    }
-
-    if(node["id"].data == "ram") {
-      Mapping m(ram);
-      parse_markup_map(m, node);
-      if(m.size == 0) m.size = ram.size();
-      m.fastmode = Mapping::fastmode_readwrite;
-      m.fastptr = ram.data();
-      mapping.append(m);
-    }
+auto Cartridge::parseMarkupROM(Markup::Node root) -> void {
+  parseMarkupMemory(rom, root, ID::ROM, false);
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, rom);
   }
 }
 
-void Cartridge::parse_markup_icd2(Markup::Node root) {
-  if(root.exists() == false) return;
-  if(interface->bind->altImplementation(Alt::ForSuperGameBoy)==Alt::SuperGameBoy::External)
-  {
-    if (parse_markup_icd2_external(root)) return;
+auto Cartridge::parseMarkupRAM(Markup::Node root) -> void {
+  parseMarkupMemory(ram, root, ID::RAM, true);
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, ram);
   }
-  has_gb_slot = true;
-  icd2.revision = max(1, numeral(root["revision"].data));
+}
+
+auto Cartridge::parseMarkupICD2(Markup::Node root) -> void {
+  hasGameBoySlot = true;
+  hasICD2 = true;
+  icd2.revision = max(1, root["revision"].natural());
 
   GameBoy::cartridge.load_empty(GameBoy::System::Revision::SuperGameBoy);
-  interface->loadRequest(ID::SuperGameBoy, "Game Boy", "gb");
+  interface->loadRequest(ID::GameBoy, "Game Boy", "gb", false);
 
-  string bootROMName = root["rom"]["name"].data;
-  interface->loadRequest(ID::SuperGameBoyBootROM, bootROMName);
+  interface->loadRequest(ID::SuperGameBoyBootROM, root["brom"]["name"].text(), true);
 
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "io") {
-      Mapping m({&ICD2::read, &icd2}, {&ICD2::write, &icd2});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, {&ICD2::read, &icd2}, {&ICD2::write, &icd2});
   }
 }
 
-void Cartridge::parse_markup_bsx(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_bs_cart = true;
-  has_bs_slot = true;
+auto Cartridge::parseMarkupMCC(Markup::Node root) -> void {
+  hasBSMemorySlot = true;
+  hasMCC = true;
 
-  interface->loadRequest(ID::Satellaview, "BS-X Satellaview", "bs");
+  interface->loadRequest(ID::BSMemory, "BS Memory", "bs", false);
 
-  parse_markup_memory(bsxcartridge.rom, root["rom"], ID::BsxROM, false);
-  parse_markup_memory(bsxcartridge.ram, root["ram"], ID::BsxRAM, true);
-  parse_markup_memory(bsxcartridge.psram, root["psram"], ID::BsxPSRAM, true);
+  parseMarkupMemory(mcc.rom, root["rom"], ID::MCCROM, false);
+  parseMarkupMemory(mcc.ram, root["ram"], ID::MCCRAM, true);
 
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "rom"
-    || node["id"].data == "ram") {
-      Mapping m({&BSXCartridge::mcu_read, &bsxcartridge}, {&BSXCartridge::mcu_write, &bsxcartridge});
-      parse_markup_map(m, node);
-      mapping.append(m);
+  for(auto node : root.find("map")) {
+    if(node.text() == "mcu") {
+      parseMarkupMap(node, {&MCC::mcu_read, &mcc}, {&MCC::mcu_write, &mcc});
+    } else {
+      parseMarkupMap(node, {&MCC::read, &mcc}, {&MCC::write, &mcc});
     }
+  }
 
-    if(node["id"].data == "io") {
-      Mapping m({&BSXCartridge::mmio_read, &bsxcartridge}, {&BSXCartridge::mmio_write, &bsxcartridge});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
+  for(auto node : root["ram"].find("map")) {
+    parseMarkupMap(node, mcc.ram);
   }
 }
 
-void Cartridge::parse_markup_satellaview(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_bs_slot = true;
+auto Cartridge::parseMarkupBSMemory(Markup::Node root) -> void {
+  hasBSMemorySlot = true;
 
-  interface->loadRequest(ID::Satellaview, "BS-X Satellaview", "bs");
+  interface->loadRequest(ID::BSMemory, "BS Memory", "bs", false);
 
-  for(auto& node : root.find("map")) {
-    if(node["id"].data == "rom") {
-      if(satellaviewcartridge.memory.size() == 0) continue;
-
-      Mapping m(satellaviewcartridge);
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
+  for(auto node : root.find("map")) {
+    if(bsmemory.memory.size() == 0) continue;
+    parseMarkupMap(node, bsmemory);
   }
 }
 
-void Cartridge::parse_markup_sufamiturbo(Markup::Node root, bool slot) {
-  if(root.exists() == false) return;
-  has_st_slots = true;
+auto Cartridge::parseMarkupSufamiTurbo(Markup::Node root, bool slot) -> void {
+  hasSufamiTurboSlots = true;
 
   if(slot == 0) {
     //load required slot A (will request slot B if slot A cartridge is linkable)
-    interface->loadRequest(ID::SufamiTurboSlotA, "Sufami Turbo - Slot A", "st");
+    interface->loadRequest(ID::SufamiTurboSlotA, "Sufami Turbo", "st", false);
   }
 
-  for(auto& node : root.find("map")) {
-    SufamiTurboCartridge &cart = (slot == 0 ? sufamiturboA : sufamiturboB);
+  for(auto node : root["rom"].find("map")) {
+    SufamiTurboCartridge& cart = (slot == 0 ? sufamiturboA : sufamiturboB);
+    if(cart.rom.size() == 0) continue;
+    parseMarkupMap(node, cart.rom);
+  }
 
-    if(node["id"].data == "rom") {
-      if(cart.rom.size() == 0) continue;
-
-      Mapping m(cart.rom);
-      parse_markup_map(m, node);
-      if(m.size == 0) m.size = cart.rom.size();
-      if(m.size) mapping.append(m);
-    }
-
-    if(node["id"].data == "ram") {
-      if(cart.ram.size() == 0) continue;
-
-      Mapping m(cart.ram);
-      parse_markup_map(m, node);
-      if(m.size == 0) m.size = cart.ram.size();
-      if(m.size) mapping.append(m);
-    }
+  for(auto node : root["ram"].find("map")) {
+    SufamiTurboCartridge& cart = (slot == 0 ? sufamiturboA : sufamiturboB);
+    if(cart.ram.size() == 0) continue;
+    parseMarkupMap(node, cart.ram);
   }
 }
 
-void Cartridge::parse_markup_nss(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_nss_dip = true;
+auto Cartridge::parseMarkupNSS(Markup::Node root) -> void {
+  hasNSSDIP = true;
   nss.dip = interface->dipSettings(root);
 
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "io") {
-      Mapping m({&NSS::read, &nss}, {&NSS::write, &nss});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, {&NSS::read, &nss}, {&NSS::write, &nss});
   }
 }
 
-void Cartridge::parse_markup_event(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_event = true;
+auto Cartridge::parseMarkupEvent(Markup::Node root) -> void {
+  auto roms = root.find("rom");
+  if(roms.size() != 4) return;
 
-  for(auto& node : root) {
-    if(node.name != "rom") continue;
-    unsigned id = numeral(node["id"].data);
-    if(id > 3) continue;
-    parse_markup_memory(event.rom[id], node, ID::EventROM0 + id, false);
+  hasEvent = true;
+
+  for(uint n : range(4)) {
+    parseMarkupMemory(event.rom[n], roms[n], ID::EventROM0 + n, false);
   }
-  parse_markup_memory(event.ram, root["ram"], ID::EventRAM, true);
+  parseMarkupMemory(event.ram, root["ram"], ID::EventRAM, true);
 
   event.board = Event::Board::CampusChallenge92;
-  if(root["name"].data == "Campus Challenge '92") event.board = Event::Board::CampusChallenge92;
-  if(root["name"].data == "Powerfest '94") event.board = Event::Board::Powerfest94;
+  if(root.text() == "CC92") event.board = Event::Board::CampusChallenge92;
+  if(root.text() == "PF94") event.board = Event::Board::Powerfest94;
+  event.timer = root["timer"].natural();
 
-  event.revision = root["revision"].data == "B" ? 2 : 1;
-  lstring part = root["timer"].data.split<1>(":");
-  if(part.size() == 1) event.timer = decimal(part(0));
-  if(part.size() == 2) event.timer = decimal(part(0)) * 60 + decimal(part(1));
-
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "rom") {
-      Mapping m({&Event::rom_read, &event}, [](unsigned, uint8) {});
-      parse_markup_map(m, node);
-      mapping.append(m);
+  for(auto node : root.find("map")) {
+    if(node.text() == "mcu") {
+      parseMarkupMap(node, {&Event::mcuRead, &event}, {&Event::mcuWrite, &event});
+    } else {
+      parseMarkupMap(node, {&Event::read, &event}, {&Event::write, &event});
     }
+  }
 
-    if(node["id"].data == "ram") {
-      Mapping m({&Event::ram_read, &event}, {&Event::ram_write, &event});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
-
-    if(node["id"].data == "dr") {
-      Mapping m([](unsigned) -> uint8 { return cpu.regs.mdr; }, {&Event::dr, &event});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
-
-    if(node["id"].data == "sr") {
-      Mapping m({&Event::sr, &event}, [](unsigned, uint8) {});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
+  for(auto node : root["ram"].find("map")) {
+    parseMarkupMap(node, event.ram);
   }
 }
 
-void Cartridge::parse_markup_sa1(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_sa1 = true;
+auto Cartridge::parseMarkupSA1(Markup::Node root) -> void {
+  hasSA1 = true;
 
-  parse_markup_memory(sa1.rom, root["rom"], ID::SA1ROM, false);
-  parse_markup_memory(sa1.bwram, root["ram[0]"], ID::SA1BWRAM, true);
-  parse_markup_memory(sa1.iram, root["ram[1]"], ID::SA1IRAM, true);
+  parseMarkupMemory(sa1.rom, root["rom"], ID::SA1ROM, false);
+  parseMarkupMemory(sa1.bwram, root["bwram"], ID::SA1BWRAM, true);
+  parseMarkupMemory(sa1.iram, root["iram"], ID::SA1IRAM, true);
 
-  for(auto& node : root) {
-    if(node.name != "map") continue;
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, {&SA1::mmio_read, &sa1}, {&SA1::mmio_write, &sa1});
+  }
 
-    if(node["id"].data == "io") {
-      Mapping m({&SA1::mmio_read, &sa1}, {&SA1::mmio_write, &sa1});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
+  for(auto node : root["rom"].find("map")) {
+    parseMarkupMap(node, {&SA1::mmcrom_read, &sa1}, {&SA1::mmcrom_write, &sa1});
+  }
 
-    if(node["id"].data == "rom") {
-      Mapping m({&SA1::mmcrom_read, &sa1}, {&SA1::mmcrom_write, &sa1});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
+  for(auto node : root["bwram"].find("map")) {
+    parseMarkupMap(node, {&SA1::mmcbwram_read, &sa1}, {&SA1::mmcbwram_write, &sa1});
+  }
 
-    if(node["id"].data == "bwram") {
-      Mapping m({&SA1::mmcbwram_read, &sa1}, {&SA1::mmcbwram_write, &sa1});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
-
-    if(node["id"].data == "iram") {
-      Mapping m(sa1.cpuiram);
-      parse_markup_map(m, node);
-      if(m.size == 0) m.size = sa1.cpuiram.size();
-      mapping.append(m);
-    }
+  for(auto node : root["iram"].find("map")) {
+    parseMarkupMap(node, sa1.cpuiram);
   }
 }
 
-void Cartridge::parse_markup_superfx(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_superfx = true;
+auto Cartridge::parseMarkupSuperFX(Markup::Node root) -> void {
+  hasSuperFX = true;
 
-  parse_markup_memory(superfx.rom, root["rom"], ID::SuperFXROM, false);
-  parse_markup_memory(superfx.ram, root["ram"], ID::SuperFXRAM, true);
+  parseMarkupMemory(superfx.rom, root["rom"], ID::SuperFXROM, false);
+  parseMarkupMemory(superfx.ram, root["ram"], ID::SuperFXRAM, true);
 
-  for(auto& node : root) {
-    if(node.name != "map") continue;
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, {&SuperFX::mmio_read, &superfx}, {&SuperFX::mmio_write, &superfx});
+  }
 
-    if(node["id"].data == "io") {
-      Mapping m({&SuperFX::mmio_read, &superfx}, {&SuperFX::mmio_write, &superfx});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
+  for(auto node : root["rom"].find("map")) {
+    parseMarkupMap(node, superfx.cpurom);
+  }
 
-    if(node["id"].data == "rom") {
-      Mapping m(superfx.cpurom);
-      parse_markup_map(m, node);
-      if(m.size == 0) m.size = superfx.rom.size();
-      mapping.append(m);
-    }
-
-    if(node["id"].data == "ram") {
-      Mapping m(superfx.cpuram);
-      parse_markup_map(m, node);
-      if(m.size == 0) m.size = superfx.ram.size();
-      mapping.append(m);
-    }
+  for(auto node : root["ram"].find("map")) {
+    parseMarkupMap(node, superfx.cpuram);
   }
 }
 
-void Cartridge::parse_markup_armdsp(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_armdsp = true;
+auto Cartridge::parseMarkupARMDSP(Markup::Node root) -> void {
+  hasARMDSP = true;
 
-  string programROMName = root["rom[0]/name"].data;
-  string dataROMName = root["rom[1]/name"].data;
-  string dataRAMName = root["ram/name"].data;
+  interface->loadRequest(ID::ArmDSPPROM, root["prom"]["name"].text(), true);
+  interface->loadRequest(ID::ArmDSPDROM, root["drom"]["name"].text(), true);
+  interface->loadRequest(ID::ArmDSPRAM, root["dram"]["name"].text(), false);
+  memory.append({ID::ArmDSPRAM, root["dram"]["name"].text()});
 
-  interface->loadRequest(ID::ArmDSPPROM, programROMName);
-  interface->loadRequest(ID::ArmDSPDROM, dataROMName);
-  if(dataRAMName.empty() == false) {
-    interface->loadRequest(ID::ArmDSPRAM, dataRAMName);
-    memory.append({ID::ArmDSPRAM, dataRAMName});
-  }
-
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "io") {
-      Mapping m({&ArmDSP::mmio_read, &armdsp}, {&ArmDSP::mmio_write, &armdsp});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, {&ArmDSP::mmio_read, &armdsp}, {&ArmDSP::mmio_write, &armdsp});
   }
 }
 
-void Cartridge::parse_markup_hitachidsp(Markup::Node root, unsigned roms) {
-  if(root.exists() == false) return;
+auto Cartridge::parseMarkupHitachiDSP(Markup::Node root, uint roms) -> void {
   if(interface->bind->altImplementation(Alt::ForDSP) == Alt::DSP::HLE)
   {
     //this is after checking existence because we don't want to ask which DSP to use and then use none of them
-    parse_markup_hitachidsp_hle(root);
+    parseMarkupHitachiDSPHLE(root);
     return;
   }
-  has_hitachidsp = true;
 
-  parse_markup_memory(hitachidsp.rom, root["rom[0]"], ID::HitachiDSPROM, false);
-  parse_markup_memory(hitachidsp.ram, root["ram[0]"], ID::HitachiDSPRAM, true);
+  hasHitachiDSP = true;
+
+  hitachidsp.Frequency = root["frequency"].natural();
+  if(hitachidsp.Frequency == 0) hitachidsp.frequency = 20000000;
+  hitachidsp.Roms = roms;  //1 or 2
 
   for(auto& word : hitachidsp.dataROM) word = 0x000000;
   for(auto& word : hitachidsp.dataRAM) word = 0x00;
 
-  hitachidsp.Frequency = numeral(root["frequency"].data);
-  if(hitachidsp.Frequency == 0) hitachidsp.frequency = 20000000;
-  hitachidsp.Roms = roms;
+  interface->loadRequest(ID::HitachiDSPDROM, root["drom"]["name"].text(), true);
+  interface->loadRequest(ID::HitachiDSPDRAM, root["dram"]["name"].text(), false);
 
-  string dataROMName = root["rom[1]/name"].data;
-  string dataRAMName = root["ram[1]/name"].data;
+  parseMarkupMemory(hitachidsp.rom, root["rom"], ID::HitachiDSPROM, false);
+  parseMarkupMemory(hitachidsp.ram, root["ram"], ID::HitachiDSPRAM, true);
 
-  interface->loadRequest(ID::HitachiDSPDROM, dataROMName);
-  if(dataRAMName.empty() == false) {
-    interface->loadRequest(ID::HitachiDSPDRAM, dataRAMName);
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, {&HitachiDSP::dsp_read, &hitachidsp}, {&HitachiDSP::dsp_write, &hitachidsp});
   }
 
-  for(auto& node : root) {
-    if(node.name != "map") continue;
+  for(auto node : root["rom"].find("map")) {
+    parseMarkupMap(node, {&HitachiDSP::rom_read, &hitachidsp}, {&HitachiDSP::rom_write, &hitachidsp});
+  }
 
-    if(node["id"].data == "io") {
-      Mapping m({&HitachiDSP::dsp_read, &hitachidsp}, {&HitachiDSP::dsp_write, &hitachidsp});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
+  for(auto node : root["ram"].find("map")) {
+    parseMarkupMap(node, {&HitachiDSP::ram_read, &hitachidsp}, {&HitachiDSP::ram_write, &hitachidsp});
+  }
 
-    if(node["id"].data == "rom") {
-      Mapping m({&HitachiDSP::rom_read, &hitachidsp}, {&HitachiDSP::rom_write, &hitachidsp});
-      parse_markup_map(m, node);
-      if(m.size == 0) m.size = hitachidsp.rom.size();
-      mapping.append(m);
-    }
-
-    if(node["id"].data == "ram") {
-      Mapping m({&HitachiDSP::ram_read, &hitachidsp}, {&HitachiDSP::ram_write, &hitachidsp});
-      parse_markup_map(m, node);
-      if(m.size == 0) m.size = hitachidsp.ram.size();
-      mapping.append(m);
-    }
+  for(auto node : root["dram"].find("map")) {
+    parseMarkupMap(node, {&HitachiDSP::dram_read, &hitachidsp}, {&HitachiDSP::dram_write, &hitachidsp});
   }
 }
 
-void Cartridge::parse_markup_necdsp(Markup::Node root) {
-  if(root.exists() == false) return;
+auto Cartridge::parseMarkupNECDSP(Markup::Node root) -> void {
   if(interface->bind->altImplementation(Alt::ForDSP)==Alt::DSP::HLE)
   {
-    parse_markup_necdsp_hle(root);
+    parseMarkupNecDSPHLE(root);
     return;
   }
-  has_necdsp = true;
+
+  hasNECDSP = true;
+
+  necdsp.frequency = root["frequency"].natural();
+  if(necdsp.frequency == 0) necdsp.frequency = 8000000;
+  necdsp.revision
+  = root["model"].text() == "uPD7725"  ? NECDSP::Revision::uPD7725
+  : root["model"].text() == "uPD96050" ? NECDSP::Revision::uPD96050
+  : NECDSP::Revision::uPD7725;
 
   for(auto& word : necdsp.programROM) word = 0x000000;
   for(auto& word : necdsp.dataROM) word = 0x0000;
   for(auto& word : necdsp.dataRAM) word = 0x0000;
 
-  necdsp.frequency = numeral(root["frequency"].data);
-  if(necdsp.frequency == 0) necdsp.frequency = 8000000;
-  necdsp.revision
-  = root["model"].data == "uPD7725"  ? NECDSP::Revision::uPD7725
-  : root["model"].data == "uPD96050" ? NECDSP::Revision::uPD96050
-  : NECDSP::Revision::uPD7725;
-
-  string programROMName = root["rom[0]/name"].data;
-  string dataROMName = root["rom[1]/name"].data;
-  string dataRAMName = root["ram/name"].data;
-
   if(necdsp.revision == NECDSP::Revision::uPD7725) {
-    interface->loadRequest(ID::Nec7725DSPPROM, programROMName);
-    interface->loadRequest(ID::Nec7725DSPDROM, dataROMName);
-    if(dataRAMName.empty() == false) {
-      interface->loadRequest(ID::Nec7725DSPRAM, dataRAMName);
-      memory.append({ID::Nec7725DSPRAM, dataRAMName});
-    }
+    interface->loadRequest(ID::Nec7725DSPPROM, root["prom"]["name"].text(), true);
+    interface->loadRequest(ID::Nec7725DSPDROM, root["drom"]["name"].text(), true);
+    interface->loadRequest(ID::Nec7725DSPRAM, root["dram"]["name"].text(), false);
+    memory.append({ID::Nec7725DSPRAM, root["dram"]["name"].text()});
   }
 
   if(necdsp.revision == NECDSP::Revision::uPD96050) {
-    interface->loadRequest(ID::Nec96050DSPPROM, programROMName);
-    interface->loadRequest(ID::Nec96050DSPDROM, dataROMName);
-    if(dataRAMName.empty() == false) {
-      interface->loadRequest(ID::Nec96050DSPRAM, dataRAMName);
-      memory.append({ID::Nec96050DSPRAM, dataRAMName});
-    }
+    interface->loadRequest(ID::Nec96050DSPPROM, root["prom"]["name"].text(), true);
+    interface->loadRequest(ID::Nec96050DSPDROM, root["drom"]["name"].text(), true);
+    interface->loadRequest(ID::Nec96050DSPRAM, root["dram"]["name"].text(), false);
+    memory.append({ID::Nec96050DSPRAM, root["dram"]["name"].text()});
   }
 
-  for(auto& node : root) {
-    if(node.name != "map") continue;
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, {&NECDSP::read, &necdsp}, {&NECDSP::write, &necdsp});
+  }
 
-    if(node["id"].data == "io") {
-      Mapping m({&NECDSP::read, &necdsp}, {&NECDSP::write, &necdsp});
-      parse_markup_map(m, node);
-      mapping.append(m);
-      necdsp.Select = numeral(node["select"].data);
-    }
-
-    if(node["id"].data == "ram") {
-      Mapping m({&NECDSP::ram_read, &necdsp}, {&NECDSP::ram_write, &necdsp});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
+  for(auto node : root["dram"].find("map")) {
+    parseMarkupMap(node, {&NECDSP::readRAM, &necdsp}, {&NECDSP::writeRAM, &necdsp});
   }
 }
 
-void Cartridge::parse_markup_epsonrtc(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_epsonrtc = true;
+auto Cartridge::parseMarkupEpsonRTC(Markup::Node root) -> void {
+  hasEpsonRTC = true;
 
-  string name = root["ram"]["name"].data;
-  interface->loadRequest(ID::EpsonRTC, name);
-  memory.append({ID::EpsonRTC, name});
+  interface->loadRequest(ID::EpsonRTC, root["ram"]["name"].text(), false);
+  memory.append({ID::EpsonRTC, root["ram"]["name"].text()});
 
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "io") {
-      Mapping m({&EpsonRTC::read, &epsonrtc}, {&EpsonRTC::write, &epsonrtc});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, {&EpsonRTC::read, &epsonrtc}, {&EpsonRTC::write, &epsonrtc});
   }
 }
 
-void Cartridge::parse_markup_sharprtc(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_sharprtc = true;
+auto Cartridge::parseMarkupSharpRTC(Markup::Node root) -> void {
+  hasSharpRTC = true;
 
-  string name = root["ram"]["name"].data;
-  interface->loadRequest(ID::SharpRTC, name);
-  memory.append({ID::SharpRTC, name});
+  interface->loadRequest(ID::SharpRTC, root["ram"]["name"].text(), false);
+  memory.append({ID::SharpRTC, root["ram"]["name"].text()});
 
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "io") {
-      Mapping m({&SharpRTC::read, &sharprtc}, {&SharpRTC::write, &sharprtc});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, {&SharpRTC::read, &sharprtc}, {&SharpRTC::write, &sharprtc});
   }
 }
 
-void Cartridge::parse_markup_spc7110(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_spc7110 = true;
+auto Cartridge::parseMarkupSPC7110(Markup::Node root) -> void {
+  hasSPC7110 = true;
 
-  parse_markup_memory(spc7110.prom, root["rom[0]"], ID::SPC7110PROM, false);
-  parse_markup_memory(spc7110.drom, root["rom[1]"], ID::SPC7110DROM, false);
-  parse_markup_memory(spc7110.ram, root["ram"], ID::SPC7110RAM, true);
+  parseMarkupMemory(spc7110.prom, root["prom"], ID::SPC7110PROM, false);
+  parseMarkupMemory(spc7110.drom, root["drom"], ID::SPC7110DROM, false);
+  parseMarkupMemory(spc7110.ram, root["ram"], ID::SPC7110RAM, true);
 
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "io") {
-      Mapping m({&SPC7110::read, &spc7110}, {&SPC7110::write, &spc7110});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
-
-    if(node["id"].data == "rom") {
-      Mapping m({&SPC7110::mcurom_read, &spc7110}, {&SPC7110::mcurom_write, &spc7110});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
-
-    if(node["id"].data == "ram") {
-      Mapping m({&SPC7110::mcuram_read, &spc7110}, {&SPC7110::mcuram_write, &spc7110});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
-  }
-}
-
-void Cartridge::parse_markup_sdd1(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_sdd1 = true;
-
-  parse_markup_memory(sdd1.rom, root["rom"], ID::SDD1ROM, false);
-  parse_markup_memory(sdd1.ram, root["ram"], ID::SDD1RAM, true);
-
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "io") {
-      Mapping m({&SDD1::read, &sdd1}, {&SDD1::write, &sdd1});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
-
-    if(node["id"].data == "rom") {
-      Mapping m({&SDD1::mcurom_read, &sdd1}, {&SDD1::mcurom_write, &sdd1});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
-
-    if(node["id"].data == "ram") {
-      Mapping m({&SDD1::mcuram_read, &sdd1}, {&SDD1::mcuram_write, &sdd1});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
-  }
-}
-
-void Cartridge::parse_markup_obc1(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_obc1 = true;
-
-  parse_markup_memory(obc1.ram, root["ram"], ID::OBC1RAM, true);
-
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "io") {
-      Mapping m({&OBC1::read, &obc1}, {&OBC1::write, &obc1});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
-  }
-}
-
-void Cartridge::parse_markup_hsu1(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_hsu1 = true;
-
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "io") {
-      Mapping m({&HSU1::read, &hsu1}, {&HSU1::write, &hsu1});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
-  }
-}
-
-void Cartridge::parse_markup_msu1(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_msu1 = true;
-
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "io") {
-      Mapping m({&MSU1::mmio_read, &msu1}, {&MSU1::mmio_write, &msu1});
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
-  }
-}
-
-void Cartridge::parse_markup_hitachidsp_hle(Markup::Node root) {
-  //root.exists() is known true in the HLE chip handlers
-  parse_markup_cartridge(root);
-
-  has_cx4 = true;
-  for(auto& node : root) {
-    if(node.name != "map" || node["id"].data != "io") continue;
-    Mapping m({&Cx4::read, &cx4}, {&Cx4::write, &cx4});
-    parse_markup_map(m, node);
-    mapping.append(m);
-  }
-}
-
-void Cartridge::parse_markup_necdsp_hle(Markup::Node root) {
-  if (root["model"].data == "uPD7725") {
-    Mapping m;
-    unsigned int select=0;
-    unsigned int * selectaddr=NULL;
-    for(auto& node : root) {
-      if (node.name == "rom" && node["id"].data == "program") {
-        if (node["name"].data == "dsp1.program.rom" || node["name"].data == "dsp1b.program.rom") {
-          has_dsp1 = true;
-          m.reader = {&DSP1::read, &dsp1};
-          m.writer = {&DSP1::write, &dsp1};
-          selectaddr = &dsp1.Select;
-        }
-        if (node["name"].data == "dsp2.program.rom") {
-          has_dsp2 = true;
-          m.reader = {&DSP2::read, &dsp2};
-          m.writer = {&DSP2::write, &dsp2};
-          selectaddr = &dsp2.Select;
-        }
-        if (node["name"].data == "dsp3.program.rom") {
-          has_dsp3 = true;
-          m.reader = {&DSP3::read, &dsp3};
-          m.writer = {&DSP3::write, &dsp3};
-          //some of the chips hardcode the Select value
-        }
-        if (node["name"].data == "dsp4.program.rom") {
-          has_dsp4 = true;
-          m.reader = {&DSP4::read, &dsp4};
-          m.writer = {&DSP4::write, &dsp4};
-        }
-      }
-      if (node.name == "map" && node["id"].data == "io") {
-        parse_markup_map(m, node);
-        select = numeral(node["select"].data);
-      }
-    }
-    if (selectaddr) *selectaddr=select;
-    mapping.append(m);
-  } else {
-    Mapping m({&ST0010::read, &st0010}, {&ST0010::write, &st0010});
-    for(auto& node : root) {
-      if(node.name != "map") continue;
-
-      parse_markup_map(m, node);
-      mapping.append(m);
-    }
-  }
-}
-
-bool Cartridge::parse_markup_icd2_external(Markup::Node root) {
-  //root.exists() is known true here
-  if (!sgbExternal.load_library("/home/alcaro/Desktop/minir/cores/bsnes_v073/supergameboy/libsupergameboy.so"))
-  {
-    interface->bind->notify("Couldn't load external GB emulator, falling back to internal");
-    return false;
-  }
-
-  has_sgbexternal = true;
-  sgbExternal.revision = max(1, numeral(root["revision"].data));
-
-  GameBoy::cartridge.load_empty(GameBoy::System::Revision::SuperGameBoy);
-  interface->loadRequest(ID::SuperGameBoy, "Game Boy", "gb");
-
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "io") {
-      Mapping m({&SGBExternal::read, &sgbExternal}, {&SGBExternal::write, &sgbExternal});
-      parse_markup_map(m, node);
-      mapping.append(m);
+  for(auto node : root.find("map")) {
+    if(node.text() == "mcu") {
+      parseMarkupMap(node, {&SPC7110::mcurom_read, &spc7110}, {&SPC7110::mcurom_write, &spc7110});
+    } else {
+      parseMarkupMap(node, {&SPC7110::read, &spc7110}, {&SPC7110::write, &spc7110});
     }
   }
 
-  return true;
+  for(auto node : root["ram"].find("map")) {
+    parseMarkupMap(node, {&SPC7110::mcuram_read, &spc7110}, {&SPC7110::mcuram_write, &spc7110});
+  }
 }
 
-Cartridge::Mapping::Mapping() {
-  size = base = mask = 0;
-  fastmode = Mapping::fastmode_slow;
+auto Cartridge::parseMarkupSDD1(Markup::Node root) -> void {
+  hasSDD1 = true;
+
+  parseMarkupMemory(sdd1.rom, root["rom"], ID::SDD1ROM, false);
+  parseMarkupMemory(sdd1.ram, root["ram"], ID::SDD1RAM, true);
+
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, {&SDD1::read, &sdd1}, {&SDD1::write, &sdd1});
+  }
+
+  for(auto node : root["rom"].find("map")) {
+    parseMarkupMap(node, {&SDD1::mcurom_read, &sdd1}, {&SDD1::mcurom_write, &sdd1});
+  }
+
+  for(auto node : root["ram"].find("map")) {
+    parseMarkupMap(node, {&SDD1::mcuram_read, &sdd1}, {&SDD1::mcuram_write, &sdd1});
+  }
 }
 
-Cartridge::Mapping::Mapping(SuperFamicom::Memory& memory) {
-  reader = {&SuperFamicom::Memory::read,  &memory};
-  writer = {&SuperFamicom::Memory::write, &memory};
-  size = base = mask = 0;
-  fastmode = Mapping::fastmode_slow;
+auto Cartridge::parseMarkupOBC1(Markup::Node root) -> void {
+  hasOBC1 = true;
+
+  parseMarkupMemory(obc1.ram, root["ram"], ID::OBC1RAM, true);
+
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, {&OBC1::read, &obc1}, {&OBC1::write, &obc1});
+  }
 }
 
-Cartridge::Mapping::Mapping(const function<uint8 (unsigned)>& reader, const function<void (unsigned, uint8)>& writer) {
-  this->reader = reader;
-  this->writer = writer;
-  size = base = mask = 0;
-  fastmode = Mapping::fastmode_slow;
+auto Cartridge::parseMarkupMSU1(Markup::Node root) -> void {
+  hasMSU1 = true;
+
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, {&MSU1::mmioRead, &msu1}, {&MSU1::mmioWrite, &msu1});
+  }
 }
 
-#endif
+void Cartridge::parseMarkupHitachiDSPHLE(Markup::Node root) {
+//untested.
+  hasCX4 = true;
+
+  for(auto node : root.find("map")) {
+    parseMarkupMap(node, {&Cx4::read, &cx4}, {&Cx4::write, &cx4});
+  }
+
+  for(auto node : root["rom"].find("map")) {
+    parseMarkupMap(node, {&Cx4::read, &cx4}, {&Cx4::write, &cx4});
+  }
+
+  for(auto node : root["ram"].find("map")) {
+    parseMarkupMap(node, {&Cx4::read, &cx4}, {&Cx4::write, &cx4});
+  }
+
+  for(auto node : root["dram"].find("map")) {
+    parseMarkupMap(node, {&Cx4::read, &cx4}, {&Cx4::write, &cx4});
+  }
+}
+
+void Cartridge::parseMarkupNecDSPHLE(Markup::Node root) {
+//I don't even know
+//  if (root["model"].data == "uPD7725") {
+//    Mapping m;
+//    unsigned int select=0;
+//    unsigned int * selectaddr=NULL;
+//    for(auto& node : root) {
+//      if (node.name == "rom" && node["id"].data == "program") {
+//        if (node["name"].data == "dsp1.program.rom" || node["name"].data == "dsp1b.program.rom") {
+//          has_dsp1 = true;
+//          m.reader = {&DSP1::read, &dsp1};
+//          m.writer = {&DSP1::write, &dsp1};
+//          selectaddr = &dsp1.Select;
+//        }
+//        if (node["name"].data == "dsp2.program.rom") {
+//          has_dsp2 = true;
+//          m.reader = {&DSP2::read, &dsp2};
+//          m.writer = {&DSP2::write, &dsp2};
+//          selectaddr = &dsp2.Select;
+//        }
+//        if (node["name"].data == "dsp3.program.rom") {
+//          has_dsp3 = true;
+//          m.reader = {&DSP3::read, &dsp3};
+//          m.writer = {&DSP3::write, &dsp3};
+//          //some of the chips hardcode the Select value
+//        }
+//        if (node["name"].data == "dsp4.program.rom") {
+//          has_dsp4 = true;
+//          m.reader = {&DSP4::read, &dsp4};
+//          m.writer = {&DSP4::write, &dsp4};
+//        }
+//      }
+//      if (node.name == "map" && node["id"].data == "io") {
+//        parse_markup_map(m, node);
+//        select = numeral(node["select"].data);
+//      }
+//    }
+//    if (selectaddr) *selectaddr=select;
+//    mapping.append(m);
+//  } else {
+//    Mapping m({&ST0010::read, &st0010}, {&ST0010::write, &st0010});
+//    for(auto& node : root) {
+//      if(node.name != "map") continue;
+//
+//      parse_markup_map(m, node);
+//      mapping.append(m);
+//    }
+//  }
+}

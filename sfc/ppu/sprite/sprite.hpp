@@ -9,8 +9,8 @@ struct Sprite {
     uint8 priority;
     uint8 palette;
     bool size;
-    unsigned width() const;
-    unsigned height() const;
+    alwaysinline auto width() const -> uint;
+    alwaysinline auto height() const -> uint;
   } list[128];
 
   struct TileItem {
@@ -22,11 +22,11 @@ struct Sprite {
   };
 
   struct State {
-    unsigned x;
-    unsigned y;
+    uint x;
+    uint y;
 
-    unsigned item_count;
-    unsigned tile_count;
+    uint item_count;
+    uint tile_count;
 
     bool active;
     uint8 item[2][32];
@@ -43,10 +43,10 @@ struct Sprite {
     uint16 tiledata_addr;
     uint8 first_sprite;
 
-    unsigned priority0;
-    unsigned priority1;
-    unsigned priority2;
-    unsigned priority3;
+    uint priority0;
+    uint priority1;
+    uint priority2;
+    uint priority3;
 
     bool time_over;
     bool range_over;
@@ -54,28 +54,29 @@ struct Sprite {
 
   struct Output {
     struct Pixel {
-      unsigned priority;  //0 = none (transparent)
+      uint priority;  //0 = none (transparent)
       uint8 palette;
     } main, sub;
   } output;
 
+  Sprite(PPU& self);
+
   //list.cpp
-  inline void update(unsigned addr, uint8 data);
-  inline void synchronize();
+  inline auto update(uint addr, uint8 data) -> void;
+  inline auto synchronize() -> void;
 
   //sprite.cpp
-  inline void address_reset();
-  inline void set_first_sprite();
-  inline void frame();
-  inline void scanline();
-  inline void run();
-  inline void tilefetch();
-  inline void reset();
+  alwaysinline auto address_reset() -> void;
+  alwaysinline auto set_first_sprite() -> void;
+  inline auto frame() -> void;
+  inline auto scanline() -> void;
+  inline auto run() -> void;
+  inline auto tilefetch() -> void;
+  inline auto reset() -> void;
 
-  inline bool on_scanline(SpriteItem&);
+  inline auto on_scanline(SpriteItem&) -> bool;
 
-  inline void serialize(serializer&);
-  inline Sprite(PPU& self);
+  inline auto serialize(serializer&) -> void;
 
   PPU& self;
   friend class PPU;

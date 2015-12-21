@@ -1,4 +1,4 @@
-void GSU::serialize(serializer& s) {
+auto GSU::serialize(serializer& s) -> void {
   s.integer(regs.pipeline);
   s.integer(regs.ramaddr);
 

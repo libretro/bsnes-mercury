@@ -11,11 +11,8 @@ typedef float resample_samp_t;
 #if defined(__SSE__)
   #define SINCRESAMPLE_USE_SSE 1
   #ifndef __x86_64__
-    // clang may not have this extension (Apple's certainly doesn't)
-    #ifndef __clang__
-      #undef RESAMPLE_SSEREGPARM
-      #define RESAMPLE_SSEREGPARM __attribute__((sseregparm))
-    #endif
+    #undef RESAMPLE_SSEREGPARM
+    #define RESAMPLE_SSEREGPARM __attribute__((sseregparm))
   #endif
 #else
   // TODO: altivec here

@@ -1,21 +1,59 @@
 #include <sfc/sfc.hpp>
 
-#define MEMORY_CPP
-
 namespace SuperFamicom {
 
 Bus bus;
 
-void Bus::map(
-  const function<uint8 (unsigned)>& reader,
-  const function<void (unsigned, uint8)>& writer,
-  unsigned banklo, unsigned bankhi,
-  unsigned addrlo, unsigned addrhi,
-  unsigned size, unsigned base, unsigned mask,
-  unsigned fastmode, uint8* fastptr
-) {
-  assert(banklo <= bankhi && banklo <= 0xff);
-  assert(addrlo <= addrhi && addrlo <= 0xffff);
+Bus::Bus() {
+  lookup = new uint8 [16 * 1024 * 1024];
+  target = new uint32[16 * 1024 * 1024];
+}
+
+Bus::~Bus() {
+  delete[] lookup;
+  delete[] target;
+}
+
+auto Bus::reset() -> void {
+  function<auto (uint, uint8) -> uint8> reader = [](uint, uint8 data) { return data; };
+  function<auto (uint, uint8) -> void> writer = [](uint, uint8) {};
+
+#ifdef __LIBRETRO__
+  libretro_mem_map.reset();
+#endif
+
+  idcount = 0;
+  map(reader, writer, 0x00, 0xff, 0x0000, 0xffff);
+}
+
+auto Bus::map() -> void {
+  for(auto& m : cartridge.mapping) {
+    lstring part = m.addr.split(":", 1L);
+    lstring banks = part(0).split(",");
+    lstring addrs = part(1).split(",");
+    for(auto& bank : banks) {
+      for(auto& addr : addrs) {
+        lstring bankpart = bank.split("-", 1L);
+        lstring addrpart = addr.split("-", 1L);
+        uint banklo = hex(bankpart(0));
+        uint bankhi = hex(bankpart(1, bankpart(0)));
+        uint addrlo = hex(addrpart(0));
+        uint addrhi = hex(addrpart(1, addrpart(0)));
+        map(m.reader, m.writer, banklo, bankhi, addrlo, addrhi, m.size, m.base, m.mask, m.fastmode, m.fastptr);
+      }
+    }
+  }
+}
+
+auto Bus::map(
+  const function<uint8 (uint, uint8)>& reader,
+  const function<void (uint, uint8)>& writer,
+  uint banklo, uint bankhi, uint addrlo, uint addrhi,
+  uint size, uint base, uint mask,
+  uint fastmode, uint8* fastptr
+) -> void {
+  assert(banklo <= bankhi && bankhi <= 0xff);
+  assert(addrlo <= addrhi && addrhi <= 0xffff);
   assert(idcount < 255);
 
   bool do_fast=(size%(addrhi+1-addrlo)==0 && !((mask|addrlo|addrhi|size)&fast_page_size_mask));
@@ -53,7 +91,7 @@ void Bus::map(
   }
 #endif
 
-  unsigned id = idcount++;
+  uint id = idcount++;
   this->reader[id] = reader;
   this->writer[id] = writer;
 
@@ -77,37 +115,6 @@ void Bus::map(
         if(size) offset = base + mirror(offset, size - base);
         lookup[bank << 16 | addr] = id;
         target[bank << 16 | addr] = offset;
-      }
-    }
-  }
-}
-
-void Bus::map_reset() {
-  function<uint8 (unsigned)> reader = [](unsigned) { return cpu.regs.mdr; };
-  function<void (unsigned, uint8)> writer = [](unsigned, uint8) {};
-
-#ifdef __LIBRETRO__
-  libretro_mem_map.reset();
-#endif
-
-  idcount = 0;
-  map(reader, writer, 0x00, 0xff, 0x0000, 0xffff);
-}
-
-void Bus::map_xml() {
-  for(auto& m : cartridge.mapping) {
-    lstring part = m.addr.split<1>(":");
-    lstring banks = part(0).split(",");
-    lstring addrs = part(1).split(",");
-    for(auto& bank : banks) {
-      for(auto& addr : addrs) {
-        lstring bankpart = bank.split<1>("-");
-        lstring addrpart = addr.split<1>("-");
-        unsigned banklo = hex(bankpart(0));
-        unsigned bankhi = hex(bankpart(1, bankpart(0)));
-        unsigned addrlo = hex(addrpart(0));
-        unsigned addrhi = hex(addrpart(1, addrpart(0)));
-        map(m.reader, m.writer, banklo, bankhi, addrlo, addrhi, m.size, m.base, m.mask, m.fastmode, m.fastptr);
       }
     }
   }

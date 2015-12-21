@@ -1,42 +1,40 @@
-struct Cartridge : property<Cartridge> {
+struct Cartridge {
   #include "memory.hpp"
 
-  readonly<bool> loaded;
-  readonly<string> sha256;
-
-  readonly<bool> has_sram;
-  readonly<bool> has_eeprom;
-  readonly<bool> has_flashrom;
+  auto loaded() const -> bool;
+  auto sha256() const -> string;
+  auto manifest() const -> string;
+  auto title() const -> string;
 
   struct Information {
     string markup;
+    string sha256;
     string title;
   } information;
 
-  string title();
-
   struct Media {
-    unsigned id;
+    uint id;
     string name;
   };
   vector<Media> memory;
 
-  void load();
-  void unload();
-  void power();
-
-  uint8* ram_data();
-  unsigned ram_size();
-
-  uint32 read(uint8* data, uint32 addr, uint32 size);
-  void write(uint8* data, uint32 addr, uint32 size, uint32 word);
-
-  uint32 read(uint32 addr, uint32 size);
-  void write(uint32 addr, uint32 size, uint32 word);
-
-  void serialize(serializer&);
   Cartridge();
   ~Cartridge();
+
+  auto load() -> void;
+  auto unload() -> void;
+  auto power() -> void;
+
+  auto read(uint mode, uint32 addr) -> uint32;
+  auto write(uint mode, uint32 addr, uint32 word) -> void;
+
+  auto serialize(serializer&) -> void;
+
+private:
+  bool isLoaded = false;
+  bool hasSRAM = false;
+  bool hasEEPROM = false;
+  bool hasFLASH = false;
 };
 
 extern Cartridge cartridge;

@@ -1,4 +1,4 @@
-uint8 CPU::read(uint32 addr) {
+auto CPU::read(uint32 addr) -> uint8 {
   uint8 result = 0;
 
   switch(addr) {
@@ -137,7 +137,7 @@ uint8 CPU::read(uint32 addr) {
   return 0u;
 }
 
-void CPU::write(uint32 addr, uint8 byte) {
+auto CPU::write(uint32 addr, uint8 byte) -> void {
   switch(addr) {
 
   //DMA0SAD
@@ -190,6 +190,7 @@ void CPU::write(uint32 addr, uint8 byte) {
   case 0x040000c6: case 0x040000c7:
   case 0x040000d2: case 0x040000d3:
   case 0x040000de: case 0x040000df: {
+    if(addr == 0x040000bb || addr == 0x040000c7 || addr == 0x040000d3) byte &= 0xf7;  //gamepak DRQ valid for DMA3 only
     auto& dma = regs.dma[(addr - 0x040000ba) / 12];
     unsigned shift = (addr & 1) * 8;
     bool enable = dma.control.enable;
@@ -231,7 +232,7 @@ void CPU::write(uint32 addr, uint8 byte) {
     bool enable = timer.control.enable;
     timer.control = byte;
     if(enable == 0 && timer.control.enable == 1) {
-      timer.period = timer.reload;
+      timer.pending = true;
     }
     return;
   }

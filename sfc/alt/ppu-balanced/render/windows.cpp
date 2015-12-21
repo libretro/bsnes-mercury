@@ -1,7 +1,5 @@
-#ifdef PPU_CPP
-
 //screen: 0 = main, 1 = sub
-void PPU::build_window_table(uint8 bg, bool screen) {
+auto PPU::build_window_table(uint8 bg, bool screen) -> void {
   bool set = 1, clr = 0;
   uint8* table = (screen == 0 ? window[bg].main : window[bg].sub);
 
@@ -34,11 +32,7 @@ void PPU::build_window_table(uint8 bg, bool screen) {
   }
 
   if(regs.window1_enabled[bg] == true && regs.window2_enabled[bg] == false) {
-    if(regs.window1_invert[bg] == true) {
-      bool tmp = set;
-      set = clr;
-      clr = tmp;
-    }
+    if(regs.window1_invert[bg] == true) set ^= clr ^= set ^= clr;
     for(unsigned x = 0; x < 256; x++) {
       table[x] = (x >= window1_left && x <= window1_right) ? set : clr;
     }
@@ -46,11 +40,7 @@ void PPU::build_window_table(uint8 bg, bool screen) {
   }
 
   if(regs.window1_enabled[bg] == false && regs.window2_enabled[bg] == true) {
-    if(regs.window2_invert[bg] == true) {
-      bool tmp = set;
-      set = clr;
-      clr = tmp;
-    }
+    if(regs.window2_invert[bg] == true) set ^= clr ^= set ^= clr;
     for(unsigned x = 0; x < 256; x++) {
       table[x] = (x >= window2_left && x <= window2_right) ? set : clr;
     }
@@ -70,9 +60,7 @@ void PPU::build_window_table(uint8 bg, bool screen) {
   }
 }
 
-void PPU::build_window_tables(uint8 bg) {
+auto PPU::build_window_tables(uint8 bg) -> void {
   build_window_table(bg, 0);
   build_window_table(bg, 1);
 }
-
-#endif

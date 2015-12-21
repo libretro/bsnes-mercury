@@ -4,95 +4,100 @@
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
 
-extern "C" XvImage* XvShmCreateImage(Display*, XvPortID, int, char*, int, int, XShmSegmentInfo*);
+extern "C" auto XvShmCreateImage(Display*, XvPortID, signed, char*, signed, signed, XShmSegmentInfo*) -> XvImage*;
 
-namespace ruby {
+struct VideoXv : Video {
+  ~VideoXv() { term(); }
 
-struct pVideoXv {
-  uint32_t* buffer;
-  uint8_t* ytable;
-  uint8_t* utable;
-  uint8_t* vtable;
+  uint32_t* buffer = nullptr;
+  uint8_t* ytable = nullptr;
+  uint8_t* utable = nullptr;
+  uint8_t* vtable = nullptr;
 
-  enum XvFormat {
+  enum XvFormat : unsigned {
     XvFormatRGB32,
     XvFormatRGB24,
     XvFormatRGB16,
     XvFormatRGB15,
     XvFormatYUY2,
     XvFormatUYVY,
-    XvFormatUnknown
+    XvFormatUnknown,
   };
 
   struct {
-    Display* display;
-    GC gc;
-    Window window;
-    Colormap colormap;
+    Display* display = nullptr;
+    GC gc = 0;
+    Window window = 0;
+    Colormap colormap = 0;
     XShmSegmentInfo shminfo;
 
-    int port;
-    int depth;
-    int visualid;
+    signed port = -1;
+    signed depth = 0;
+    signed visualid = 0;
 
-    XvImage* image;
-    XvFormat format;
-    uint32_t fourcc;
+    XvImage* image = nullptr;
+    XvFormat format = XvFormatUnknown;
+    uint32_t fourcc = 0;
 
-    unsigned width;
-    unsigned height;
+    unsigned width = 0;
+    unsigned height = 0;
   } device;
 
   struct {
-    Window handle;
-    bool synchronize;
+    Window handle = 0;
+    bool synchronize = false;
 
-    unsigned width;
-    unsigned height;
+    unsigned width = 0;
+    unsigned height = 0;
   } settings;
 
-  bool cap(const string& name) {
+  auto cap(const string& name) -> bool {
     if(name == Video::Handle) return true;
     if(name == Video::Synchronize) {
-      return XInternAtom(XOpenDisplay(0), "XV_SYNC_TO_VBLANK", true) != None;
+      Display* display = XOpenDisplay(nullptr);
+      bool result = XInternAtom(display, "XV_SYNC_TO_VBLANK", true) != None;
+      XCloseDisplay(display);
+      return result;
     }
     return false;
   }
 
-  any get(const string& name) {
+  auto get(const string& name) -> any {
     if(name == Video::Handle) return settings.handle;
     if(name == Video::Synchronize) return settings.synchronize;
-    return false;
+    return {};
   }
 
-  bool set(const string& name, const any& value) {
-    if(name == Video::Handle) {
-      settings.handle = any_cast<uintptr_t>(value);
+  auto set(const string& name, const any& value) -> bool {
+    if(name == Video::Handle && value.is<uintptr_t>()) {
+      settings.handle = value.get<uintptr_t>();
       return true;
     }
 
-    if(name == Video::Synchronize) {
-      Display* display = XOpenDisplay(0);
+    if(name == Video::Synchronize && value.is<bool>()) {
+      bool result = false;
+      Display* display = XOpenDisplay(nullptr);
       Atom atom = XInternAtom(display, "XV_SYNC_TO_VBLANK", true);
       if(atom != None && device.port >= 0) {
-        settings.synchronize = any_cast<bool>(value);
+        settings.synchronize = value.get<bool>();
         XvSetPortAttribute(display, device.port, atom, settings.synchronize);
-        return true;
+        result = true;
       }
-      return false;
+      XCloseDisplay(display);
+      return result;
     }
 
     return false;
   }
 
-  void resize(unsigned width, unsigned height) {
+  auto resize(unsigned width, unsigned height) -> void {
     if(device.width >= width && device.height >= height) return;
     device.width  = max(width,  device.width);
     device.height = max(height, device.height);
 
     XShmDetach(device.display, &device.shminfo);
     shmdt(device.shminfo.shmaddr);
-    shmctl(device.shminfo.shmid, IPC_RMID, NULL);
+    shmctl(device.shminfo.shmid, IPC_RMID, nullptr);
     XFree(device.image);
     delete[] buffer;
 
@@ -106,7 +111,7 @@ struct pVideoXv {
     buffer = new uint32_t[device.width * device.height];
   }
 
-  bool lock(uint32_t*& data, unsigned& pitch, unsigned width, unsigned height) {
+  auto lock(uint32_t*& data, unsigned& pitch, unsigned width, unsigned height) -> bool {
     if(width != settings.width || height != settings.height) {
       resize(settings.width = width, settings.height = height);
     }
@@ -115,17 +120,17 @@ struct pVideoXv {
     return data = buffer;
   }
 
-  void unlock() {
+  auto unlock() -> void {
   }
 
-  void clear() {
-    memset(buffer, 0, device.width * device.height * sizeof(uint32_t));
+  auto clear() -> void {
+    memory::fill(buffer, device.width * device.height * sizeof(uint32_t));
     //clear twice in case video is double buffered ...
     refresh();
     refresh();
   }
 
-  void refresh() {
+  auto refresh() -> void {
     unsigned width  = settings.width;
     unsigned height = settings.height;
 
@@ -146,12 +151,12 @@ struct pVideoXv {
     XGetWindowAttributes(device.display, device.window, &target);
 
     switch(device.format) {
-      case XvFormatRGB32: render_rgb32(width, height); break;
-      case XvFormatRGB24: render_rgb24(width, height); break;
-      case XvFormatRGB16: render_rgb16(width, height); break;
-      case XvFormatRGB15: render_rgb15(width, height); break;
-      case XvFormatYUY2:  render_yuy2 (width, height); break;
-      case XvFormatUYVY:  render_uyvy (width, height); break;
+      case XvFormatRGB32: renderRGB32(width, height); break;
+      case XvFormatRGB24: renderRGB24(width, height); break;
+      case XvFormatRGB16: renderRGB16(width, height); break;
+      case XvFormatRGB15: renderRGB15(width, height); break;
+      case XvFormatYUY2:  renderYUY2 (width, height); break;
+      case XvFormatUYVY:  renderUYVY (width, height); break;
     }
 
     XvShmPutImage(device.display, device.port, device.window, device.gc, device.image,
@@ -160,8 +165,8 @@ struct pVideoXv {
       true);
   }
 
-  bool init() {
-    device.display = XOpenDisplay(0);
+  auto init() -> bool {
+    device.display = XOpenDisplay(nullptr);
 
     if(!XShmQueryExtension(device.display)) {
       fprintf(stderr, "VideoXv: XShm extension not found.\n");
@@ -201,8 +206,8 @@ struct pVideoXv {
     visualtemplate.screen   = DefaultScreen(device.display);
     visualtemplate.depth    = device.depth;
     visualtemplate.visual   = 0;
-    int visualmatches       = 0;
-    XVisualInfo *visualinfo = XGetVisualInfo(device.display, VisualIDMask | VisualScreenMask | VisualDepthMask, &visualtemplate, &visualmatches);
+    signed visualmatches    = 0;
+    XVisualInfo* visualinfo = XGetVisualInfo(device.display, VisualIDMask | VisualScreenMask | VisualDepthMask, &visualtemplate, &visualmatches);
     if(visualmatches < 1 || !visualinfo->visual) {
       if(visualinfo) XFree(visualinfo);
       fprintf(stderr, "VideoXv: unable to find Xv-compatible visual.\n");
@@ -315,15 +320,15 @@ struct pVideoXv {
     buffer = new uint32_t[device.width * device.height];
     settings.width  = 256;
     settings.height = 256;
-    init_yuv_tables();
+    initTables();
     clear();
     return true;
   }
 
-  void term() {
+  auto term() -> void {
     XShmDetach(device.display, &device.shminfo);
     shmdt(device.shminfo.shmaddr);
-    shmctl(device.shminfo.shmid, IPC_RMID, NULL);
+    shmctl(device.shminfo.shmid, IPC_RMID, nullptr);
     XFree(device.image);
 
     if(device.window) {
@@ -336,13 +341,19 @@ struct pVideoXv {
       device.colormap = 0;
     }
 
-    if(buffer) { delete[] buffer; buffer = 0; }
-    if(ytable) { delete[] ytable; ytable = 0; }
-    if(utable) { delete[] utable; utable = 0; }
-    if(vtable) { delete[] vtable; vtable = 0; }
+    if(device.display) {
+      XCloseDisplay(device.display);
+      device.display = nullptr;
+    }
+
+    if(buffer) { delete[] buffer; buffer = nullptr; }
+    if(ytable) { delete[] ytable; ytable = nullptr; }
+    if(utable) { delete[] utable; utable = nullptr; }
+    if(vtable) { delete[] vtable; vtable = nullptr; }
   }
 
-  void render_rgb32(unsigned width, unsigned height) {
+private:
+  auto renderRGB32(unsigned width, unsigned height) -> void {
     uint32_t* input  = (uint32_t*)buffer;
     uint32_t* output = (uint32_t*)device.image->data;
 
@@ -353,7 +364,7 @@ struct pVideoXv {
     }
   }
 
-  void render_rgb24(unsigned width, unsigned height) {
+  auto renderRGB24(unsigned width, unsigned height) -> void {
     uint32_t* input  = (uint32_t*)buffer;
     uint8_t* output = (uint8_t*)device.image->data;
 
@@ -370,7 +381,7 @@ struct pVideoXv {
     }
   }
 
-  void render_rgb16(unsigned width, unsigned height) {
+  auto renderRGB16(unsigned width, unsigned height) -> void {
     uint32_t* input  = (uint32_t*)buffer;
     uint16_t* output = (uint16_t*)device.image->data;
 
@@ -385,7 +396,7 @@ struct pVideoXv {
     }
   }
 
-  void render_rgb15(unsigned width, unsigned height) {
+  auto renderRGB15(unsigned width, unsigned height) -> void {
     uint32_t* input  = (uint32_t*)buffer;
     uint16_t* output = (uint16_t*)device.image->data;
 
@@ -400,7 +411,7 @@ struct pVideoXv {
     }
   }
 
-  void render_yuy2(unsigned width, unsigned height) {
+  auto renderYUY2(unsigned width, unsigned height) -> void {
     uint32_t* input  = (uint32_t*)buffer;
     uint16_t* output = (uint16_t*)device.image->data;
 
@@ -423,7 +434,7 @@ struct pVideoXv {
     }
   }
 
-  void render_uyvy(unsigned width, unsigned height) {
+  auto renderUYVY(unsigned width, unsigned height) -> void {
     uint32_t* input  = (uint32_t*)buffer;
     uint16_t* output = (uint16_t*)device.image->data;
 
@@ -446,7 +457,7 @@ struct pVideoXv {
     }
   }
 
-  void init_yuv_tables() {
+  auto initTables() -> void {
     ytable = new uint8_t[65536];
     utable = new uint8_t[65536];
     vtable = new uint8_t[65536];
@@ -475,25 +486,4 @@ struct pVideoXv {
       vtable[i] = v < 0 ? 0 : v > 255 ? 255 : v;
     }
   }
-
-  pVideoXv() {
-    device.window   = 0;
-    device.colormap = 0;
-    device.port     = -1;
-
-    ytable = 0;
-    utable = 0;
-    vtable = 0;
-
-    settings.handle      = 0;
-    settings.synchronize = false;
-  }
-
-  ~pVideoXv() {
-    term();
-  }
-};
-
-DeclareVideo(Xv)
-
 };

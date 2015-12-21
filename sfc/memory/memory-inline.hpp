@@ -1,23 +1,23 @@
 //Memory
 
-unsigned Memory::size() const { return 0; }
+auto Memory::size() const -> uint { return 0; }
 
 //StaticRAM
 
-uint8* StaticRAM::data() { return data_; }
-unsigned StaticRAM::size() const { return size_; }
-
-uint8 StaticRAM::read(unsigned addr) { return data_[addr]; }
-void StaticRAM::write(unsigned addr, uint8 n) { data_[addr] = n; }
-uint8& StaticRAM::operator[](unsigned addr) { return data_[addr]; }
-const uint8& StaticRAM::operator[](unsigned addr) const { return data_[addr]; }
-
-StaticRAM::StaticRAM(unsigned n) : size_(n) { data_ = new uint8[size_]; }
+StaticRAM::StaticRAM(uint n) : size_(n) { data_ = new uint8[size_]; }
 StaticRAM::~StaticRAM() { delete[] data_; }
+
+auto StaticRAM::data() -> uint8* { return data_; }
+auto StaticRAM::size() const -> uint { return size_; }
+
+auto StaticRAM::read(uint addr, uint8) -> uint8 { return data_[addr]; }
+auto StaticRAM::write(uint addr, uint8 data) -> void { data_[addr] = data; }
+auto StaticRAM::operator[](uint addr) -> uint8& { return data_[addr]; }
+auto StaticRAM::operator[](uint addr) const -> const uint8& { return data_[addr]; }
 
 //MappedRAM
 
-void MappedRAM::reset() {
+auto MappedRAM::reset() -> void {
   if(data_) {
     delete[] data_;
     data_ = nullptr;
@@ -26,13 +26,13 @@ void MappedRAM::reset() {
   write_protect_ = false;
 }
 
-void MappedRAM::map(uint8* source, unsigned length) {
+auto MappedRAM::map(uint8* source, uint length) -> void {
   reset();
   data_ = source;
   size_ = data_ ? length : 0;
 }
 
-void MappedRAM::copy(const stream& memory) {
+auto MappedRAM::copy(const stream& memory) -> void {
   if(data_) delete[] data_;
   //round size up to multiple of 256-bytes
   size_ = (memory.size() & ~255) + ((bool)(memory.size() & 255) << 8);
@@ -40,60 +40,49 @@ void MappedRAM::copy(const stream& memory) {
   memory.read(data_, memory.size());
 }
 
-void MappedRAM::read(const stream& memory) {
+auto MappedRAM::read(const stream& memory) -> void {
   memory.read(data_, min(memory.size(), size_));
 }
 
-void MappedRAM::write_protect(bool status) { write_protect_ = status; }
-uint8* MappedRAM::data() { return data_; }
-unsigned MappedRAM::size() const { return size_; }
+auto MappedRAM::write_protect(bool status) -> void { write_protect_ = status; }
+auto MappedRAM::write_protected() -> bool { return write_protect_; }
+auto MappedRAM::data() -> uint8* { return data_; }
+auto MappedRAM::size() const -> uint { return size_; }
 
-uint8 MappedRAM::read(unsigned addr) { return data_[addr]; }
-void MappedRAM::write(unsigned addr, uint8 n) { if(!write_protect_) data_[addr] = n; }
-const uint8& MappedRAM::operator[](unsigned addr) const { return data_[addr]; }
-MappedRAM::MappedRAM() : data_(nullptr), size_(0), write_protect_(false) {}
+auto MappedRAM::read(uint addr, uint8) -> uint8 { return data_[addr]; }
+auto MappedRAM::write(uint addr, uint8 data) -> void { if(!write_protect_) data_[addr] = data; }
+auto MappedRAM::operator[](uint addr) const -> const uint8& { return data_[addr]; }
 
 //Bus
 
-unsigned Bus::mirror(unsigned addr, unsigned size) {
-  unsigned base = 0;
-  if(size) {
-    unsigned mask = 1 << 23;
-    while(addr >= size) {
-      while(!(addr & mask)) mask >>= 1;
-      addr -= mask;
-      if(size > mask) {
-        size -= mask;
-        base += mask;
-      }
-      mask >>= 1;
+auto Bus::mirror(uint addr, uint size) -> uint {
+  if(size == 0) return 0;
+  uint base = 0;
+  uint mask = 1 << 23;
+  while(addr >= size) {
+    while(!(addr & mask)) mask >>= 1;
+    addr -= mask;
+    if(size > mask) {
+      size -= mask;
+      base += mask;
     }
-    base += addr;
+    mask >>= 1;
   }
-  return base;
+  return base + addr;
 }
 
-unsigned Bus::reduce(unsigned addr, unsigned mask)
-{
-  while (mask)
-  {
-    //extract the bits to keep
-    //set everything below the lowest set bit; 0x018000 -> 0x007FFF
-    unsigned tmp=((mask-1)&(~mask));
-    
-    //shift everything above that
-    addr=(addr&tmp)|((addr>>1)&~tmp);
-    
-    //adjust the mask
-    mask=(mask&(mask-1))>>1;
+auto Bus::reduce(uint addr, uint mask) -> uint {
+  while(mask) {
+    uint bits = (mask & -mask) - 1;
+    addr = ((addr >> 1) & ~bits) | (addr & bits);
+    mask = (mask & (mask - 1)) >> 1;
   }
   return addr;
 }
 
-uint8 Bus::read(unsigned addr) {
-  uint8 data;
+auto Bus::read(uint addr, uint8 data) -> uint8 {
   if (fast_read[addr>>fast_page_size_bits]) data = fast_read[addr>>fast_page_size_bits][addr];
-  else data = reader[lookup[addr]](target[addr]);
+  else data = reader[lookup[addr]](target[addr], data);
 
 #ifndef __LIBRETRO__
   if(cheat.enable()) {
@@ -104,7 +93,7 @@ uint8 Bus::read(unsigned addr) {
   return data;
 }
 
-void Bus::write(unsigned addr, uint8 data) {
+auto Bus::write(uint addr, uint8 data) -> void {
   if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data;
   else writer[lookup[addr]](target[addr], data);
 }

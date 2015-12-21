@@ -1,4 +1,4 @@
-void APU::runsequencer() {
+auto APU::runsequencer() -> void {
   auto& r = sequencer;
 
   if(r.base == 0) {  //512hz
@@ -26,7 +26,7 @@ void APU::runsequencer() {
   if(r.enable[3])   noise.run();
 }
 
-uint8 APU::Sequencer::read(unsigned addr) const {
+auto APU::Sequencer::read(uint addr) const -> uint8 {
   switch(addr) {
   case 0: return (rvolume << 0) | (lvolume << 4);
   case 1: return (
@@ -39,17 +39,11 @@ uint8 APU::Sequencer::read(unsigned addr) const {
   | (lenable[2] << 6)
   | (lenable[3] << 7)
   );
-  case 2: return (
-    (enable[0]    << 0)
-  | (enable[1]    << 1)
-  | (enable[2]    << 2)
-  | (enable[3]    << 3)
-  | (masterenable << 7)
-  );
+  case 2: return (masterenable << 7);
   }
 }
 
-void APU::Sequencer::write(unsigned addr, uint8 byte) {
+auto APU::Sequencer::write(uint addr, uint8 byte) -> void {
   switch(addr) {
   case 0:  //NR50
     rvolume = byte >> 0;
@@ -77,7 +71,7 @@ void APU::Sequencer::write(unsigned addr, uint8 byte) {
   }
 }
 
-void APU::Sequencer::power() {
+auto APU::Sequencer::power() -> void {
   lvolume = 0;
   rvolume = 0;
   for(auto& n : lenable) n = 0;

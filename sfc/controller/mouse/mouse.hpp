@@ -1,7 +1,12 @@
 struct Mouse : Controller {
-  uint2 data();
-  void latch(bool data);
+  enum : uint {
+    X, Y, Left, Right,
+  };
+
   Mouse(bool port);
+
+  auto data() -> uint2;
+  auto latch(bool data) -> void;
 
 private:
   bool latched;

@@ -2,83 +2,72 @@
 
 namespace nall {
 
-optional<unsigned> lstring::find(rstring key) const {
-  for(unsigned i = 0; i < size(); i++) {
-    if(operator[](i) == key) return {true, i};
-  }
-  return false;
-}
-
-string lstring::merge(const string& separator) const {
-  string output;
-  for(unsigned i = 0; i < size(); i++) {
-    output.append(operator[](i));
-    if(i < size() - 1) output.append(separator);
-  }
-  return output;
-}
-
-lstring& lstring::isort() {
-  nall::sort(pool, objectsize, [](const string& x, const string& y) {
-    return istrcmp(x, y) < 0;
-  });
-  return *this;
-}
-
-lstring& lstring::strip() {
-  for(unsigned n = 0; n < size(); n++) {
-    operator[](n).strip();
-  }
-  return *this;
-}
-
-template<typename... Args> void lstring::append(const string& data, Args&&... args) {
-  vector::append(data);
-  append(std::forward<Args>(args)...);
-}
-
-bool lstring::operator==(const lstring& source) const {
+auto lstring::operator==(const lstring& source) const -> bool {
   if(this == &source) return true;
   if(size() != source.size()) return false;
-  for(unsigned n = 0; n < size(); n++) {
+  for(uint n = 0; n < size(); n++) {
     if(operator[](n) != source[n]) return false;
   }
   return true;
 }
 
-bool lstring::operator!=(const lstring& source) const {
+auto lstring::operator!=(const lstring& source) const -> bool {
   return !operator==(source);
 }
 
-lstring& lstring::operator=(const lstring& source) {
-  vector::operator=(source);
+auto lstring::isort() -> lstring& {
+  nall::sort(pool, objectsize, [](const string& x, const string& y) {
+    return memory::icompare(x.data(), x.size(), y.data(), y.size()) < 0;
+  });
   return *this;
 }
 
-lstring& lstring::operator=(lstring& source) {
-  vector::operator=(source);
+template<typename... P> auto lstring::append(const string& data, P&&... p) -> lstring& {
+  vector::append(data);
+  append(forward<P>(p)...);
   return *this;
 }
 
-lstring& lstring::operator=(lstring&& source) {
-  vector::operator=(std::move(source));
+auto lstring::append() -> lstring& {
   return *this;
 }
 
-template<typename... Args> lstring::lstring(Args&&... args) {
-  append(std::forward<Args>(args)...);
+auto lstring::find(rstring source) const -> maybe<uint> {
+  for(uint n = 0; n < size(); n++) {
+    if(operator[](n).equals(source)) return n;
+  }
+  return nothing;
 }
 
-lstring::lstring(const lstring& source) {
-  vector::operator=(source);
+auto lstring::ifind(rstring source) const -> maybe<uint> {
+  for(uint n = 0; n < size(); n++) {
+    if(operator[](n).iequals(source)) return n;
+  }
+  return nothing;
 }
 
-lstring::lstring(lstring& source) {
-  vector::operator=(source);
+auto lstring::match(rstring pattern) const -> lstring {
+  lstring result;
+  for(uint n = 0; n < size(); n++) {
+    if(operator[](n).match(pattern)) result.append(operator[](n));
+  }
+  return result;
 }
 
-lstring::lstring(lstring&& source) {
-  vector::operator=(std::move(source));
+auto lstring::merge(rstring separator) const -> string {
+  string output;
+  for(uint n = 0; n < size(); n++) {
+    output.append(operator[](n));
+    if(n < size() - 1) output.append(separator.data());
+  }
+  return output;
+}
+
+auto lstring::strip() -> lstring& {
+  for(uint n = 0; n < size(); n++) {
+    operator[](n).strip();
+  }
+  return *this;
 }
 
 }

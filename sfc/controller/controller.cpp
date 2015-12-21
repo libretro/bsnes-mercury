@@ -1,6 +1,5 @@
 #include <sfc/sfc.hpp>
 
-#define CONTROLLER_CPP
 namespace SuperFamicom {
 
 #include "gamepad/gamepad.cpp"
@@ -10,21 +9,25 @@ namespace SuperFamicom {
 #include "justifier/justifier.cpp"
 #include "usart/usart.cpp"
 
-void Controller::Enter() {
-  if(co_active() == input.port1->thread) input.port1->enter();
-  if(co_active() == input.port2->thread) input.port2->enter();
+Controller::Controller(bool port) : port(port) {
+  if(!thread) create(Controller::Enter, 1);
 }
 
-void Controller::enter() {
+auto Controller::Enter() -> void {
+  if(co_active() == device.controllerPort1->thread) device.controllerPort1->enter();
+  if(co_active() == device.controllerPort2->thread) device.controllerPort2->enter();
+}
+
+auto Controller::enter() -> void {
   while(true) step(1);
 }
 
-void Controller::step(unsigned clocks) {
+auto Controller::step(unsigned clocks) -> void {
   clock += clocks * (uint64)cpu.frequency;
-  synchronize_cpu();
+  synchronizeCPU();
 }
 
-void Controller::synchronize_cpu() {
+auto Controller::synchronizeCPU() -> void {
   if(CPU::Threaded == true) {
     if(clock >= 0 && scheduler.sync != Scheduler::SynchronizeMode::All) co_switch(cpu.thread);
   } else {
@@ -32,22 +35,18 @@ void Controller::synchronize_cpu() {
   }
 }
 
-bool Controller::iobit() {
-  if (port == Controller::Port1)
-    return cpu.pio() & 0x40;
-  else
-    return cpu.pio() & 0x80;
+auto Controller::iobit() -> bool {
+  switch(port) {
+  case Controller::Port1: return cpu.pio() & 0x40;
+  case Controller::Port2: return cpu.pio() & 0x80;
+  }
 }
 
-void Controller::iobit(bool data) {
-  if (port == Controller::Port1)
-    bus.write(0x4201, (cpu.pio() & ~0x40) | (data << 6));
-  else
-    bus.write(0x4201, (cpu.pio() & ~0x80) | (data << 7));
-}
-
-Controller::Controller(bool port) : port(port) {
-  if(!thread) create(Controller::Enter, 1);
+auto Controller::iobit(bool data) -> void {
+  switch(port) {
+  case Controller::Port1: bus.write(0x4201, (cpu.pio() & ~0x40) | (data << 6)); break;
+  case Controller::Port2: bus.write(0x4201, (cpu.pio() & ~0x80) | (data << 7)); break;
+  }
 }
 
 }

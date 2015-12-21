@@ -1,13 +1,13 @@
-void OpenGLProgram::bind(OpenGL* instance, const Markup::Node& node, const string& pathname) {
+auto OpenGLProgram::bind(OpenGL* instance, const Markup::Node& node, const string& pathname) -> void {
   filter = glrFilter(node["filter"].text());
   wrap = glrWrap(node["wrap"].text());
   modulo = glrModulo(node["modulo"].integer());
 
   string w = node["width"].text(), h = node["height"].text();
-  if(w.endsWith("%")) relativeWidth = real(w.rtrim<1>("%")) / 100.0;
-  else absoluteWidth = decimal(w);
-  if(h.endsWith("%")) relativeHeight = real(h.rtrim<1>("%")) / 100.0;
-  else absoluteHeight = decimal(h);
+  if(w.endsWith("%")) relativeWidth = real(w.rtrim("%", 1L)) / 100.0;
+  else absoluteWidth = w.natural();
+  if(h.endsWith("%")) relativeHeight = real(h.rtrim("%", 1L)) / 100.0;
+  else absoluteHeight = h.natural();
 
   format = glrFormat(node["format"].text());
 
@@ -41,7 +41,7 @@ void OpenGLProgram::bind(OpenGL* instance, const Markup::Node& node, const strin
 
   for(auto& leaf : node.find("pixmap")) {
     nall::image image({pathname, leaf.text()});
-    image.transform(0, 32, 255u << 24, 255u << 16, 255u << 8, 255u << 0);
+    image.transform();
     if(image.empty()) continue;
 
     GLuint texture;
@@ -49,20 +49,20 @@ void OpenGLProgram::bind(OpenGL* instance, const Markup::Node& node, const strin
 
     unsigned n = pixmaps.size();
     pixmaps(n).texture = texture;
-    pixmaps(n).width = image.width;
-    pixmaps(n).height = image.height;
+    pixmaps(n).width = image.width();
+    pixmaps(n).height = image.height();
     pixmaps(n).format = format;
     pixmaps(n).filter = filter;
     pixmaps(n).wrap = wrap;
-    if(leaf["format"].exists()) pixmaps(n).format = glrFormat(leaf["format"].text());
-    if(leaf["filter"].exists()) pixmaps(n).filter = glrFilter(leaf["filter"].text());
-    if(leaf["wrap"].exists()) pixmaps(n).wrap = glrWrap(leaf["wrap"].text());
+    if(leaf["format"]) pixmaps(n).format = glrFormat(leaf["format"].text());
+    if(leaf["filter"]) pixmaps(n).filter = glrFilter(leaf["filter"].text());
+    if(leaf["wrap"]) pixmaps(n).wrap = glrWrap(leaf["wrap"].text());
 
-    unsigned w = glrSize(image.width), h = glrSize(image.height);
+    unsigned w = glrSize(image.width()), h = glrSize(image.height());
     uint32_t* buffer = new uint32_t[w * h]();
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, pixmaps(n).format, w, h, 0, pixmaps(n).getFormat(), pixmaps(n).getType(), buffer);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image.width, image.height, getFormat(), getType(), image.data);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, image.width(), image.height(), getFormat(), getType(), image.data());
     delete[] buffer;
   }
 
@@ -71,14 +71,14 @@ void OpenGLProgram::bind(OpenGL* instance, const Markup::Node& node, const strin
 }
 
 //apply manifest settings to shader source #in tags
-void OpenGLProgram::parse(OpenGL* instance, string& source) {
+auto OpenGLProgram::parse(OpenGL* instance, string& source) -> void {
   lstring lines = source.split("\n");
   for(auto& line : lines) {
     string s = line;
     if(auto position = s.find("//")) s.resize(position());  //strip comments
     s.strip();  //remove extraneous whitespace
     if(s.match("#in ?*")) {
-      s.ltrim<1>("#in ").strip();
+      s.ltrim("#in ", 1L).strip();
       if(auto setting = instance->settings.find({s})) {
         line = {"#define ", setting().name, " ", setting().value};
       } else {
@@ -89,7 +89,7 @@ void OpenGLProgram::parse(OpenGL* instance, string& source) {
   source = lines.merge("\n");
 }
 
-void OpenGLProgram::release() {
+auto OpenGLProgram::release() -> void {
   OpenGLSurface::release();
   for(auto& pixmap : pixmaps) glDeleteTextures(1, &pixmap.texture);
   pixmaps.reset();

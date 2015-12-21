@@ -1,14 +1,12 @@
-#ifdef SYSTEM_CPP
+auto System::serialize() -> serializer {
+  serializer s(serializeSize);
 
-serializer System::serialize() {
-  serializer s(serialize_size);
-
-  unsigned signature = 0x31545342, version = Info::SerializerVersion;
+  uint signature = 0x31545342, version = Info::SerializerVersion;
   char hash[64], description[512], profile[16];
   memcpy(&hash, (const char*)cartridge.sha256(), 64);
   memset(&description, 0, sizeof description);
   memset(&profile, 0, sizeof profile);
-  strmcpy(profile, Emulator::Profile, sizeof profile);
+  strcpy(profile, Emulator::Profile);
 
   s.integer(signature);
   s.integer(version);
@@ -16,12 +14,12 @@ serializer System::serialize() {
   s.array(description);
   s.array(profile);
 
-  serialize_all(s);
+  serializeAll(s);
   return s;
 }
 
-bool System::unserialize(serializer& s) {
-  unsigned signature, version;
+auto System::unserialize(serializer& s) -> bool {
+  uint signature, version;
   char hash[64], description[512], profile[16];
 
   s.integer(signature);
@@ -35,7 +33,7 @@ bool System::unserialize(serializer& s) {
   if(strcmp(profile, Emulator::Profile)) return false;
 
   power();
-  serialize_all(s);
+  serializeAll(s);
   return true;
 }
 
@@ -43,12 +41,12 @@ bool System::unserialize(serializer& s) {
 //internal
 //========
 
-void System::serialize(serializer& s) {
-  s.integer((unsigned&)region);
-  s.integer((unsigned&)expansion);
+auto System::serialize(serializer& s) -> void {
+  s.integer((uint&)region);
+  s.integer((uint&)expansionPort);
 }
 
-void System::serialize_all(serializer& s) {
+auto System::serializeAll(serializer& s) -> void {
   cartridge.serialize(s);
   system.serialize(s);
   random.serialize(s);
@@ -57,38 +55,38 @@ void System::serialize_all(serializer& s) {
   ppu.serialize(s);
   dsp.serialize(s);
 
-  if(cartridge.has_gb_slot()) icd2.serialize(s);
-  if(cartridge.has_bs_cart()) bsxcartridge.serialize(s);
-  if(cartridge.has_event()) event.serialize(s);
-  if(cartridge.has_sa1()) sa1.serialize(s);
-  if(cartridge.has_superfx()) superfx.serialize(s);
-  if(cartridge.has_armdsp()) armdsp.serialize(s);
-  if(cartridge.has_hitachidsp()) hitachidsp.serialize(s);
-  if(cartridge.has_necdsp()) necdsp.serialize(s);
-  if(cartridge.has_epsonrtc()) epsonrtc.serialize(s);
-  if(cartridge.has_sharprtc()) sharprtc.serialize(s);
-  if(cartridge.has_spc7110()) spc7110.serialize(s);
-  if(cartridge.has_sdd1()) sdd1.serialize(s);
-  if(cartridge.has_obc1()) obc1.serialize(s);
-  if(cartridge.has_hsu1()) hsu1.serialize(s);
-  if(cartridge.has_msu1()) msu1.serialize(s);
-  if(cartridge.has_st_slots()) sufamiturboA.serialize(s), sufamiturboB.serialize(s);
-  if(cartridge.has_dsp1()) dsp1.serialize(s);
-  if(cartridge.has_dsp2()) dsp2.serialize(s);
-  //if(cartridge.has_dsp3()) dsp3.serialize(s);
-  //if(cartridge.has_dsp4()) dsp4.serialize(s);
-  if(cartridge.has_cx4()) cx4.serialize(s);
-  if(cartridge.has_st0010()) st0010.serialize(s);
-  if(cartridge.has_sgbexternal()) sgbExternal.serialize(s);
+  if(cartridge.hasICD2()) icd2.serialize(s);
+  if(cartridge.hasMCC()) mcc.serialize(s);
+  if(cartridge.hasEvent()) event.serialize(s);
+  if(cartridge.hasSA1()) sa1.serialize(s);
+  if(cartridge.hasSuperFX()) superfx.serialize(s);
+  if(cartridge.hasARMDSP()) armdsp.serialize(s);
+  if(cartridge.hasHitachiDSP()) hitachidsp.serialize(s);
+  if(cartridge.hasNECDSP()) necdsp.serialize(s);
+  if(cartridge.hasEpsonRTC()) epsonrtc.serialize(s);
+  if(cartridge.hasSharpRTC()) sharprtc.serialize(s);
+  if(cartridge.hasSPC7110()) spc7110.serialize(s);
+  if(cartridge.hasSDD1()) sdd1.serialize(s);
+  if(cartridge.hasOBC1()) obc1.serialize(s);
+  if(cartridge.hasMSU1()) msu1.serialize(s);
+
+  if(cartridge.hasSufamiTurboSlots()) sufamiturboA.serialize(s), sufamiturboB.serialize(s);
+
+  if(cartridge.hasDSP1()) dsp1.serialize(s);
+  if(cartridge.hasDSP2()) dsp2.serialize(s);
+  //if(cartridge.hasDSP3()) dsp3.serialize(s);
+  //if(cartridge.hasDSP4()) dsp4.serialize(s);
+  if(cartridge.hasCX4()) cx4.serialize(s);
+  if(cartridge.hasST0010()) st0010.serialize(s);
 }
 
 //perform dry-run state save:
 //determines exactly how many bytes are needed to save state for this cartridge,
 //as amount varies per game (eg different RAM sizes, special chips, etc.)
-void System::serialize_init() {
+auto System::serializeInit() -> void {
   serializer s;
 
-  unsigned signature = 0, version = 0;
+  uint signature = 0, version = 0;
   char hash[64], profile[16], description[512];
 
   s.integer(signature);
@@ -97,8 +95,6 @@ void System::serialize_init() {
   s.array(profile);
   s.array(description);
 
-  serialize_all(s);
-  serialize_size = s.size();
+  serializeAll(s);
+  serializeSize = s.size();
 }
-
-#endif

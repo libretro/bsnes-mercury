@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2014 The RetroArch team
+/* Copyright (C) 2010-2015 The RetroArch team
  *
  * ---------------------------------------------------------------------------------------
  * The following license statement only applies to this libretro API header (libretro.h).
@@ -41,6 +41,40 @@ extern "C" {
 #else
 #include <stdbool.h>
 #endif
+#endif
+
+#ifndef RETRO_CALLCONV
+#  if defined(__GNUC__) && defined(__i386__) && !defined(__x86_64__)
+#    define RETRO_CALLCONV __attribute__((cdecl))
+#  elif defined(_MSC_VER) && defined(_M_X86) && !defined(_M_X64)
+#    define RETRO_CALLCONV __cdecl
+#  else
+#    define RETRO_CALLCONV /* all other platforms only have one calling convention each */
+#  endif
+#endif
+
+#ifndef RETRO_API
+#  if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
+#    ifdef RETRO_IMPORT_SYMBOLS
+#      ifdef __GNUC__
+#        define RETRO_API RETRO_CALLCONV __attribute__((dllimport))
+#      else
+#        define RETRO_API RETRO_CALLCONV __declspec(dllimport)
+#      endif
+#    else
+#      ifdef __GNUC__
+#        define RETRO_API RETRO_CALLCONV __attribute__((dllexport))
+#      else
+#        define RETRO_API RETRO_CALLCONV __declspec(dllexport)
+#      endif
+#    endif
+#  else
+#      if defined(__GNUC__) && __GNUC__ >= 4 && !defined(__CELLOS_LV2__)
+#        define RETRO_API RETRO_CALLCONV __attribute__((visibility("default")))
+#      else
+#        define RETRO_API RETRO_CALLCONV
+#      endif
+#  endif
 #endif
 
 /* Used for checking API/ABI mismatches that can break libretro 
@@ -165,13 +199,15 @@ extern "C" {
 #define RETRO_DEVICE_ID_ANALOG_Y         1
 
 /* Id values for MOUSE. */
-#define RETRO_DEVICE_ID_MOUSE_X          0
-#define RETRO_DEVICE_ID_MOUSE_Y          1
-#define RETRO_DEVICE_ID_MOUSE_LEFT       2
-#define RETRO_DEVICE_ID_MOUSE_RIGHT      3
-#define RETRO_DEVICE_ID_MOUSE_WHEELUP    4
-#define RETRO_DEVICE_ID_MOUSE_WHEELDOWN  5
-#define RETRO_DEVICE_ID_MOUSE_MIDDLE     6
+#define RETRO_DEVICE_ID_MOUSE_X                0
+#define RETRO_DEVICE_ID_MOUSE_Y                1
+#define RETRO_DEVICE_ID_MOUSE_LEFT             2
+#define RETRO_DEVICE_ID_MOUSE_RIGHT            3
+#define RETRO_DEVICE_ID_MOUSE_WHEELUP          4
+#define RETRO_DEVICE_ID_MOUSE_WHEELDOWN        5
+#define RETRO_DEVICE_ID_MOUSE_MIDDLE           6
+#define RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELUP    7
+#define RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELDOWN  8
 
 /* Id values for LIGHTGUN types. */
 #define RETRO_DEVICE_ID_LIGHTGUN_X        0
@@ -206,6 +242,8 @@ enum retro_language
    RETRO_LANGUAGE_KOREAN              =  9,
    RETRO_LANGUAGE_CHINESE_TRADITIONAL = 10,
    RETRO_LANGUAGE_CHINESE_SIMPLIFIED  = 11,
+   RETRO_LANGUAGE_ESPERANTO           = 12,
+   RETRO_LANGUAGE_POLISH              = 13,
    RETRO_LANGUAGE_LAST,
 
    /* Ensure sizeof(enum) == sizeof(int) */
@@ -693,9 +731,10 @@ enum retro_mod
                                             * location-based information from the host device,
                                             * such as current latitude / longitude.
                                             */
-#define RETRO_ENVIRONMENT_GET_CONTENT_DIRECTORY 30
+#define RETRO_ENVIRONMENT_GET_CONTENT_DIRECTORY 30 /* Old name, kept for compatibility. */
+#define RETRO_ENVIRONMENT_GET_CORE_ASSETS_DIRECTORY 30
                                            /* const char ** --
-                                            * Returns the "content" directory of the frontend.
+                                            * Returns the "core assets" directory of the frontend.
                                             * This directory can be used to store specific assets that the 
                                             * core relies upon, such as art assets,
                                             * input data, etc etc.
@@ -1125,6 +1164,8 @@ struct retro_log_callback
 #define RETRO_SIMD_VFPU     (1 << 13)
 #define RETRO_SIMD_PS       (1 << 14)
 #define RETRO_SIMD_AES      (1 << 15)
+#define RETRO_SIMD_VFPV3    (1 << 16)
+#define RETRO_SIMD_VFPV4    (1 << 17)
 
 typedef uint64_t retro_perf_tick_t;
 typedef int64_t retro_time_t;
@@ -1832,25 +1873,25 @@ typedef int16_t (*retro_input_state_t)(unsigned port, unsigned device,
  *
  * The rest of the set_* functions are guaranteed to have been called 
  * before the first call to retro_run() is made. */
-void retro_set_environment(retro_environment_t);
-void retro_set_video_refresh(retro_video_refresh_t);
-void retro_set_audio_sample(retro_audio_sample_t);
-void retro_set_audio_sample_batch(retro_audio_sample_batch_t);
-void retro_set_input_poll(retro_input_poll_t);
-void retro_set_input_state(retro_input_state_t);
+RETRO_API void retro_set_environment(retro_environment_t);
+RETRO_API void retro_set_video_refresh(retro_video_refresh_t);
+RETRO_API void retro_set_audio_sample(retro_audio_sample_t);
+RETRO_API void retro_set_audio_sample_batch(retro_audio_sample_batch_t);
+RETRO_API void retro_set_input_poll(retro_input_poll_t);
+RETRO_API void retro_set_input_state(retro_input_state_t);
 
 /* Library global initialization/deinitialization. */
-void retro_init(void);
-void retro_deinit(void);
+RETRO_API void retro_init(void);
+RETRO_API void retro_deinit(void);
 
 /* Must return RETRO_API_VERSION. Used to validate ABI compatibility
  * when the API is revised. */
-unsigned retro_api_version(void);
+RETRO_API unsigned retro_api_version(void);
 
 /* Gets statically known system info. Pointers provided in *info 
  * must be statically allocated.
  * Can be called at any time, even before retro_init(). */
-void retro_get_system_info(struct retro_system_info *info);
+RETRO_API void retro_get_system_info(struct retro_system_info *info);
 
 /* Gets information about system audio/video timings and geometry.
  * Can be called only after retro_load_game() has successfully completed.
@@ -1858,7 +1899,7 @@ void retro_get_system_info(struct retro_system_info *info);
  * variable if needed.
  * E.g. geom.aspect_ratio might not be initialized if core doesn't 
  * desire a particular aspect ratio. */
-void retro_get_system_av_info(struct retro_system_av_info *info);
+RETRO_API void retro_get_system_av_info(struct retro_system_av_info *info);
 
 /* Sets device to be used for player 'port'.
  * By default, RETRO_DEVICE_JOYPAD is assumed to be plugged into all 
@@ -1868,10 +1909,10 @@ void retro_get_system_av_info(struct retro_system_av_info *info);
  * hint to the libretro core when a core cannot automatically detect the 
  * appropriate input device type on its own. It is also relevant when a 
  * core can change its behavior depending on device type. */
-void retro_set_controller_port_device(unsigned port, unsigned device);
+RETRO_API void retro_set_controller_port_device(unsigned port, unsigned device);
 
 /* Resets the current game. */
-void retro_reset(void);
+RETRO_API void retro_reset(void);
 
 /* Runs the game for one video frame.
  * During retro_run(), input_poll callback must be called at least once.
@@ -1881,7 +1922,7 @@ void retro_reset(void);
  * a frame if GET_CAN_DUPE returns true.
  * In this case, the video callback can take a NULL argument for data.
  */
-void retro_run(void);
+RETRO_API void retro_run(void);
 
 /* Returns the amount of data the implementation requires to serialize 
  * internal state (save states).
@@ -1889,35 +1930,35 @@ void retro_run(void);
  * returned size is never allowed to be larger than a previous returned 
  * value, to ensure that the frontend can allocate a save state buffer once.
  */
-size_t retro_serialize_size(void);
+RETRO_API size_t retro_serialize_size(void);
 
 /* Serializes internal state. If failed, or size is lower than
  * retro_serialize_size(), it should return false, true otherwise. */
-bool retro_serialize(void *data, size_t size);
-bool retro_unserialize(const void *data, size_t size);
+RETRO_API bool retro_serialize(void *data, size_t size);
+RETRO_API bool retro_unserialize(const void *data, size_t size);
 
-void retro_cheat_reset(void);
-void retro_cheat_set(unsigned index, bool enabled, const char *code);
+RETRO_API void retro_cheat_reset(void);
+RETRO_API void retro_cheat_set(unsigned index, bool enabled, const char *code);
 
 /* Loads a game. */
-bool retro_load_game(const struct retro_game_info *game);
+RETRO_API bool retro_load_game(const struct retro_game_info *game);
 
 /* Loads a "special" kind of game. Should not be used,
  * except in extreme cases. */
-bool retro_load_game_special(
+RETRO_API bool retro_load_game_special(
   unsigned game_type,
   const struct retro_game_info *info, size_t num_info
 );
 
 /* Unloads a currently loaded game. */
-void retro_unload_game(void);
+RETRO_API void retro_unload_game(void);
 
 /* Gets region of game. */
-unsigned retro_get_region(void);
+RETRO_API unsigned retro_get_region(void);
 
 /* Gets region of memory. */
-void *retro_get_memory_data(unsigned id);
-size_t retro_get_memory_size(unsigned id);
+RETRO_API void *retro_get_memory_data(unsigned id);
+RETRO_API size_t retro_get_memory_size(unsigned id);
 
 #ifdef __cplusplus
 }

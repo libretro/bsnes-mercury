@@ -2,24 +2,98 @@
 
 namespace nall {
 
+struct string_view;
 struct string;
-struct stringref;
+struct format;
 struct lstring;
-typedef const stringref& rstring;
 
+using rstring = const string_view&;
+using cstring = const string&;
+
+#define NALL_STRING_ALLOCATOR_ADAPTIVE
 //#define NALL_STRING_ALLOCATOR_COPY_ON_WRITE
-#define NALL_STRING_ALLOCATOR_SMALL_STRING_OPTIMIZATION
+//#define NALL_STRING_ALLOCATOR_SMALL_STRING_OPTIMIZATION
 //#define NALL_STRING_ALLOCATOR_VECTOR
 
+//cast.hpp
+template<typename T> struct stringify;
+
+//format.hpp
+template<typename... P> inline auto print(P&&...) -> void;
+inline auto integer(intmax value, long precision = 0, char padchar = '0') -> string;
+inline auto natural(uintmax value, long precision = 0, char padchar = '0') -> string;
+inline auto hex(uintmax value, long precision = 0, char padchar = '0') -> string;
+inline auto octal(uintmax value, long precision = 0, char padchar = '0') -> string;
+inline auto binary(uintmax value, long precision = 0, char padchar = '0') -> string;
+template<typename T> inline auto pointer(const T* value, long precision = 0) -> string;
+inline auto pointer(uintptr value, long precision = 0) -> string;
+inline auto real(long double value) -> string;
+
+//hash.hpp
+inline auto crc16(rstring self) -> string;
+inline auto crc32(rstring self) -> string;
+inline auto sha256(rstring self) -> string;
+
+//match.hpp
+inline auto tokenize(const char* s, const char* p) -> bool;
+inline auto tokenize(lstring& list, const char* s, const char* p) -> bool;
+
+//path.hpp
+inline auto pathname(rstring self) -> string;
+inline auto filename(rstring self) -> string;
+
+inline auto dirname(rstring self) -> string;
+inline auto basename(rstring self) -> string;
+inline auto prefixname(rstring self) -> string;
+inline auto suffixname(rstring self) -> string;
+
+//platform.hpp
+inline auto activepath() -> string;
+inline auto realpath(rstring name) -> string;
+inline auto programpath() -> string;
+inline auto userpath() -> string;
+inline auto configpath() -> string;
+inline auto localpath() -> string;
+inline auto sharedpath() -> string;
+inline auto temppath() -> string;
+
+//utility.hpp
+inline auto slice(rstring self, int offset = 0, int length = -1) -> string;
+
+inline auto integer(char* result, intmax value) -> char*;
+inline auto natural(char* result, uintmax value) -> char*;
+inline auto real(char* str, long double value) -> uint;
+
 struct string {
+  using type = string;
+  struct exception_out_of_bounds{};
+
 protected:
+  #if defined(NALL_STRING_ALLOCATOR_ADAPTIVE)
+  enum : uint { SSO = 24 };
+  union {
+    struct {  //copy-on-write
+      char* _data;
+      uint* _refs;
+    };
+    struct {  //small-string-optimization
+      char _text[SSO];
+    };
+  };
+  inline auto _allocate() -> void;
+  inline auto _copy() -> void;
+  inline auto _resize() -> void;
+  #endif
+
   #if defined(NALL_STRING_ALLOCATOR_COPY_ON_WRITE)
-  inline void _copy();
-  std::shared_ptr<char> _data;
+  char* _data;
+  mutable uint* _refs;
+  inline auto _allocate() -> char*;
+  inline auto _copy() -> char*;
   #endif
 
   #if defined(NALL_STRING_ALLOCATOR_SMALL_STRING_OPTIMIZATION)
-  enum : unsigned { SSO = 24 };
+  enum : uint { SSO = 24 };
   union {
     char* _data;
     char _text[SSO];
@@ -30,197 +104,190 @@ protected:
   char* _data;
   #endif
 
-  unsigned _capacity;
-  unsigned _size;
+  uint _capacity;
+  uint _size;
 
 public:
+  inline string();
+  inline auto get() -> char*;
+  inline auto data() const -> const char*;
+  inline auto reset() -> type&;
+  inline auto reserve(uint) -> type&;
+  inline auto resize(uint) -> type&;
+  inline auto operator=(const string&) -> type&;
+  inline auto operator=(string&&) -> type&;
+
+  template<typename T, typename... P> string(T&& s, P&&... p) : string() { append(forward<T>(s), forward<P>(p)...); }
+  ~string() { reset(); }
+
+  explicit operator bool() const { return _size; }
+  operator const uint8_t*() const { return (const uint8_t*)data(); }
+  operator const char*() const { return (const char*)data(); }
+
+  auto binary() const -> const uint8_t* { return (const uint8_t*)data(); }
+  auto size() const -> uint { return _size; }
+  auto capacity() const -> uint { return _capacity; }
+
+  auto operator==(const string& source) const -> bool { return size() == source.size() && memory::compare(data(), source.data(), size()) == 0; }
+  auto operator!=(const string& source) const -> bool { return size() != source.size() || memory::compare(data(), source.data(), size()) != 0; }
+
+  auto operator==(const char* source) const -> bool { return strcmp(data(), source) == 0; }
+  auto operator!=(const char* source) const -> bool { return strcmp(data(), source) != 0; }
+
+  auto operator==(rstring source) const -> bool { return compare(source) == 0; }
+  auto operator!=(rstring source) const -> bool { return compare(source) != 0; }
+  auto operator< (rstring source) const -> bool { return compare(source) <  0; }
+  auto operator<=(rstring source) const -> bool { return compare(source) <= 0; }
+  auto operator> (rstring source) const -> bool { return compare(source) >  0; }
+  auto operator>=(rstring source) const -> bool { return compare(source) >= 0; }
+
+  string(const string& source) : string() { operator=(source); }
+  string(string&& source) : string() { operator=(move(source)); }
+
+  auto begin() -> char* { return &get()[0]; }
+  auto end() -> char* { return &get()[size()]; }
+  auto begin() const -> const char* { return &data()[0]; }
+  auto end() const -> const char* { return &data()[size()]; }
+
+  //atoi.hpp
+  inline auto integer() const -> intmax;
+  inline auto natural() const -> uintmax;
+  inline auto real() const -> double;
+
   //core.hpp
-  inline char* data();
-  inline const char* data() const;
-  inline unsigned length() const;
-  inline unsigned size() const;
-  inline unsigned capacity() const;
-  inline bool empty() const;
-
-  inline void reset();
-  inline void reserve(unsigned);
-  inline void resize(unsigned);
-  inline void clear(char);
-
-  inline unsigned hash() const;
-
-  template<typename... Args> inline string& assign(Args&&... args);
-  template<typename... Args> inline string& append(Args&&... args);
-
-  //file.hpp
-  inline static string read(const string& filename);
+  inline auto operator[](int) const -> const char&;
+  template<typename... P> inline auto assign(P&&...) -> type&;
+  template<typename T, typename... P> inline auto append(const T&, P&&...) -> type&;
+  template<typename... P> inline auto append(const nall::format&, P&&...) -> type&;
+  inline auto append() -> type&;
+  template<typename T> inline auto _append(const stringify<T>&) -> string&;
+  inline auto empty() const -> bool;
+  inline auto length() const -> uint;
 
   //datetime.hpp
-  inline static string date();
-  inline static string time();
-  inline static string datetime();
+  inline static auto date(time_t = 0) -> string;
+  inline static auto time(time_t = 0) -> string;
+  inline static auto datetime(time_t = 0) -> string;
+
+  //find.hpp
+  template<bool, bool> inline auto _find(int, rstring) const -> maybe<uint>;
+
+  inline auto find(rstring source) const -> maybe<unsigned>;
+  inline auto ifind(rstring source) const -> maybe<unsigned>;
+  inline auto qfind(rstring source) const -> maybe<unsigned>;
+  inline auto iqfind(rstring source) const -> maybe<unsigned>;
+
+  inline auto findFrom(int offset, rstring source) const -> maybe<uint>;
+  inline auto ifindFrom(int offset, rstring source) const -> maybe<uint>;
+
+  //format.hpp
+  inline auto format(const nall::format& params) -> type&;
+
+  //compare.hpp
+  template<bool> inline static auto _compare(const char*, uint, const char*, uint) -> signed;
+
+  inline static auto compare(rstring, rstring) -> signed;
+  inline static auto icompare(rstring, rstring) -> signed;
+
+  inline auto compare(rstring source) const -> signed;
+  inline auto icompare(rstring source) const -> signed;
+
+  inline auto equals(rstring source) const -> bool;
+  inline auto iequals(rstring source) const -> bool;
+
+  inline auto beginsWith(rstring source) const -> bool;
+  inline auto ibeginsWith(rstring source) const -> bool;
+
+  inline auto endsWith(rstring source) const -> bool;
+  inline auto iendsWith(rstring source) const -> bool;
+
+  //convert.hpp
+  inline auto downcase() -> type&;
+  inline auto upcase() -> type&;
+
+  inline auto qdowncase() -> type&;
+  inline auto qupcase() -> type&;
+
+  inline auto transform(rstring from, rstring to) -> type&;
+
+  //match.hpp
+  inline auto match(rstring source) const -> bool;
+  inline auto imatch(rstring source) const -> bool;
 
   //replace.hpp
-  template<unsigned Limit = 0> inline string& replace(rstring, rstring);
-  template<unsigned Limit = 0> inline string& ireplace(rstring, rstring);
-  template<unsigned Limit = 0> inline string& qreplace(rstring, rstring);
-  template<unsigned Limit = 0> inline string& iqreplace(rstring, rstring);
-
-  //wrapper.hpp
-  template<unsigned Limit = 0> inline lstring split(rstring) const;
-  template<unsigned Limit = 0> inline lstring isplit(rstring) const;
-  template<unsigned Limit = 0> inline lstring qsplit(rstring) const;
-  template<unsigned Limit = 0> inline lstring iqsplit(rstring) const;
-
-  inline signed compare(rstring) const;
-  inline signed icompare(rstring) const;
-
-  inline bool equals(rstring) const;
-  inline bool iequals(rstring) const;
-
-  inline bool match(rstring) const;
-  inline bool imatch(rstring) const;
-
-  inline bool beginsWith(rstring) const;
-  inline bool ibeginsWith(rstring) const;
-  inline bool endsWith(rstring) const;
-  inline bool iendsWith(rstring) const;
-
-  inline string slice(unsigned offset, unsigned length = ~0u) const;
-
-  inline string& lower();
-  inline string& upper();
-  inline string& qlower();
-  inline string& qupper();
-  inline string& transform(rstring before, rstring after);
-  inline string& reverse();
-
-  template<unsigned limit = 0> inline string& ltrim() { return ltrim<limit>(" "); }
-  template<unsigned limit = 0> inline string& ltrim(rstring key);
-
-  template<unsigned limit = 0> inline string& rtrim() { return rtrim<limit>(" "); }
-  template<unsigned limit = 0> inline string& rtrim(rstring key);
-
-  template<unsigned limit = 0> inline string& trim() { return trim<limit>(" "); }
-  template<unsigned limit = 0> inline string& trim(rstring key);
-  template<unsigned limit = 0> inline string& trim(rstring key, rstring rkey);
-
-  inline string& strip();
-
-  inline optional<unsigned> find(rstring key) const;
-  inline optional<unsigned> ifind(rstring key) const;
-  inline optional<unsigned> qfind(rstring key) const;
-  inline optional<unsigned> iqfind(rstring key) const;
-
-  //core.hpp
-  inline explicit operator bool() const;
-  inline operator const char*() const;
-  inline char& operator[](signed);
-  inline const char& operator[](signed) const;
-
-  inline bool operator==(const char*) const;
-  inline bool operator!=(const char*) const;
-  inline bool operator< (const char*) const;
-  inline bool operator<=(const char*) const;
-  inline bool operator> (const char*) const;
-  inline bool operator>=(const char*) const;
-
-  inline string& operator=(const string&);
-  inline string& operator=(string&&);
-
-  template<typename T, typename... Args> inline string(T&& source, Args&&... args);
-  inline string();
-  inline string(const string&);
-  inline string(string&&);
-  inline ~string();
-
-  inline char* begin() { return &data()[0]; }
-  inline char* end() { return &data()[size()]; }
-  inline const char* begin() const { return &data()[0]; }
-  inline const char* end() const { return &data()[size()]; }
-
-//protected:
-  struct exception_out_of_bounds{};
-  template<unsigned Limit, bool Insensitive, bool Quoted> inline string& ureplace(rstring, rstring);
-  inline string& _append(const char*);
-
-private:
-  inline void construct();
-
-#if defined(QSTRING_H)
-public:
-  inline operator QString() const;
-#endif
-};
-
-//list.hpp
-struct lstring : vector<string> {
-  inline optional<unsigned> find(rstring) const;
-  inline string merge(const string&) const;
-  inline lstring& isort();
-  inline lstring& strip();
-  inline void append() {}
-  template<typename... Args> inline void append(const string&, Args&&...);
-
-  inline bool operator==(const lstring&) const;
-  inline bool operator!=(const lstring&) const;
-
-  inline lstring& operator=(const lstring&);
-  inline lstring& operator=(lstring&);
-  inline lstring& operator=(lstring&&);
-
-  template<typename... Args> inline lstring(Args&&... args);
-  inline lstring(const lstring&);
-  inline lstring(lstring&);
-  inline lstring(lstring&&);
+  template<bool, bool> inline auto _replace(rstring, rstring, long) -> type&;
+  inline auto replace(rstring from, rstring to, long limit = LONG_MAX) -> type&;
+  inline auto ireplace(rstring from, rstring to, long limit = LONG_MAX) -> type&;
+  inline auto qreplace(rstring from, rstring to, long limit = LONG_MAX) -> type&;
+  inline auto iqreplace(rstring from, rstring to, long limit = LONG_MAX) -> type&;
 
   //split.hpp
-  template<unsigned Limit = 0> inline lstring& split(rstring, rstring);
-  template<unsigned Limit = 0> inline lstring& isplit(rstring, rstring);
-  template<unsigned Limit = 0> inline lstring& qsplit(rstring, rstring);
-  template<unsigned Limit = 0> inline lstring& iqsplit(rstring, rstring);
+  inline auto split(rstring key, long limit = LONG_MAX) const -> lstring;
+  inline auto isplit(rstring key, long limit = LONG_MAX) const -> lstring;
+  inline auto qsplit(rstring key, long limit = LONG_MAX) const -> lstring;
+  inline auto iqsplit(rstring key, long limit = LONG_MAX) const -> lstring;
 
-protected:
-  template<unsigned Limit, bool Insensitive, bool Quoted> inline lstring& usplit(rstring, rstring);
+  //trim.hpp
+  inline auto trim(rstring lhs, rstring rhs, long limit = LONG_MAX) -> type&;
+  inline auto ltrim(rstring lhs, long limit = LONG_MAX) -> type&;
+  inline auto rtrim(rstring rhs, long limit = LONG_MAX) -> type&;
+
+  inline auto itrim(rstring lhs, rstring rhs, long limit = LONG_MAX) -> type&;
+  inline auto iltrim(rstring lhs, long limit = LONG_MAX) -> type&;
+  inline auto irtrim(rstring rhs, long limit = LONG_MAX) -> type&;
+
+  inline auto strip() -> type&;
+  inline auto lstrip() -> type&;
+  inline auto rstrip() -> type&;
+
+  //utility.hpp
+  inline static auto read(rstring filename) -> string;
+  inline static auto repeat(rstring pattern, uint times) -> string;
+  inline auto fill(char fill = ' ') -> type&;
+  inline auto hash() const -> uint;
+  inline auto remove(uint offset, uint length) -> type&;
+  inline auto reverse() -> type&;
+  inline auto size(int length, char fill = ' ') -> type&;
 };
 
-//filename.hpp
-inline string dir(string name);
-inline string notdir(string name);
-inline string parentdir(string name);
-inline string basename(string name);
-inline string extension(string name);
-inline string tempname();
+struct lstring : vector<string> {
+  using type = lstring;
 
-//format.hpp
-template<signed precision = 0, char padchar = ' '> inline string format(const string& value);
-template<signed precision = 0, char padchar = '0'> inline string hex(uintmax_t value);
-template<signed precision = 0, char padchar = '0'> inline string octal(uintmax_t value);
-template<signed precision = 0, char padchar = '0'> inline string binary(uintmax_t value);
+  lstring(const lstring& source) { vector::operator=(source); }
+  lstring(lstring& source) { vector::operator=(source); }
+  lstring(lstring&& source) { vector::operator=(move(source)); }
+  template<typename... P> lstring(P&&... p) { append(forward<P>(p)...); }
 
-//platform.hpp
-inline string activepath();
-inline string realpath(const string& name);
-inline string userpath();
-inline string configpath();
-inline string sharedpath();
-inline string temppath();
+  //list.hpp
+  inline auto operator==(const lstring&) const -> bool;
+  inline auto operator!=(const lstring&) const -> bool;
 
-//utility.hpp
-inline string substr(rstring source, unsigned offset = 0, unsigned length = ~0u);
-inline string sha256(const uint8_t* data, unsigned size);
-inline bool tokenize(lstring& list, const char* s, const char* p);
+  inline auto operator=(const lstring& source) -> type& { return vector::operator=(source), *this; }
+  inline auto operator=(lstring& source) -> type& { return vector::operator=(source), *this; }
+  inline auto operator=(lstring&& source) -> type& { return vector::operator=(move(source)), *this; }
 
-inline char* integer(char* result, intmax_t value);
-inline char* decimal(char* result, uintmax_t value);
+  inline auto isort() -> type&;
 
-inline unsigned real(char* str, long double value);
-inline string real(long double value);
+  template<typename... P> inline auto append(const string&, P&&...) -> type&;
+  inline auto append() -> type&;
 
-//variadic.hpp
-inline void sprint(string& output);
-template<typename T, typename... Args> inline void sprint(string& output, const T& value, Args&&... args);
-template<typename... Args> inline void print(Args&&... args);
+  inline auto find(rstring source) const -> maybe<uint>;
+  inline auto ifind(rstring source) const -> maybe<uint>;
+  inline auto match(rstring pattern) const -> lstring;
+  inline auto merge(rstring separator) const -> string;
+  inline auto strip() -> type&;
+
+  //split.hpp
+  template<bool, bool> inline auto _split(rstring, rstring, long) -> lstring&;
+};
+
+struct format : vector<string> {
+  using type = format;
+
+  template<typename... P> format(P&&... p) { reserve(sizeof...(p)); append(forward<P>(p)...); }
+  template<typename T, typename... P> inline auto append(const T&, P&&... p) -> type&;
+  inline auto append() -> type&;
+};
 
 }
 

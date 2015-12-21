@@ -11,8 +11,8 @@
 
 namespace SuperFamicom {
   namespace Info {
-    static const char Name[] = "bsnes";
-    static const unsigned SerializerVersion = 27;
+    static const string Name = "bsnes";
+    static const uint SerializerVersion = 29;
   }
 }
 
@@ -26,30 +26,31 @@ namespace SuperFamicom {
 #include <libco/libco.h>
 #include <gb/gb.hpp>
 
+#if defined(PROFILE_PERFORMANCE)
+  #include <nall/priority-queue.hpp>
+#endif
+
 namespace SuperFamicom {
   struct Thread {
-    cothread_t thread;
-    unsigned frequency;
-    int64 clock;
+    ~Thread() {
+      if(thread) co_delete(thread);
+    }
 
-    inline void create(void (*entrypoint)(), unsigned frequency) {
+    auto create(auto (*entrypoint)() -> void, uint frequency) -> void {
       if(thread) co_delete(thread);
       thread = co_create(65536 * sizeof(void*), entrypoint);
       this->frequency = frequency;
       clock = 0;
     }
 
-    inline void serialize(serializer& s) {
+    auto serialize(serializer& s) -> void {
       s.integer(frequency);
       s.integer(clock);
     }
 
-    inline Thread() : thread(nullptr) {
-    }
-
-    inline ~Thread() {
-      if(thread) co_delete(thread);
-    }
+    cothread_t thread = nullptr;
+    uint frequency = 0;
+    int64 clock = 0;
   };
 
   #include <sfc/memory/memory.hpp>
@@ -65,8 +66,8 @@ namespace SuperFamicom {
 
   #include <sfc/controller/controller.hpp>
   #include <sfc/system/system.hpp>
-  #include <sfc/base/base.hpp>
-  #include <sfc/chip/chip.hpp>
+  #include <sfc/expansion/expansion.hpp>
+  #include <sfc/coprocessor/coprocessor.hpp>
   #include <sfc/slot/slot.hpp>
   #include <sfc/cartridge/cartridge.hpp>
   #include <sfc/cheat/cheat.hpp>

@@ -2,73 +2,78 @@
 #define NALL_FILE_HPP
 
 #include <nall/platform.hpp>
+#include <nall/file-system-object.hpp>
 #include <nall/stdint.hpp>
 #include <nall/string.hpp>
 #include <nall/utility.hpp>
 #include <nall/varint.hpp>
-#include <nall/windows/utf8.hpp>
+#include <nall/hash/sha256.hpp>
 #include <nall/stream/memory.hpp>
-
-#ifdef __APPLE__
-#include "TargetConditionals.h"
-#endif
 
 namespace nall {
 
-inline FILE* fopen_utf8(const string& filename, const string& mode) {
-  #if !defined(_WIN32)
-  return fopen(filename, mode);
-  #else
-  return _wfopen(utf16_t(filename), utf16_t(mode));
-  #endif
-}
+struct file : file_system_object, varint {
+  enum class mode : uint { read, write, modify, append, readwrite = modify, writeread = append };
+  enum class index : uint { absolute, relative };
 
-struct file : varint {
-  enum class mode : unsigned { read, write, modify, append, readwrite = modify, writeread = append };
-  enum class index : unsigned { absolute, relative };
-  enum class time : unsigned { create, modify, access };
-
-  static bool copy(const string& sourcename, const string& targetname) {
+  static auto copy(const string& sourcename, const string& targetname) -> bool {
     file rd, wr;
     if(rd.open(sourcename, mode::read) == false) return false;
     if(wr.open(targetname, mode::write) == false) return false;
-    for(unsigned n = 0; n < rd.size(); n++) wr.write(rd.read());
+    for(uint n = 0; n < rd.size(); n++) wr.write(rd.read());
     return true;
   }
 
-  static bool move(const string& sourcename, const string& targetname) {
-    auto result = rename(sourcename, targetname);
-    if(result == 0) return true;
-    if(errno == EXDEV) {
-      //cannot move files between file systems; copy file instead of failing
-      if(file::copy(sourcename, targetname)) {
-        file::remove(sourcename);
-        return true;
-      }
+  //attempt to rename file first
+  //this will fail if paths point to different file systems; fall back to copy+remove in this case
+  static auto move(const string& sourcename, const string& targetname) -> bool {
+    if(rename(sourcename, targetname)) return true;
+    if(!writable(sourcename)) return false;
+    if(copy(sourcename, targetname)) {
+      remove(sourcename);
+      return true;
     }
     return false;
   }
 
-  static bool remove(const string& filename) {
-    return unlink(filename) == 0;
-  }
-
-  static bool truncate(const string& filename, unsigned size) {
-    #if !defined(_WIN32)
+  static auto truncate(const string& filename, uint size) -> bool {
+    #if defined(API_POSIX)
     return truncate(filename, size) == 0;
-    #else
-    bool result = false;
-    FILE* fp = fopen(filename, "rb+");
-    if(fp) {
-      result = _chsize(fileno(fp), size) == 0;
+    #elif defined(API_WINDOWS)
+    if(auto fp = _wfopen(utf16_t(filename), L"rb+")) {
+      bool result = _chsize(fileno(fp), size) == 0;
       fclose(fp);
+      return result;
     }
-    return result;
+    return false;
     #endif
   }
 
-  static vector<uint8_t> read(const string& filename) {
-    vector<uint8_t> memory;
+  //returns false if specified filename is a directory
+  static auto exists(const string& filename) -> bool {
+    #if defined(API_POSIX)
+    struct stat data;
+    if(stat(filename, &data) != 0) return false;
+    #elif defined(API_WINDOWS)
+    struct __stat64 data;
+    if(_wstat64(utf16_t(filename), &data) != 0) return false;
+    #endif
+    return !(data.st_mode & S_IFDIR);
+  }
+
+  static auto size(const string& filename) -> uintmax {
+    #if defined(API_POSIX)
+    struct stat data;
+    stat(filename, &data);
+    #elif defined(API_WINDOWS)
+    struct __stat64 data;
+    _wstat64(utf16_t(filename), &data);
+    #endif
+    return S_ISREG(data.st_mode) ? data.st_size : 0u;
+  }
+
+  static auto read(const string& filename) -> vector<uint8> {
+    vector<uint8> memory;
     file fp;
     if(fp.open(filename, mode::read)) {
       memory.resize(fp.size());
@@ -77,7 +82,7 @@ struct file : varint {
     return memory;
   }
 
-  static bool read(const string& filename, uint8_t* data, unsigned size) {
+  static auto read(const string& filename, uint8* data, uint size) -> bool {
     file fp;
     if(fp.open(filename, mode::read) == false) return false;
     fp.read(data, size);
@@ -85,23 +90,15 @@ struct file : varint {
     return true;
   }
 
-  static bool write(const string& filename, const string& text) {
-    file fp;
-    if(fp.open(filename, mode::write) == false) return false;
-    fp.print(text);
-    fp.close();
-    return true;
+  static auto write(const string& filename, const string& text) -> bool {
+    return write(filename, (const uint8*)text.data(), text.size());
   }
 
-  static bool write(const string& filename, const vector<uint8_t>& buffer) {
-    file fp;
-    if(fp.open(filename, mode::write) == false) return false;
-    fp.write(buffer.data(), buffer.size());
-    fp.close();
-    return true;
+  static auto write(const string& filename, const vector<uint8>& buffer) -> bool {
+    return write(filename, buffer.data(), buffer.size());
   }
 
-  static bool write(const string& filename, const uint8_t* data, unsigned size) {
+  static auto write(const string& filename, const uint8* data, uint size) -> bool {
     file fp;
     if(fp.open(filename, mode::write) == false) return false;
     fp.write(data, size);
@@ -109,7 +106,7 @@ struct file : varint {
     return true;
   }
 
-  static bool create(const string& filename) {
+  static auto create(const string& filename) -> bool {
     //create an empty file (will replace existing files)
     file fp;
     if(fp.open(filename, mode::write) == false) return false;
@@ -117,12 +114,12 @@ struct file : varint {
     return true;
   }
 
-  static string sha256(const string& filename) {
+  static auto sha256(const string& filename) -> string {
     auto buffer = read(filename);
-    return nall::sha256(buffer.data(), buffer.size());
+    return Hash::SHA256(buffer.data(), buffer.size()).digest();
   }
 
-  uint8_t read() {
+  auto read() -> uint8 {
     if(!fp) return 0xff;                       //file not open
     if(file_mode == mode::write) return 0xff;  //reads not permitted
     if(file_offset >= file_size) return 0xff;  //cannot read past end of file
@@ -130,16 +127,16 @@ struct file : varint {
     return buffer[(file_offset++) & buffer_mask];
   }
 
-  uintmax_t readl(unsigned length = 1) {
-    uintmax_t data = 0;
+  auto readl(uint length = 1) -> uintmax {
+    uintmax data = 0;
     for(int i = 0; i < length; i++) {
-      data |= (uintmax_t)read() << (i << 3);
+      data |= (uintmax)read() << (i << 3);
     }
     return data;
   }
 
-  uintmax_t readm(unsigned length = 1) {
-    uintmax_t data = 0;
+  auto readm(uint length = 1) -> uintmax {
+    uintmax data = 0;
     while(length--) {
       data <<= 8;
       data |= read();
@@ -147,11 +144,18 @@ struct file : varint {
     return data;
   }
 
-  void read(uint8_t* buffer, unsigned length) {
+  auto reads(uint length) -> string {
+    string result;
+    result.resize(length);
+    for(auto& byte : result) byte = read();
+    return result;
+  }
+
+  auto read(uint8* buffer, uint length) -> void {
     while(length--) *buffer++ = read();
   }
 
-  void write(uint8_t data) {
+  auto write(uint8 data) -> void {
     if(!fp) return;                      //file not open
     if(file_mode == mode::read) return;  //writes not permitted
     buffer_sync();
@@ -160,49 +164,49 @@ struct file : varint {
     if(file_offset > file_size) file_size = file_offset;
   }
 
-  void writel(uintmax_t data, unsigned length = 1) {
+  auto writel(uintmax data, uint length = 1) -> void {
     while(length--) {
       write(data);
       data >>= 8;
     }
   }
 
-  void writem(uintmax_t data, unsigned length = 1) {
+  auto writem(uintmax data, uint length = 1) -> void {
     for(int i = length - 1; i >= 0; i--) {
       write(data >> (i << 3));
     }
   }
 
-  void write(const uint8_t* buffer, unsigned length) {
+  auto writes(const string& s) -> void {
+    for(auto byte : s) write(byte);
+  }
+
+  auto write(const uint8* buffer, uint length) -> void {
     while(length--) write(*buffer++);
   }
 
-  template<typename... Args> void print(Args... args) {
+  template<typename... Args> auto print(Args... args) -> void {
     string data(args...);
     const char* p = data;
     while(*p) write(*p++);
   }
 
-  void flush() {
+  auto flush() -> void {
     buffer_flush();
     fflush(fp);
   }
 
-  void seek(int offset, index index_ = index::absolute) {
+  auto seek(int offset, index index_ = index::absolute) -> void {
     if(!fp) return;  //file not open
     buffer_flush();
 
-    uintmax_t req_offset = file_offset;
+    intmax req_offset = file_offset;
     switch(index_) {
     case index::absolute: req_offset  = offset; break;
-    case index::relative:
-        if (offset < 0 && -offset > req_offset)
-            req_offset = 0;             //cannot seek before start of file
-        else
-            req_offset += offset;
-        break;
+    case index::relative: req_offset += offset; break;
     }
 
+    if(req_offset < 0) req_offset = 0;  //cannot seek before start of file
     if(req_offset > file_size) {
       if(file_mode == mode::read) {     //cannot seek past end of file
         req_offset = file_size;
@@ -215,78 +219,31 @@ struct file : varint {
     file_offset = req_offset;
   }
 
-  unsigned offset() const {
+  auto offset() const -> uint {
     if(!fp) return 0;  //file not open
     return file_offset;
   }
 
-  unsigned size() const {
+  auto size() const -> uint {
     if(!fp) return 0;  //file not open
     return file_size;
   }
 
-  bool truncate(unsigned size) {
+  auto truncate(uint size) -> bool {
     if(!fp) return false;  //file not open
-    #if !defined(_WIN32)
+    #if defined(API_POSIX)
     return ftruncate(fileno(fp), size) == 0;
-    #else
+    #elif defined(API_WINDOWS)
     return _chsize(fileno(fp), size) == 0;
     #endif
   }
 
-  bool end() {
+  auto end() -> bool {
     if(!fp) return true;  //file not open
     return file_offset >= file_size;
   }
 
-  static bool exists(const string& filename) {
-    #if defined(__APPLE__) && TARGET_OS_IPHONE
-    struct stat data;
-    if(stat(filename, &data) != 0) return false;
-    #elif !defined(_WIN32)
-    struct stat data;
-    if(stat(filename, &data) != 0) return false;
-    #else
-    struct __stat64 data;
-    if(_wstat64(utf16_t(filename), &data) != 0) return false;
-    #endif
-    //return true if this is a file, and false if this is a directory
-    return !(data.st_mode & S_IFDIR);
-  }
-
-  static uintmax_t size(const string& filename) {
-    #if defined(__APPLE__) && TARGET_OS_IPHONE
-    struct stat data;
-    if(stat(filename, &data) != 0) return false;
-    #elif !defined(_WIN32)
-    struct stat data;
-    stat(filename, &data);
-    #else
-    struct __stat64 data;
-    _wstat64(utf16_t(filename), &data);
-    #endif
-    return S_ISREG(data.st_mode) ? data.st_size : 0u;
-  }
-
-  static time_t timestamp(const string& filename, file::time mode = file::time::create) {
-    #if defined(__APPLE__) && TARGET_OS_IPHONE
-    struct stat data;
-    if(stat(filename, &data) != 0) return false;
-    #elif !defined(_WIN32)
-    struct stat data;
-    stat(filename, &data);
-    #else
-    struct __stat64 data;
-    _wstat64(utf16_t(filename), &data);
-    #endif
-    switch(mode) { default:
-    case file::time::create: return data.st_ctime;
-    case file::time::modify: return data.st_mtime;
-    case file::time::access: return data.st_atime;
-    }
-  }
-
-  bool open() const {
+  auto open() const -> bool {
     return fp;
   }
 
@@ -294,16 +251,16 @@ struct file : varint {
     return open();
   }
 
-  bool open(const string& filename, mode mode_) {
+  auto open(const string& filename, mode mode_) -> bool {
     if(fp) return false;
 
     switch(file_mode = mode_) {
-    #if !defined(_WIN32)
+    #if defined(API_POSIX)
     case mode::read:      fp = fopen(filename, "rb" ); break;
     case mode::write:     fp = fopen(filename, "wb+"); break;  //need read permission for buffering
     case mode::readwrite: fp = fopen(filename, "rb+"); break;
     case mode::writeread: fp = fopen(filename, "wb+"); break;
-    #else
+    #elif defined(API_WINDOWS)
     case mode::read:      fp = _wfopen(utf16_t(filename), L"rb" ); break;
     case mode::write:     fp = _wfopen(utf16_t(filename), L"wb+"); break;
     case mode::readwrite: fp = _wfopen(utf16_t(filename), L"rb+"); break;
@@ -319,15 +276,16 @@ struct file : varint {
     return true;
   }
 
-  void close() {
+  auto close() -> void {
     if(!fp) return;
     buffer_flush();
     fclose(fp);
     fp = nullptr;
   }
 
-  file() {
-  }
+  auto operator=(const file&) -> file& = delete;
+  file(const file&) = delete;
+  file() = default;
 
   file(const string& filename, mode mode_) {
     open(filename, mode_);
@@ -337,38 +295,35 @@ struct file : varint {
     close();
   }
 
-  file& operator=(const file&) = delete;
-  file(const file&) = delete;
-
 private:
   enum { buffer_size = 1 << 12, buffer_mask = buffer_size - 1 };
   char buffer[buffer_size] = {0};
   int buffer_offset = -1;  //invalidate buffer
   bool buffer_dirty = false;
-  FILE *fp = nullptr;
-  unsigned file_offset = 0;
-  unsigned file_size = 0;
+  FILE* fp = nullptr;
+  uint file_offset = 0;
+  uint file_size = 0;
   mode file_mode = mode::read;
 
-  void buffer_sync() {
+  auto buffer_sync() -> void {
     if(!fp) return;  //file not open
     if(buffer_offset != (file_offset & ~buffer_mask)) {
       buffer_flush();
       buffer_offset = file_offset & ~buffer_mask;
       fseek(fp, buffer_offset, SEEK_SET);
-      unsigned length = (buffer_offset + buffer_size) <= file_size ? buffer_size : (file_size & buffer_mask);
-      if(length) unsigned unused = fread(buffer, 1, length, fp);
+      uint length = (buffer_offset + buffer_size) <= file_size ? buffer_size : (file_size & buffer_mask);
+      if(length) auto unused = fread(buffer, 1, length, fp);
     }
   }
 
-  void buffer_flush() {
+  auto buffer_flush() -> void {
     if(!fp) return;                      //file not open
     if(file_mode == mode::read) return;  //buffer cannot be written to
     if(buffer_offset < 0) return;        //buffer unused
     if(buffer_dirty == false) return;    //buffer unmodified since read
     fseek(fp, buffer_offset, SEEK_SET);
-    unsigned length = (buffer_offset + buffer_size) <= file_size ? buffer_size : (file_size & buffer_mask);
-    if(length) unsigned unused = fwrite(buffer, 1, length, fp);
+    uint length = (buffer_offset + buffer_size) <= file_size ? buffer_size : (file_size & buffer_mask);
+    if(length) auto unused = fwrite(buffer, 1, length, fp);
     buffer_offset = -1;                  //invalidate buffer
     buffer_dirty = false;
   }

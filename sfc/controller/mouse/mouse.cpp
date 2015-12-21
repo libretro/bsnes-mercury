@@ -1,6 +1,17 @@
-#ifdef CONTROLLER_CPP
+Mouse::Mouse(bool port) : Controller(port) {
+  latched = 0;
+  counter = 0;
 
-uint2 Mouse::data() {
+  speed = 0;
+  x = 0;
+  y = 0;
+  dx = 0;
+  dy = 0;
+  l = 0;
+  r = 0;
+}
+
+auto Mouse::data() -> uint2 {
   if(latched == 1) {
     speed = (speed + 1) % 3;
     return 0;
@@ -48,15 +59,15 @@ uint2 Mouse::data() {
   }
 }
 
-void Mouse::latch(bool data) {
+auto Mouse::latch(bool data) -> void {
   if(latched == data) return;
   latched = data;
   counter = 0;
 
-  x = interface->inputPoll(port, (unsigned)Input::Device::Mouse, (unsigned)Input::MouseID::X);  //-n = left, 0 = center, +n = right
-  y = interface->inputPoll(port, (unsigned)Input::Device::Mouse, (unsigned)Input::MouseID::Y);  //-n = up,   0 = center, +n = down
-  l = interface->inputPoll(port, (unsigned)Input::Device::Mouse, (unsigned)Input::MouseID::Left );
-  r = interface->inputPoll(port, (unsigned)Input::Device::Mouse, (unsigned)Input::MouseID::Right);
+  x = interface->inputPoll(port, (unsigned)Device::ID::Mouse, X);  //-n = left, 0 = center, +n = right
+  y = interface->inputPoll(port, (unsigned)Device::ID::Mouse, Y);  //-n = up,   0 = center, +n = down
+  l = interface->inputPoll(port, (unsigned)Device::ID::Mouse, Left);
+  r = interface->inputPoll(port, (unsigned)Device::ID::Mouse, Right);
 
   dx = x < 0;  //0 = right, 1 = left
   dy = y < 0;  //0 = down,  1 = up
@@ -73,18 +84,3 @@ void Mouse::latch(bool data) {
   x = min(127, x);
   y = min(127, y);
 }
-
-Mouse::Mouse(bool port) : Controller(port) {
-  latched = 0;
-  counter = 0;
-
-  speed = 0;
-  x = 0;
-  y = 0;
-  dx = 0;
-  dy = 0;
-  l = 0;
-  r = 0;
-}
-
-#endif

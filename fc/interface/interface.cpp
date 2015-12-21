@@ -4,121 +4,6 @@ namespace Famicom {
 
 Interface* interface = nullptr;
 
-string Interface::title() {
-  return cartridge.title();
-}
-
-double Interface::videoFrequency() {
-  return 21477272.0 / (262.0 * 1364.0 - 4.0);
-}
-
-double Interface::audioFrequency() {
-  return 21477272.0 / 12.0;
-}
-
-bool Interface::loaded() {
-  return cartridge.loaded();
-}
-
-string Interface::sha256() {
-  return cartridge.sha256();
-}
-
-unsigned Interface::group(unsigned id) {
-  switch(id) {
-  case ID::Manifest:
-  case ID::ProgramROM:
-  case ID::ProgramRAM:
-  case ID::CharacterROM:
-  case ID::CharacterRAM:
-    return 1;
-  }
-
-  throw;
-}
-
-void Interface::load(unsigned id) {
-  cartridge.load();
-}
-
-void Interface::save() {
-  for(auto& memory : cartridge.memory) {
-    saveRequest(memory.id, memory.name);
-  }
-}
-
-void Interface::load(unsigned id, const stream& stream) {
-  if(id == ID::Manifest) cartridge.information.markup = stream.text();
-
-  if(id == ID::ProgramROM) {
-    stream.read(cartridge.board->prgrom.data, min(cartridge.board->prgrom.size, stream.size()));
-  }
-
-  if(id == ID::ProgramRAM) {
-    stream.read(cartridge.board->prgram.data, min(cartridge.board->prgram.size, stream.size()));
-  }
-
-  if(id == ID::CharacterROM) {
-    stream.read(cartridge.board->chrrom.data, min(cartridge.board->chrrom.size, stream.size()));
-  }
-
-  if(id == ID::CharacterRAM) {
-    stream.read(cartridge.board->chrram.data, min(cartridge.board->chrram.size, stream.size()));
-  }
-}
-
-void Interface::save(unsigned id, const stream& stream) {
-  if(id == ID::ProgramRAM) {
-    stream.write(cartridge.board->prgram.data, cartridge.board->prgram.size);
-  }
-
-  if(id == ID::CharacterRAM) {
-    stream.write(cartridge.board->chrram.data, cartridge.board->chrram.size);
-  }
-}
-
-void Interface::unload() {
-  save();
-  cartridge.unload();
-}
-
-void Interface::power() {
-  system.power();
-}
-
-void Interface::reset() {
-  system.reset();
-}
-
-void Interface::run() {
-  system.run();
-}
-
-serializer Interface::serialize() {
-  system.runtosave();
-  return system.serialize();
-}
-
-bool Interface::unserialize(serializer& s) {
-  return system.unserialize(s);
-}
-
-void Interface::cheatSet(const lstring& list) {
-  cheat.reset();
-  for(auto& codeset : list) {
-    lstring codes = codeset.split("+");
-    for(auto& code : codes) {
-      lstring part = code.split("/");
-      if(part.size() == 2) cheat.append(hex(part[0]), hex(part[1]));
-      if(part.size() == 3) cheat.append(hex(part[0]), hex(part[1]), hex(part[2]));
-    }
-  }
-}
-
-void Interface::paletteUpdate(PaletteMode mode) {
-  video.generate_palette(mode);
-}
-
 Interface::Interface() {
   interface = this;
 
@@ -133,8 +18,7 @@ Interface::Interface() {
 
   media.append({ID::Famicom, "Famicom", "fc", true});
 
-  {
-    Device device{0, ID::Port1 | ID::Port2, "Controller"};
+  { Device device{0, ID::Port1 | ID::Port2, "Controller"};
     device.input.append({0, 0, "A"     });
     device.input.append({1, 0, "B"     });
     device.input.append({2, 0, "Select"});
@@ -157,6 +41,133 @@ Interface::Interface() {
       }
     }
   }
+}
+
+auto Interface::manifest() -> string {
+  return cartridge.manifest();
+}
+
+auto Interface::title() -> string {
+  return cartridge.title();
+}
+
+auto Interface::videoFrequency() -> double {
+  return 21477272.0 / (262.0 * 1364.0 - 4.0);
+}
+
+auto Interface::audioFrequency() -> double {
+  return 21477272.0 / 12.0;
+}
+
+auto Interface::loaded() -> bool {
+  return cartridge.loaded();
+}
+
+auto Interface::sha256() -> string {
+  return cartridge.sha256();
+}
+
+auto Interface::group(uint id) -> uint {
+  switch(id) {
+  case ID::SystemManifest:
+    return 0;
+  case ID::Manifest:
+  case ID::ProgramROM:
+  case ID::ProgramRAM:
+  case ID::CharacterROM:
+  case ID::CharacterRAM:
+    return 1;
+  }
+
+  throw;
+}
+
+auto Interface::load(uint id) -> void {
+  cartridge.load();
+}
+
+auto Interface::save() -> void {
+  for(auto& memory : cartridge.memory) {
+    saveRequest(memory.id, memory.name);
+  }
+}
+
+auto Interface::load(uint id, const stream& stream) -> void {
+  if(id == ID::SystemManifest) {
+    system.information.manifest = stream.text();
+  }
+
+  if(id == ID::Manifest) {
+    cartridge.information.markup = stream.text();
+  }
+
+  if(id == ID::ProgramROM) {
+    stream.read(cartridge.board->prgrom.data, min(cartridge.board->prgrom.size, stream.size()));
+  }
+
+  if(id == ID::ProgramRAM) {
+    stream.read(cartridge.board->prgram.data, min(cartridge.board->prgram.size, stream.size()));
+  }
+
+  if(id == ID::CharacterROM) {
+    stream.read(cartridge.board->chrrom.data, min(cartridge.board->chrrom.size, stream.size()));
+  }
+
+  if(id == ID::CharacterRAM) {
+    stream.read(cartridge.board->chrram.data, min(cartridge.board->chrram.size, stream.size()));
+  }
+}
+
+auto Interface::save(uint id, const stream& stream) -> void {
+  if(id == ID::ProgramRAM) {
+    stream.write(cartridge.board->prgram.data, cartridge.board->prgram.size);
+  }
+
+  if(id == ID::CharacterRAM) {
+    stream.write(cartridge.board->chrram.data, cartridge.board->chrram.size);
+  }
+}
+
+auto Interface::unload() -> void {
+  save();
+  cartridge.unload();
+}
+
+auto Interface::power() -> void {
+  system.power();
+}
+
+auto Interface::reset() -> void {
+  system.reset();
+}
+
+auto Interface::run() -> void {
+  system.run();
+}
+
+auto Interface::serialize() -> serializer {
+  system.runtosave();
+  return system.serialize();
+}
+
+auto Interface::unserialize(serializer& s) -> bool {
+  return system.unserialize(s);
+}
+
+auto Interface::cheatSet(const lstring& list) -> void {
+  cheat.reset();
+  for(auto& codeset : list) {
+    lstring codes = codeset.split("+");
+    for(auto& code : codes) {
+      lstring part = code.split("/");
+      if(part.size() == 2) cheat.append(hex(part[0]), hex(part[1]));
+      if(part.size() == 3) cheat.append(hex(part[0]), hex(part[1]), hex(part[2]));
+    }
+  }
+}
+
+auto Interface::paletteUpdate(PaletteMode mode) -> void {
+  video.generate_palette(mode);
 }
 
 }

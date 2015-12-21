@@ -1,9 +1,10 @@
 #ifndef RUBY_INPUT_KEYBOARD_RAWINPUT
 #define RUBY_INPUT_KEYBOARD_RAWINPUT
 
-namespace ruby {
-
 struct InputKeyboardRawInput {
+  Input& input;
+  InputKeyboardRawInput(Input& input) : input(input) {}
+
   struct Key {
     uint16_t code;
     uint16_t flag;
@@ -13,10 +14,10 @@ struct InputKeyboardRawInput {
   vector<Key> keys;
 
   struct Keyboard {
-    HID::Keyboard hid;
+    shared_pointer<HID::Keyboard> hid{new HID::Keyboard};
   } kb;
 
-  void update(RAWINPUT* input) {
+  auto update(RAWINPUT* input) -> void {
     unsigned code = input->data.keyboard.MakeCode;
     unsigned flag = input->data.keyboard.Flags;
 
@@ -26,19 +27,19 @@ struct InputKeyboardRawInput {
     }
   }
 
-  void assign(unsigned inputID, bool value) {
-    auto& group = kb.hid.group[HID::Keyboard::GroupID::Button];
-    if(group.input[inputID].value == value) return;
-    if(input.onChange) input.onChange(kb.hid, HID::Keyboard::GroupID::Button, inputID, group.input[inputID].value, value);
-    group.input[inputID].value = value;
+  auto assign(unsigned inputID, bool value) -> void {
+    auto& group = kb.hid->buttons();
+    if(group.input(inputID).value() == value) return;
+    input.doChange(kb.hid, HID::Keyboard::GroupID::Button, inputID, group.input(inputID).value(), value);
+    group.input(inputID).setValue(value);
   }
 
-  void poll(vector<HID::Device*>& devices) {
+  auto poll(vector<shared_pointer<HID::Device>>& devices) -> void {
     for(unsigned n = 0; n < keys.size(); n++) assign(n, keys[n].value);
-    devices.append(&kb.hid);
+    devices.append(kb.hid);
   }
 
-  bool init() {
+  auto init() -> bool {
     rawinput.updateKeyboard = {&InputKeyboardRawInput::update, this};
 
     //Pause sends 0x001d,4 + 0x0045,0; NumLock sends only 0x0045,0
@@ -163,8 +164,8 @@ struct InputKeyboardRawInput {
     keys.append({0x005c, 2, "RightSuper"});
     keys.append({0x005d, 2, "Menu"});
 
-    kb.hid.id = 1;
-    for(auto& key : keys) kb.hid.button().append({key.name});
+    kb.hid->setID(1);
+    for(auto& key : keys) kb.hid->buttons().append(key.name);
 
     return true;
   }
@@ -172,7 +173,5 @@ struct InputKeyboardRawInput {
   void term() {
   }
 };
-
-}
 
 #endif

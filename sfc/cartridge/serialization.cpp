@@ -1,7 +1,3 @@
-#ifdef CARTRIDGE_CPP
-
-void Cartridge::serialize(serializer& s) {
+auto Cartridge::serialize(serializer& s) -> void {
   s.array(ram.data(), ram.size());
 }
-
-#endif

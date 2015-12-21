@@ -2,8 +2,8 @@
 #include <sfc/sfc.hpp>
 #include <nall/stream/mmap.hpp>
 #include <nall/stream/file.hpp>
-#include "../ananke/heuristics/super-famicom.hpp"
-#include "../ananke/heuristics/game-boy.hpp"
+#include "../icarus/heuristics/super-famicom.hpp"
+#include "../icarus/heuristics/game-boy.hpp"
 #include <string>
 
 // Special memory types.
@@ -64,6 +64,11 @@ const uint8 iplrom[64] = {
 /*fffe*/  0xc0, 0xff         //reset vector location ($ffc0)
 };
 
+const char sysmanifest[]=
+"system name:Super Famicom\n"
+"  smp\n"
+"    rom name=ipl.rom size=64\n";
+
 static void retro_log_default(enum retro_log_level level, const char *fmt, ...)
 {
   fprintf(stderr, "[bsnes]: ");
@@ -100,15 +105,15 @@ struct Callbacks : Emulator::Interface::Bind {
   string basename;
 
   static unsigned snes_to_retro(unsigned device) {
-    switch ((SuperFamicom::Input::Device)device) {
+    switch ((SuperFamicom::Device::ID)device) {
        default:
-       case SuperFamicom::Input::Device::None:       return RETRO_DEVICE_NONE;
-       case SuperFamicom::Input::Device::Joypad:     return RETRO_DEVICE_JOYPAD;
-       case SuperFamicom::Input::Device::Multitap:   return RETRO_DEVICE_JOYPAD_MULTITAP;
-       case SuperFamicom::Input::Device::Mouse:      return RETRO_DEVICE_MOUSE;
-       case SuperFamicom::Input::Device::SuperScope: return RETRO_DEVICE_LIGHTGUN_SUPER_SCOPE;
-       case SuperFamicom::Input::Device::Justifier:  return RETRO_DEVICE_LIGHTGUN_JUSTIFIER;
-       case SuperFamicom::Input::Device::Justifiers: return RETRO_DEVICE_LIGHTGUN_JUSTIFIERS;
+       case SuperFamicom::Device::ID::None:       return RETRO_DEVICE_NONE;
+       case SuperFamicom::Device::ID::Gamepad:    return RETRO_DEVICE_JOYPAD;
+       case SuperFamicom::Device::ID::Multitap:   return RETRO_DEVICE_JOYPAD_MULTITAP;
+       case SuperFamicom::Device::ID::Mouse:      return RETRO_DEVICE_MOUSE;
+       case SuperFamicom::Device::ID::SuperScope: return RETRO_DEVICE_LIGHTGUN_SUPER_SCOPE;
+       case SuperFamicom::Device::ID::Justifier:  return RETRO_DEVICE_LIGHTGUN_JUSTIFIER;
+       case SuperFamicom::Device::ID::Justifiers: return RETRO_DEVICE_LIGHTGUN_JUSTIFIERS;
     }
   }
 
@@ -117,17 +122,17 @@ struct Callbacks : Emulator::Interface::Bind {
     return id;
   }
 
-  static SuperFamicom::Input::Device retro_to_snes(unsigned device) {
+  static SuperFamicom::Device::ID retro_to_snes(unsigned device) {
     switch (device) {
        default:
-       case RETRO_DEVICE_NONE:                 return SuperFamicom::Input::Device::None;
-       case RETRO_DEVICE_JOYPAD:               return SuperFamicom::Input::Device::Joypad;
-       case RETRO_DEVICE_ANALOG:               return SuperFamicom::Input::Device::Joypad;
-       case RETRO_DEVICE_JOYPAD_MULTITAP:      return SuperFamicom::Input::Device::Multitap;
-       case RETRO_DEVICE_MOUSE:                return SuperFamicom::Input::Device::Mouse;
-       case RETRO_DEVICE_LIGHTGUN_SUPER_SCOPE: return SuperFamicom::Input::Device::SuperScope;
-       case RETRO_DEVICE_LIGHTGUN_JUSTIFIER:   return SuperFamicom::Input::Device::Justifier;
-       case RETRO_DEVICE_LIGHTGUN_JUSTIFIERS:  return SuperFamicom::Input::Device::Justifiers;
+       case RETRO_DEVICE_NONE:                 return SuperFamicom::Device::ID::None;
+       case RETRO_DEVICE_JOYPAD:               return SuperFamicom::Device::ID::Gamepad;
+       case RETRO_DEVICE_ANALOG:               return SuperFamicom::Device::ID::Gamepad;
+       case RETRO_DEVICE_JOYPAD_MULTITAP:      return SuperFamicom::Device::ID::Multitap;
+       case RETRO_DEVICE_MOUSE:                return SuperFamicom::Device::ID::Mouse;
+       case RETRO_DEVICE_LIGHTGUN_SUPER_SCOPE: return SuperFamicom::Device::ID::SuperScope;
+       case RETRO_DEVICE_LIGHTGUN_JUSTIFIER:   return SuperFamicom::Device::ID::Justifier;
+       case RETRO_DEVICE_LIGHTGUN_JUSTIFIERS:  return SuperFamicom::Device::ID::Justifiers;
     }
   }
 
@@ -141,7 +146,7 @@ struct Callbacks : Emulator::Interface::Bind {
     uint16_t video_buffer_16[512 * 480];
   };
 
-  void videoRefresh(const uint32_t* palette, const uint32_t* data, unsigned pitch, unsigned width, unsigned height) override {
+  void videoRefresh(const uint32_t *palette, const uint32_t *data, unsigned pitch, unsigned width, unsigned height) override {
     if (!overscan) {
       data += 8 * 1024;
 
@@ -176,7 +181,8 @@ struct Callbacks : Emulator::Interface::Bind {
   int16_t sampleBuf[128];
   unsigned int sampleBufPos;
 
-  void audioSample(int16_t left, int16_t right) override {
+  void audioSample(int16_t left, int16_t right) override
+  {
     sampleBuf[sampleBufPos++] = left;
     sampleBuf[sampleBufPos++] = right;
     if(sampleBufPos==128) {
@@ -199,7 +205,7 @@ struct Callbacks : Emulator::Interface::Bind {
     }
   }
 
-  void loadFile(unsigned id, string p) {
+  inline void loadFile(unsigned id, string p) {
     // Look for BIOS in system directory as well.
     const char *dir = 0;
     penviron(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir);
@@ -218,37 +224,42 @@ struct Callbacks : Emulator::Interface::Bind {
         load_request_error = true;
       }
     } else {
-      output(RETRO_LOG_ERROR, "Cannot find requested file: \"%s\" in ROM directory nor system directory.\n", (const char*)p);
+      fprintf(stderr, "Cannot find requested file: \"%s\" in ROM directory nor system directory.\n", (const char*)p);
       load_request_error = true;
     }
   }
 
-  void loadROM(unsigned id) {
+  inline void loadROM(unsigned id) {
     memorystream stream(rom_data, rom_size);
     iface->load(id, stream);
   }
 
-  void loadManifest(unsigned id) {
+  inline void loadManifest(unsigned id) {
     memorystream stream((const uint8_t*)(const char*)xmlrom, xmlrom.length());
     iface->load(id, stream);
   }
 
-  void loadSGBROMManifest(unsigned id) {
-    memorystream stream((const uint8_t*)(const char*)xmlrom_gb, xmlrom_gb.length());
-    iface->load(SuperFamicom::ID::SuperGameBoyManifest, stream);
+  inline void loadSysManifest(unsigned id) {
+    memorystream stream((const uint8_t*)sysmanifest, sizeof(sysmanifest)-1);
+    iface->load(id, stream);
   }
 
-  void loadSGBROM(unsigned id) {
+  inline void loadSGBROMManifest(unsigned id) {
+    memorystream stream((const uint8_t*)(const char*)xmlrom_gb, xmlrom_gb.length());
+    iface->load(SuperFamicom::ID::GameBoyManifest, stream);
+  }
+
+  inline void loadSGBROM(unsigned id) {
     memorystream stream(gb_rom_data, gb_rom_size);
     iface->load(id, stream);
   }
 
-  void loadIPLROM(unsigned id) {
+  inline void loadIPLROM(unsigned id) {
     memorystream stream(iplrom, sizeof(iplrom));
     iface->load(id, stream);
   }
 
-  void loadRequestManifest(unsigned id, const string& p) {
+  inline void loadRequestManifest(unsigned id, const string& p) {
     output(RETRO_LOG_INFO, "[Manifest]: ID %u, Request \"%s\".\n", id, (const char*)p);
     switch(id) {
       case SuperFamicom::ID::IPLROM:
@@ -259,20 +270,28 @@ struct Callbacks : Emulator::Interface::Bind {
         loadManifest(id);
         break;
 
+      case SuperFamicom::ID::SystemManifest:
+        loadSysManifest(id);
+        break;
+
       default:
         loadFile(id, p);
         break;
     }
   }
 
-  void loadRequestMemory(unsigned id, const string& p) {
+  inline void loadRequestMemory(unsigned id, const string& p) {
     output(RETRO_LOG_INFO, "[Memory]: ID %u, Request \"%s\".\n", id, (const char*)p);
     switch(id) {
       case SuperFamicom::ID::Manifest:
         loadManifest(id);
         break;
 
-      case SuperFamicom::ID::SuperGameBoyManifest:
+      case SuperFamicom::ID::SystemManifest:
+        loadSysManifest(id);
+        break;
+
+      case SuperFamicom::ID::GameBoyManifest:
         loadSGBROMManifest(id);
         break;
 
@@ -286,7 +305,7 @@ struct Callbacks : Emulator::Interface::Bind {
         loadROM(id);
         break;
 
-      case SuperFamicom::ID::SuperGameBoyROM:
+      case SuperFamicom::ID::GameBoyROM:
         loadSGBROM(id);
         break;
 
@@ -329,7 +348,7 @@ struct Callbacks : Emulator::Interface::Bind {
         break;
 
       // SGB RAM is handled explicitly.
-      case SuperFamicom::ID::SuperGameBoyRAM:
+      case SuperFamicom::ID::GameBoyRAM:
         break;
 
       case SuperFamicom::ID::IPLROM:
@@ -343,7 +362,7 @@ struct Callbacks : Emulator::Interface::Bind {
     }
   }
 
-  void loadRequest(unsigned id, string p) override {
+  void loadRequest(unsigned id, string p, bool required) override {
     if (manifest)
        loadRequestManifest(id, p);
     else
@@ -351,15 +370,15 @@ struct Callbacks : Emulator::Interface::Bind {
     output(RETRO_LOG_INFO, "Complete load request.\n");
   }
 
-  void loadRequest(unsigned id, string p, string manifest) override {
+  void loadRequest(unsigned id, string p, string manifest, bool required) override {
     switch (id) {
-      case SuperFamicom::ID::SuperGameBoy:
+      case SuperFamicom::ID::GameBoy:
         output(RETRO_LOG_INFO, "Loading GB ROM.\n");
         loadSGBROMManifest(id);
         break;
 
       default:
-        output(RETRO_LOG_INFO, "Didn't do anything with loadRequest (3 arg).\n");
+        output(RETRO_LOG_WARN, "Didn't do anything with loadRequest (3 arg).\n");
     }
   }
 
@@ -376,23 +395,12 @@ struct Callbacks : Emulator::Interface::Bind {
     if (video_fmt == video_fmt_15) return (r>>3 << 10) | (g>>3 << 5) | (b>>3 << 0);
   }
 
-  void notify(string text) {
-    output(RETRO_LOG_ERROR, "%s\n", (const char*)text);
-  }
-
   unsigned altImplementation(unsigned item) override {
     if (item==SuperFamicom::Alt::ForDSP)
     {
       if (!strcmp(read_opt("bsnes_chip_hle", "LLE"), "HLE")) return SuperFamicom::Alt::DSP::HLE;
       else return SuperFamicom::Alt::DSP::LLE;
     }
-#ifdef EXPERIMENTAL_FEATURES
-    if (item==SuperFamicom::Alt::ForSuperGameBoy)
-    {
-      if (!strcmp(read_opt("bsnes_sgb_core", "Internal"), "Gambatte")) return SuperFamicom::Alt::SuperGameBoy::External;
-      else return SuperFamicom::Alt::SuperGameBoy::Internal;
-    }
-#endif
     return 0;
   }
 };
@@ -412,36 +420,42 @@ static const char * read_opt(const char * name, const char * defval)
 	else return defval;
 }
 
-struct Interface : public SuperFamicom::Interface {
-  SuperFamicomCartridge::Mode mode;
+struct LibretroInterface : public SuperFamicom::Interface {
+  enum Mode {
+    ModeNormal,
+    ModeBsxSlotted,
+    ModeBsx,
+    ModeSufamiTurbo,
+    ModeSuperGameBoy,
+  } mode;
 
   void setCheats(const lstring &list = lstring());
 
-  Interface();
+  LibretroInterface();
 
-  void init() {
+  inline void init() {
      SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard);
   }
 };
 
 struct GBInterface : public GameBoy::Interface {
   GBInterface() { bind = &core_bind; }
-  void init() {
+  inline void init() {
      SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard);
   }
 };
 
-static Interface core_interface;
+static LibretroInterface core_interface;
 static GBInterface core_gb_interface;
 
-Interface::Interface() {
+LibretroInterface::LibretroInterface() {
   bind = &core_bind;
   core_bind.iface = &core_interface;
 }
 
-void Interface::setCheats(const lstring &) {
+void LibretroInterface::setCheats(const lstring &) {
 #if 0
-  if(core_interface.mode == SuperFamicomCartridge::ModeSuperGameBoy) {
+  if(core_interface.mode == LibretroInterface::ModeSuperGameBoy) {
     GameBoy::cheat.reset();
     for(auto &code : list) {
       lstring codelist;
@@ -488,9 +502,6 @@ void retro_set_environment(retro_environment_t environ_cb)
       { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
       { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
          //Any integer is usable here, but there is no such thing as "any integer" in core options.
-#ifdef EXPERIMENTAL_FEATURES
-      { "bsnes_sgb_core", "Super Game Boy core; Internal|Gambatte" },
-#endif
       { NULL, NULL },
    };
    core_bind.penviron(RETRO_ENVIRONMENT_SET_VARIABLES, (void*)vars);
@@ -568,22 +579,22 @@ void retro_set_environment(retro_environment_t environ_cb)
 }
 
 static void update_variables(void) {
-   if (SuperFamicom::cartridge.has_superfx()) {
+   if (SuperFamicom::cartridge.hasSuperFX()) {
       const char * speed=read_opt("bsnes_superfx_overclock", "100%");
       unsigned percent=strtoul(speed, NULL, 10);//we can assume that the input is one of our advertised options
       SuperFamicom::superfx.frequency=(uint64)superfx_freq_orig*percent/100;
    }
 }
 
-void retro_set_video_refresh(retro_video_refresh_t cb)           { core_bind.pvideo_refresh = cb; }
-void retro_set_audio_sample(retro_audio_sample_t)                { }
-void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) { core_bind.paudio         = cb; }
-void retro_set_input_poll(retro_input_poll_t cb)                 { core_bind.pinput_poll    = cb; }
-void retro_set_input_state(retro_input_state_t cb)               { core_bind.pinput_state   = cb; }
+void retro_set_video_refresh(retro_video_refresh_t video_refresh) { core_bind.pvideo_refresh = video_refresh; }
+void retro_set_audio_sample(retro_audio_sample_t)    { }
+void retro_set_audio_sample_batch(retro_audio_sample_batch_t audio_sample) { core_bind.paudio  = audio_sample; }
+void retro_set_input_poll(retro_input_poll_t input_poll)          { core_bind.pinput_poll    = input_poll; }
+void retro_set_input_state(retro_input_state_t input_state)       { core_bind.pinput_state   = input_state; }
 
 void retro_set_controller_port_device(unsigned port, unsigned device) {
   if (port < 2)
-    SuperFamicom::input.connect(port, Callbacks::retro_to_snes(device));
+    SuperFamicom::device.connect(port, Callbacks::retro_to_snes(device));
 }
 
 void retro_init(void) {
@@ -592,12 +603,12 @@ void retro_init(void) {
 
   core_interface.init();
   core_gb_interface.init();
-  
+
   core_bind.sampleBufPos = 0;
 
   SuperFamicom::system.init();
-  SuperFamicom::input.connect(SuperFamicom::Controller::Port1, SuperFamicom::Input::Device::Joypad);
-  SuperFamicom::input.connect(SuperFamicom::Controller::Port2, SuperFamicom::Input::Device::Joypad);
+  SuperFamicom::device.connect(SuperFamicom::Controller::Port1, SuperFamicom::Device::ID::Gamepad);
+  SuperFamicom::device.connect(SuperFamicom::Controller::Port2, SuperFamicom::Device::ID::Gamepad);
 }
 
 void retro_deinit(void) {
@@ -609,9 +620,6 @@ void retro_reset(void) {
 }
 
 void retro_run(void) {
-  bool updated = false;
-  if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
-    update_variables();
   SuperFamicom::system.run();
   if(core_bind.sampleBufPos) {
     core_bind.paudio(core_bind.sampleBuf, core_bind.sampleBufPos/2);
@@ -620,11 +628,11 @@ void retro_run(void) {
 }
 
 size_t retro_serialize_size(void) {
-  return SuperFamicom::system.serialize_size();
+  return SuperFamicom::system.serializeSize();
 }
 
 bool retro_serialize(void *data, size_t size) {
-  SuperFamicom::system.runtosave();
+  SuperFamicom::system.runToSave();
   serializer s = SuperFamicom::system.serialize();
   if(s.size() > size) return false;
   memcpy(data, s.data(), s.size());
@@ -655,15 +663,14 @@ void retro_cheat_reset(void) {
 
 void retro_cheat_set(unsigned index, bool enable, const char *code) {
 #if 0
-  cheatList.reserve(index+1);
   cheatList[index].enable = enable;
   cheatList[index].code = code;
   lstring list;
-  
+
   for(unsigned n = 0; n < cheatList.size(); n++) {
     if(cheatList[n].enable) list.append(cheatList[n].code);
   }
-  
+
   core_interface.setCheats(list);
 #endif
 }
@@ -708,11 +715,11 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
   }
 }
 
-static void output_multiline(enum retro_log_level level, char * data)
+static void output_multiline(enum retro_log_level level, const char * data)
 {
   while (true)
   {
-    char* data_linebreak=strchr(data, '\n');
+    char* data_linebreak=(char*)strchr(data, '\n');
     if (data_linebreak) *data_linebreak='\0';
     if (*data) output(level, "%s\n", data);
     if (!data_linebreak) break;
@@ -809,7 +816,7 @@ static bool snes_load_cartridge_super_game_boy(
   core_bind.xmlrom_gb   = xmlrom_gb;
 
   core_bind.iface->load(SuperFamicom::ID::SuperFamicom);
-  core_bind.iface->load(SuperFamicom::ID::SuperGameBoy);
+  core_bind.iface->load(SuperFamicom::ID::GameBoy);
   SuperFamicom::system.power();
   return !core_bind.load_request_error;
 }
@@ -817,70 +824,70 @@ static bool snes_load_cartridge_super_game_boy(
 static void init_descriptors(void)
 {
    struct retro_input_descriptor desc[] = {
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "B" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "A" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "X" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Y" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,      "L" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,      "R" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Select" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
 
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "B" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "A" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "X" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Y" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,      "L" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,      "R" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Select" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
 
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "B" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "A" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "X" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Y" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,      "L" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,      "R" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Select" },
-      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
+      { 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
 
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "B" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "A" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "X" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Y" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,      "L" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,      "R" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Select" },
-      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
+      { 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
 
-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left" },
-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up" },
-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down" },
-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right" },
-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "B" },
-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "A" },
-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "X" },
-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Y" },
-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,      "L" },
-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,      "R" },
-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Select" },
-      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "B" },
+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "A" },
+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "X" },
+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Y" },
+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "L" },
+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "R" },
+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,   "Select" },
+      { 4, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,    "Start" },
 
       { 0 },
    };
@@ -916,24 +923,21 @@ bool retro_load_game(const struct retro_game_info *info) {
       core_bind.basename = "./";
   }
 
-  core_interface.mode = SuperFamicomCartridge::ModeNormal;
+  core_interface.mode = LibretroInterface::ModeNormal;
   std::string manifest;
   if (core_bind.manifest)
     manifest = std::string((const char*)info->data, info->size); // Might not be 0 terminated.
   
   bool ret=snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size);
-  if (ret) {
-    SuperFamicom::bus.libretro_mem_map.reverse();
-    retro_memory_map map={SuperFamicom::bus.libretro_mem_map.data(), SuperFamicom::bus.libretro_mem_map.size()};
-    core_bind.penviron(RETRO_ENVIRONMENT_SET_MEMORY_MAPS, (void*)&map);
-    
-    if (SuperFamicom::cartridge.has_superfx())
-      superfx_freq_orig=SuperFamicom::superfx.frequency;
-  }
+  SuperFamicom::bus.libretro_mem_map.reverse();
+  retro_memory_map map={SuperFamicom::bus.libretro_mem_map.data(), SuperFamicom::bus.libretro_mem_map.size()};
+  core_bind.penviron(RETRO_ENVIRONMENT_SET_MEMORY_MAPS, (void*)&map);
+  
+  if (SuperFamicom::cartridge.hasSuperFX())
+    superfx_freq_orig=SuperFamicom::superfx.frequency;
   
   return ret;
 }
-
 
 bool retro_load_game_special(unsigned game_type,
       const struct retro_game_info *info, size_t num_info) {
@@ -965,43 +969,43 @@ bool retro_load_game_special(unsigned game_type,
 
   switch (game_type) {
      case RETRO_GAME_TYPE_BSX:
-        core_interface.mode = SuperFamicomCartridge::ModeBsx;
+        core_interface.mode = LibretroInterface::ModeBsx;
         return num_info == 2 && snes_load_cartridge_bsx(info[0].meta, data, size,
               info[1].meta, (const uint8_t*)info[1].data, info[1].size);
 
      case RETRO_GAME_TYPE_BSX | 0x1000:
-        core_interface.mode = SuperFamicomCartridge::ModeBsx;
+        core_interface.mode = LibretroInterface::ModeBsx;
         return num_info == 2 && snes_load_cartridge_bsx(info[1].meta, (const uint8_t*)info[1].data, info[1].size,
               info[0].meta, (const uint8_t*)info[0].data, info[0].size);
 
      case RETRO_GAME_TYPE_BSX_SLOTTED:
-        core_interface.mode = SuperFamicomCartridge::ModeBsxSlotted;
+        core_interface.mode = LibretroInterface::ModeBsxSlotted;
         return num_info == 2 && snes_load_cartridge_bsx_slotted(info[0].meta, data, size,
               info[1].meta, (const uint8_t*)info[1].data, info[1].size);
 
      case RETRO_GAME_TYPE_BSX_SLOTTED | 0x1000:
-        core_interface.mode = SuperFamicomCartridge::ModeBsxSlotted;
+        core_interface.mode = LibretroInterface::ModeBsxSlotted;
         return num_info == 2 && snes_load_cartridge_bsx(info[1].meta, (const uint8_t*)info[1].data, info[1].size,
               info[0].meta, (const uint8_t*)info[0].data, info[0].size);
 
      case RETRO_GAME_TYPE_SUPER_GAME_BOY:
-        core_interface.mode = SuperFamicomCartridge::ModeSuperGameBoy;
+        core_interface.mode = LibretroInterface::ModeSuperGameBoy;
         return num_info == 2 && snes_load_cartridge_super_game_boy(info[0].meta, data, size,
               info[1].meta, (const uint8_t*)info[1].data, info[1].size);
 
      case RETRO_GAME_TYPE_SUPER_GAME_BOY | 0x1000:
-        core_interface.mode = SuperFamicomCartridge::ModeSuperGameBoy;
+        core_interface.mode = LibretroInterface::ModeSuperGameBoy;
         return num_info == 2 && snes_load_cartridge_super_game_boy(info[1].meta, (const uint8_t*)info[1].data, info[1].size,
               info[0].meta, (const uint8_t*)info[0].data, info[0].size);
 
      case RETRO_GAME_TYPE_SUFAMI_TURBO:
-        core_interface.mode = SuperFamicomCartridge::ModeSufamiTurbo;
+        core_interface.mode = LibretroInterface::ModeSufamiTurbo;
         return num_info == 3 && snes_load_cartridge_sufami_turbo(info[0].meta, (const uint8_t*)info[0].data, info[0].size,
               info[1].meta, (const uint8_t*)info[1].data, info[1].size,
               info[2].meta, (const uint8_t*)info[2].data, info[2].size);
 
      case RETRO_GAME_TYPE_SUFAMI_TURBO | 0x1000:
-        core_interface.mode = SuperFamicomCartridge::ModeSufamiTurbo;
+        core_interface.mode = LibretroInterface::ModeSufamiTurbo;
         return num_info == 3 && snes_load_cartridge_sufami_turbo(info[2].meta, (const uint8_t*)info[2].data, info[2].size,
               info[0].meta, (const uint8_t*)info[0].data, info[0].size,
               info[1].meta, (const uint8_t*)info[1].data, info[1].size);
@@ -1034,16 +1038,16 @@ void* retro_get_memory_data(unsigned id) {
     case RETRO_MEMORY_SNES_BSX_RAM:
       return nullptr;
     case RETRO_MEMORY_SNES_BSX_PRAM:
-      if(core_interface.mode != SuperFamicomCartridge::ModeBsx) break;
-      return SuperFamicom::bsxcartridge.psram.data();
+      if(core_interface.mode != LibretroInterface::ModeBsx) break;
+      return SuperFamicom::bsmemory.memory.data();
     case RETRO_MEMORY_SNES_SUFAMI_TURBO_A_RAM:
-      if(core_interface.mode != SuperFamicomCartridge::ModeSufamiTurbo) break;
+      if(core_interface.mode != LibretroInterface::ModeSufamiTurbo) break;
       return SuperFamicom::sufamiturboA.ram.data();
     case RETRO_MEMORY_SNES_SUFAMI_TURBO_B_RAM:
-      if(core_interface.mode != SuperFamicomCartridge::ModeSufamiTurbo) break;
+      if(core_interface.mode != LibretroInterface::ModeSufamiTurbo) break;
       return SuperFamicom::sufamiturboB.ram.data();
     case RETRO_MEMORY_SNES_GAME_BOY_RAM:
-      if(core_interface.mode != SuperFamicomCartridge::ModeSuperGameBoy) break;
+      if(core_interface.mode != LibretroInterface::ModeSuperGameBoy) break;
       return GameBoy::cartridge.ramdata;
 
     case RETRO_MEMORY_SYSTEM_RAM:
@@ -1072,19 +1076,19 @@ size_t retro_get_memory_size(unsigned id) {
       size = 0;
       break;
     case RETRO_MEMORY_SNES_BSX_PRAM:
-      if(core_interface.mode != SuperFamicomCartridge::ModeBsx) break;
-      size = SuperFamicom::bsxcartridge.psram.size();
+      if(core_interface.mode != LibretroInterface::ModeBsx) break;
+      size = SuperFamicom::bsmemory.memory.size();
       break;
     case RETRO_MEMORY_SNES_SUFAMI_TURBO_A_RAM:
-      if(core_interface.mode != SuperFamicomCartridge::ModeSufamiTurbo) break;
+      if(core_interface.mode != LibretroInterface::ModeSufamiTurbo) break;
       size = SuperFamicom::sufamiturboA.ram.size();
       break;
     case RETRO_MEMORY_SNES_SUFAMI_TURBO_B_RAM:
-      if(core_interface.mode != SuperFamicomCartridge::ModeSufamiTurbo) break;
+      if(core_interface.mode != LibretroInterface::ModeSufamiTurbo) break;
       size = SuperFamicom::sufamiturboB.ram.size();
       break;
     case RETRO_MEMORY_SNES_GAME_BOY_RAM:
-      if(core_interface.mode != SuperFamicomCartridge::ModeSuperGameBoy) break;
+      if(core_interface.mode != LibretroInterface::ModeSuperGameBoy) break;
       size = GameBoy::cartridge.ramsize;
       break;
 

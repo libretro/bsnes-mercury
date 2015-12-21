@@ -1,4 +1,4 @@
-uint8 R65816::dreadb(uint32 addr) {
+auto R65816::dreadb(uint32 addr) -> uint8 {
   if((addr & 0x40ffff) >= 0x2000 && (addr & 0x40ffff) <= 0x5fff) {
     //$[00-3f|80-bf]:[2000-5fff]
     //do not read MMIO registers within debugger
@@ -7,14 +7,14 @@ uint8 R65816::dreadb(uint32 addr) {
   return disassembler_read(addr);
 }
 
-uint16 R65816::dreadw(uint32 addr) {
+auto R65816::dreadw(uint32 addr) -> uint16 {
   uint16 r;
   r  = dreadb((addr + 0) & 0xffffff) <<  0;
   r |= dreadb((addr + 1) & 0xffffff) <<  8;
   return r;
 }
 
-uint32 R65816::dreadl(uint32 addr) {
+auto R65816::dreadl(uint32 addr) -> uint32 {
   uint32 r;
   r  = dreadb((addr + 0) & 0xffffff) <<  0;
   r |= dreadb((addr + 1) & 0xffffff) <<  8;
@@ -22,7 +22,7 @@ uint32 R65816::dreadl(uint32 addr) {
   return r;
 }
 
-uint32 R65816::decode(uint8 offset_type, uint32 addr) {
+auto R65816::decode(uint8 offset_type, uint32 addr) -> uint32 {
   uint32 r = 0;
 
   switch(offset_type) {
@@ -102,7 +102,11 @@ uint32 R65816::decode(uint8 offset_type, uint32 addr) {
   return(r & 0xffffff);
 }
 
-void R65816::disassemble_opcode(char* output, uint32 addr) {
+auto R65816::disassemble_opcode(char* output) -> void {
+  return disassemble_opcode(output, regs.pc.d, regs.e, regs.p.m, regs.p.x);
+}
+
+auto R65816::disassemble_opcode(char* output, uint32 addr, bool e, bool m, bool x) -> void {
   static reg24_t pc;
   char t[256];
   char* s = output;
@@ -123,8 +127,8 @@ void R65816::disassemble_opcode(char* output, uint32 addr) {
   #define op8  ((op0))
   #define op16 ((op0) | (op1 << 8))
   #define op24 ((op0) | (op1 << 8) | (op2 << 16))
-  #define a8   (regs.e || regs.p.m)
-  #define x8   (regs.e || regs.p.x)
+  #define a8   (e || m)
+  #define x8   (e || x)
 
   switch(op) {
   case 0x00: sprintf(t, "brk #$%.2x              ", op8); break;

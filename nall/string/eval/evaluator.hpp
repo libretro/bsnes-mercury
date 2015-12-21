@@ -3,7 +3,7 @@
 namespace nall {
 namespace Eval {
 
-inline string evaluateExpression(Node* node) {
+inline auto evaluateExpression(Node* node) -> string {
   #define p(n) evaluateExpression(node->link[n])
   switch(node->type) {
   case Node::Type::Null: return "Null";
@@ -29,22 +29,16 @@ inline string evaluateExpression(Node* node) {
     for(auto& link : node->link) {
       result.append(evaluateExpression(link), ", ");
     }
-    return result.rtrim<1>(", ").append(")");
+    return result.rtrim(", ", 1L).append(")");
   }
-  default: throw "invalid operator";
   }
   #undef p
+
+  throw "invalid operator";
 }
 
-inline int64_t evaluateInteger(Node* node) {
-  if(node->type == Node::Type::Literal) {
-    if(node->literal.beginsWith("0b")) return nall::binary(node->literal);
-    if(node->literal.beginsWith("0o")) return nall::octal(node->literal);
-    if(node->literal.beginsWith("0x")) return nall::hex(node->literal);
-    if(node->literal.beginsWith("%")) return nall::binary(node->literal);
-    if(node->literal.beginsWith("$")) return nall::hex(node->literal);
-    return nall::integer(node->literal);
-  }
+inline auto evaluateInteger(Node* node) -> int64 {
+  if(node->type == Node::Type::Literal) return nall::integer(node->literal);
 
   #define p(n) evaluateInteger(node->link[n])
   switch(node->type) {
@@ -86,25 +80,26 @@ inline int64_t evaluateInteger(Node* node) {
   case Node::Type::AssignBitwiseAnd: return p(0) & p(1);
   case Node::Type::AssignBitwiseOr: return p(0) | p(1);
   case Node::Type::AssignBitwiseXor: return p(0) ^ p(1);
-  default: throw "invalid operator";
   }
   #undef p
+
+  throw "invalid operator";
 }
 
-inline optional<int64_t> integer(const string& expression) {
+inline auto integer(const string& expression) -> maybe<int64> {
   try {
     auto tree = new Node;
     const char* p = expression;
     parse(tree, p, 0);
     auto result = evaluateInteger(tree);
     delete tree;
-    return {true, result};
+    return result;
   } catch(const char*) {
-    return false;
+    return nothing;
   }
 }
 
-inline long double evaluateReal(Node* node) {
+inline auto evaluateReal(Node* node) -> long double {
   if(node->type == Node::Type::Literal) return nall::real(node->literal);
 
   #define p(n) evaluateReal(node->link[n])
@@ -130,22 +125,22 @@ inline long double evaluateReal(Node* node) {
   case Node::Type::AssignDivide: return p(0) / p(1);
   case Node::Type::AssignAdd: return p(0) + p(1);
   case Node::Type::AssignSubtract: return p(0) - p(1);
-  default: throw "invalid operator";
   }
   #undef p
 
+  throw "invalid operator";
 }
 
-inline optional<long double> real(const string& expression) {
+inline auto real(const string& expression) -> maybe<long double> {
   try {
     auto tree = new Node;
     const char* p = expression;
     parse(tree, p, 0);
     auto result = evaluateReal(tree);
     delete tree;
-    return {true, result};
+    return result;
   } catch(const char*) {
-    return false;
+    return nothing;
   }
 }
 

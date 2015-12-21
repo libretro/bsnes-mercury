@@ -7,13 +7,13 @@ namespace GameBoyAdvance {
 BIOS bios;
 System system;
 
-void System::init() {
+auto System::init() -> void {
 }
 
-void System::term() {
+auto System::term() -> void {
 }
 
-void System::power() {
+auto System::power() -> void {
   bus.power();
   player.power();
   cpu.power();
@@ -23,19 +23,18 @@ void System::power() {
   scheduler.power();
 }
 
-void System::load() {
-  string manifest = string::read({interface->path(ID::System), "manifest.bml"});
-  auto document = Markup::Document(manifest);
+auto System::load() -> void {
+  interface->loadRequest(ID::SystemManifest, "manifest.bml", true);
+  auto document = BML::unserialize(information.manifest);
 
-  interface->loadRequest(ID::BIOS, document["system/cpu/rom/name"].data);
-  if(!file::exists({interface->path(ID::System), document["system/cpu/rom/name"].data})) {
-    interface->notify("Error: required Game Boy Advance firmware bios.rom not found.\n");
+  if(auto bios = document["system/cpu/rom/name"].text()) {
+    interface->loadRequest(ID::BIOS, bios, true);
   }
 
   serialize_init();
 }
 
-void System::run() {
+auto System::run() -> void {
   while(true) {
     scheduler.enter();
     if(scheduler.exit_reason() == Scheduler::ExitReason::FrameEvent) break;
@@ -43,7 +42,7 @@ void System::run() {
   interface->videoRefresh(video.palette, ppu.output, 4 * 240, 240, 160);
 }
 
-void System::runtosave() {
+auto System::runtosave() -> void {
   scheduler.sync = Scheduler::SynchronizeMode::CPU;
   runthreadtosave();
 
@@ -58,7 +57,7 @@ void System::runtosave() {
   scheduler.sync = Scheduler::SynchronizeMode::None;
 }
 
-void System::runthreadtosave() {
+auto System::runthreadtosave() -> void {
   while(true) {
     scheduler.enter();
     if(scheduler.exit_reason() == Scheduler::ExitReason::SynchronizeEvent) break;

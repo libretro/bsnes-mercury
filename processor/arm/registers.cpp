@@ -1,6 +1,6 @@
 #ifdef PROCESSOR_ARM_HPP
 
-void ARM::Processor::power() {
+auto ARM::Processor::power() -> void {
   r0 = r1 = r2 = r3 = r4 = r5 = r6 = r7 = 0;
   usr.r8 = usr.r9 = usr.r10 = usr.r11 = usr.r12 = usr.sp = usr.lr = 0;
   fiq.r8 = fiq.r9 = fiq.r10 = fiq.r11 = fiq.r12 = fiq.sp = fiq.lr = 0;
@@ -11,7 +11,6 @@ void ARM::Processor::power() {
   pc = 0;
 
   carryout = false;
-  sequential = false;
   irqline = false;
 
   cpsr = 0;
@@ -34,7 +33,7 @@ void ARM::Processor::power() {
   r[15] = &pc;
 }
 
-void ARM::Processor::setMode(Mode mode) {
+auto ARM::Processor::setMode(Mode mode) -> void {
   cpsr.m = 0x10 | (unsigned)mode;
 
   if(mode == Mode::FIQ) {
@@ -58,21 +57,6 @@ void ARM::Processor::setMode(Mode mode) {
   case Mode::ABT: r[13] = &abt.sp; r[14] = &abt.lr; spsr = &abt.spsr; break;
   case Mode::UND: r[13] = &und.sp; r[14] = &und.lr; spsr = &und.spsr; break;
   default:        r[13] = &usr.sp; r[14] = &usr.lr; spsr = nullptr;   break;
-  }
-}
-
-void ARM::pipeline_step() {
-  pipeline.execute = pipeline.decode;
-  pipeline.decode = pipeline.fetch;
-
-  if(cpsr().t == 0) {
-    r(15).data += 4;
-    pipeline.fetch.address = r(15) & ~3;
-    pipeline.fetch.instruction = read(pipeline.fetch.address, Word);
-  } else {
-    r(15).data += 2;
-    pipeline.fetch.address = r(15) & ~1;
-    pipeline.fetch.instruction = read(pipeline.fetch.address, Half);
   }
 }
 

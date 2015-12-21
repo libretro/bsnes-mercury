@@ -1,47 +1,34 @@
 #ifndef NALL_FUNCTION_HPP
 #define NALL_FUNCTION_HPP
 
+#include <nall/traits.hpp>
+
 namespace nall {
 
-template<typename T> class function;
+template<typename T> struct function;
 
-template<typename R, typename... P> class function<R (P...)> {
-  struct container {
-    virtual R operator()(P... p) const = 0;
-    virtual container* copy() const = 0;
-    virtual ~container() {}
+template<typename R, typename... P> struct function<auto (P...) -> R> {
+  //value = true if auto L::operator()(P...) -> R exists
+  template<typename L> struct is_compatible {
+    template<typename T> static auto exists(T*) -> const typename is_same<R, decltype(declval<T>().operator()(declval<P>()...))>::type;
+    template<typename T> static auto exists(...) -> const false_type;
+    static constexpr bool value = decltype(exists<L>(0))::value;
   };
 
-  container* callback = nullptr;
+  function() = default;
+  function(const function& source) { operator=(source); }
+  function(void* function) { if(function) callback = new global((auto (*)(P...) -> R)function); }
+  function(auto (*function)(P...) -> R) { callback = new global(function); }
+  template<typename C> function(auto (C::*function)(P...) -> R, C* object) { callback = new member<C>(function, object); }
+  template<typename C> function(auto (C::*function)(P...) const -> R, C* object) { callback = new member<C>((auto (C::*)(P...) -> R)function, object); }
+  template<typename L, typename = enable_if<is_compatible<L>>> function(const L& object) { callback = new lambda<L>(object); }
+  ~function() { if(callback) delete callback; }
 
-  struct global : container {
-    R (*function)(P...);
-    R operator()(P... p) const { return function(std::forward<P>(p)...); }
-    container* copy() const { return new global(function); }
-    global(R (*function)(P...)) : function(function) {}
-  };
-
-  template<typename C> struct member : container {
-    R (C::*function)(P...);
-    C* object;
-    R operator()(P... p) const { return (object->*function)(std::forward<P>(p)...); }
-    container* copy() const { return new member(function, object); }
-    member(R (C::*function)(P...), C* object) : function(function), object(object) {}
-  };
-
-  template<typename L> struct lambda : container {
-    mutable L object;
-    R operator()(P... p) const { return object(std::forward<P>(p)...); }
-    container* copy() const { return new lambda(object); }
-    lambda(const L& object) : object(object) {}
-  };
-
-public:
   explicit operator bool() const { return callback; }
-  R operator()(P... p) const { return (*callback)(std::forward<P>(p)...); }
-  void reset() { if(callback) { delete callback; callback = nullptr; } }
+  auto operator()(P... p) const -> R { return (*callback)(forward<P>(p)...); }
+  auto reset() -> void { if(callback) { delete callback; callback = nullptr; } }
 
-  function& operator=(const function& source) {
+  auto operator=(const function& source) -> function& {
     if(this != &source) {
       if(callback) { delete callback; callback = nullptr; }
       if(source.callback) callback = source.callback->copy();
@@ -49,14 +36,36 @@ public:
     return *this;
   }
 
-  function() = default;
-  function(const function &source) { operator=(source); }
-  function(void* function) { if(function) callback = new global((R (*)(P...))function); }
-  function(R (*function)(P...)) { callback = new global(function); }
-  template<typename C> function(R (C::*function)(P...), C* object) { callback = new member<C>(function, object); }
-  template<typename C> function(R (C::*function)(P...) const, C* object) { callback = new member<C>((R (C::*)(P...))function, object); }
-  template<typename L> function(const L& object) { callback = new lambda<L>(object); }
-  ~function() { if(callback) delete callback; }
+private:
+  struct container {
+    virtual auto operator()(P... p) const -> R = 0;
+    virtual auto copy() const -> container* = 0;
+    virtual ~container() = default;
+  };
+
+  container* callback = nullptr;
+
+  struct global : container {
+    auto (*function)(P...) -> R;
+    auto operator()(P... p) const -> R { return function(forward<P>(p)...); }
+    auto copy() const -> container* { return new global(function); }
+    global(auto (*function)(P...) -> R) : function(function) {}
+  };
+
+  template<typename C> struct member : container {
+    auto (C::*function)(P...) -> R;
+    C* object;
+    auto operator()(P... p) const -> R { return (object->*function)(forward<P>(p)...); }
+    auto copy() const -> container* { return new member(function, object); }
+    member(auto (C::*function)(P...) -> R, C* object) : function(function), object(object) {}
+  };
+
+  template<typename L> struct lambda : container {
+    mutable L object;
+    auto operator()(P... p) const -> R { return object(forward<P>(p)...); }
+    auto copy() const -> container* { return new lambda(object); }
+    lambda(const L& object) : object(object) {}
+  };
 };
 
 }

@@ -1,18 +1,12 @@
-/*
-  audio.xaudio2 (2010-08-14)
-  author: OV2
-*/
-
 #include "xaudio2.hpp"
 #include <windows.h>
 
-namespace ruby {
+struct AudioXAudio2 : Audio, public IXAudio2VoiceCallback {
+  AudioXAudio2() { term(); }
 
-class pAudioXAudio2: public IXAudio2VoiceCallback {
-public:
-  IXAudio2* pXAudio2;
-  IXAudio2MasteringVoice* pMasterVoice;
-  IXAudio2SourceVoice* pSourceVoice;
+  IXAudio2* pXAudio2 = nullptr;
+  IXAudio2MasteringVoice* pMasterVoice = nullptr;
+  IXAudio2SourceVoice* pSourceVoice = nullptr;
 
   //inherited from IXAudio2VoiceCallback
   STDMETHODIMP_(void) OnBufferStart(void* pBufferContext){}
@@ -23,51 +17,51 @@ public:
   STDMETHODIMP_(void) OnVoiceProcessingPassStart(UINT32 BytesRequired) {}
 
   struct {
-    unsigned buffers;
-    unsigned latency;
+    unsigned buffers = 0;
+    unsigned latency = 0;
 
-    uint32_t* buffer;
-    unsigned bufferoffset;
+    uint32_t* buffer = nullptr;
+    unsigned bufferoffset = 0;
 
-    volatile long submitbuffers;
-    unsigned writebuffer;
+    volatile long submitbuffers = 0;
+    unsigned writebuffer = 0;
   } device;
 
   struct {
-    bool synchronize;
-    unsigned frequency;
-    unsigned latency;
+    bool synchronize = false;
+    unsigned frequency = 22050;
+    unsigned latency = 120;
   } settings;
 
-  bool cap(const string& name) {
+  auto cap(const string& name) -> bool {
     if(name == Audio::Synchronize) return true;
     if(name == Audio::Frequency) return true;
     if(name == Audio::Latency) return true;
     return false;
   }
 
-  any get(const string& name) {
+  auto get(const string& name) -> any {
     if(name == Audio::Synchronize) return settings.synchronize;
     if(name == Audio::Frequency) return settings.frequency;
     if(name == Audio::Latency) return settings.latency;
-    return false;
+    return {};
   }
 
-  bool set(const string& name, const any& value) {
-    if(name == Audio::Synchronize) {
-      settings.synchronize = any_cast<bool>(value);
+  auto set(const string& name, const any& value) -> bool {
+    if(name == Audio::Synchronize && value.is<bool>()) {
+      settings.synchronize = value.get<bool>();
       if(pXAudio2) clear();
       return true;
     }
 
-    if(name == Audio::Frequency) {
-      settings.frequency = any_cast<unsigned>(value);
+    if(name == Audio::Frequency && value.is<unsigned>()) {
+      settings.frequency = value.get<unsigned>();
       if(pXAudio2) init();
       return true;
     }
 
-    if(name == Audio::Latency) {
-      settings.latency = any_cast<unsigned>(value);
+    if(name == Audio::Latency && value.is<unsigned>()) {
+      settings.latency = value.get<unsigned>();
       if(pXAudio2) init();
       return true;
     }
@@ -75,7 +69,7 @@ public:
     return false;
   }
 
-  void pushbuffer(unsigned bytes, uint32_t* pAudioData) {
+  auto pushbuffer(unsigned bytes, uint32_t* pAudioData) -> void {
     XAUDIO2_BUFFER xa2buffer = {0};
     xa2buffer.AudioBytes = bytes;
     xa2buffer.pAudioData = reinterpret_cast<BYTE*>(pAudioData);
@@ -84,7 +78,7 @@ public:
     pSourceVoice->SubmitSourceBuffer(&xa2buffer);
   }
 
-  void sample(uint16_t left, uint16_t right) {
+  auto sample(uint16_t left, uint16_t right) -> void {
     device.buffer[device.writebuffer * device.latency + device.bufferoffset++] = left + (right << 16);
     if(device.bufferoffset < device.latency) return;
     device.bufferoffset = 0;
@@ -105,7 +99,7 @@ public:
     device.writebuffer = (device.writebuffer + 1) % device.buffers;
   }
 
-  void clear() {
+  auto clear() -> void {
     if(!pSourceVoice) return;
     pSourceVoice->Stop(0);
     pSourceVoice->FlushSourceBuffers();  //calls OnBufferEnd for all currently submitted buffers
@@ -118,9 +112,7 @@ public:
     pSourceVoice->Start(0);
   }
 
-  bool init() {
-    term();
-
+  auto init() -> bool {
     device.buffers = 8;
     device.latency = settings.frequency * settings.latency / device.buffers / 1000.0 + 0.5;
     device.buffer = new uint32_t[device.latency * device.buffers];
@@ -132,7 +124,19 @@ public:
       return false;
     }
 
-    if(FAILED(hr = pXAudio2->CreateMasteringVoice( &pMasterVoice, 2, settings.frequency, 0, 0 , NULL))) {
+    unsigned deviceCount = 0;
+    pXAudio2->GetDeviceCount(&deviceCount);
+    if(deviceCount == 0) { term(); return false; }
+
+    unsigned deviceID = 0;
+    for(unsigned deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++) {
+      XAUDIO2_DEVICE_DETAILS deviceDetails;
+      memset(&deviceDetails, 0, sizeof(XAUDIO2_DEVICE_DETAILS));
+      pXAudio2->GetDeviceDetails(deviceIndex, &deviceDetails);
+      if(deviceDetails.Role & DefaultGameDevice) deviceID = deviceIndex;
+    }
+
+    if(FAILED(hr = pXAudio2->CreateMasteringVoice(&pMasterVoice, 2, settings.frequency, 0, deviceID, NULL))) {
       return false;
     }
 
@@ -145,7 +149,7 @@ public:
     wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
     wfx.cbSize = 0;
 
-    if(FAILED(hr = pXAudio2->CreateSourceVoice(&pSourceVoice, (WAVEFORMATEX*)&wfx, XAUDIO2_VOICE_NOSRC , XAUDIO2_DEFAULT_FREQ_RATIO, this, NULL, NULL))) {
+    if(FAILED(hr = pXAudio2->CreateSourceVoice(&pSourceVoice, (WAVEFORMATEX*)&wfx, XAUDIO2_VOICE_NOSRC, XAUDIO2_DEFAULT_FREQ_RATIO, this, NULL, NULL))) {
       return false;
     }
 
@@ -153,7 +157,7 @@ public:
     return true;
   }
 
-  void term() {
+  auto term() -> void {
     if(pSourceVoice) {
       pSourceVoice->Stop(0);
       pSourceVoice->DestroyVoice();
@@ -176,23 +180,4 @@ public:
   STDMETHODIMP_(void) OnBufferEnd(void* pBufferContext) {
     InterlockedDecrement(&device.submitbuffers);
   }
-
-  pAudioXAudio2() {
-    pXAudio2 = nullptr;
-    pMasterVoice = nullptr;
-    pSourceVoice = nullptr;
-
-    device.buffer = nullptr;
-    device.bufferoffset = 0;
-    device.submitbuffers = 0;
-    device.writebuffer = 0;
-
-    settings.synchronize = false;
-    settings.frequency = 22050;
-    settings.latency = 120;
-  }
-};
-
-DeclareAudio(XAudio2)
-
 };

@@ -10,14 +10,15 @@ struct Registers {
     uint1 enable;
 
     operator uint16() const;
-    uint16 operator=(uint16 source);
-    DMAControl& operator=(const DMAControl&) = delete;
+    auto operator=(uint16 source) -> uint16;
+    auto operator=(const DMAControl&) -> DMAControl& = delete;
   };
 
   struct DMA {
     varuint source;
     varuint target;
     varuint length;
+    uint32 data;
     DMAControl control;
 
     //internal
@@ -36,13 +37,14 @@ struct Registers {
     uint1 enable;
 
     operator uint16() const;
-    uint16 operator=(uint16 source);
-    TimerControl& operator=(const TimerControl&) = delete;
+    auto operator=(uint16 source) -> uint16;
+    auto operator=(const TimerControl&) -> TimerControl& = delete;
   };
 
   struct Timer {
     uint16 period;
     uint16 reload;
+    bool pending;
     TimerControl control;
   } timer[4];
 
@@ -56,8 +58,8 @@ struct Registers {
     uint1 irqenable;
 
     operator uint16() const;
-    uint16 operator=(uint16 source);
-    SerialControl& operator=(const SerialControl&) = delete;
+    auto operator=(uint16 source) -> uint16;
+    auto operator=(const SerialControl&) -> SerialControl& = delete;
   };
 
   struct Serial {
@@ -72,8 +74,8 @@ struct Registers {
     uint1 condition;
 
     operator uint16() const;
-    uint16 operator=(uint16 source);
-    KeypadControl& operator=(const KeypadControl&) = delete;
+    auto operator=(uint16 source) -> uint16;
+    auto operator=(const KeypadControl&) -> KeypadControl& = delete;
   };
 
   struct Keypad {
@@ -93,8 +95,8 @@ struct Registers {
     uint2 mode;
 
     operator uint16() const;
-    uint16 operator=(uint16 source);
-    JoybusSettings& operator=(const JoybusSettings&) = delete;
+    auto operator=(uint16 source) -> uint16;
+    auto operator=(const JoybusSettings&) -> JoybusSettings& = delete;
   };
 
   struct JoybusControl {
@@ -104,8 +106,8 @@ struct Registers {
     uint1 irqenable;
 
     operator uint16() const;
-    uint16 operator=(uint16 source);
-    JoybusControl& operator=(const JoybusControl&) = delete;
+    auto operator=(uint16 source) -> uint16;
+    auto operator=(const JoybusControl&) -> JoybusControl& = delete;
   };
 
   struct JoybusStatus {
@@ -114,8 +116,8 @@ struct Registers {
     uint2 generalflag;
 
     operator uint16() const;
-    uint16 operator=(uint16 source);
-    JoybusStatus& operator=(const JoybusStatus&) = delete;
+    auto operator=(uint16 source) -> uint16;
+    auto operator=(const JoybusStatus&) -> JoybusStatus& = delete;
   };
 
   struct Joybus {
@@ -139,8 +141,8 @@ struct Registers {
     uint1 cartridge;
 
     operator uint16() const;
-    uint16 operator=(uint16 source);
-    Interrupt& operator=(const Interrupt&) = delete;
+    auto operator=(uint16 source) -> uint16;
+    auto operator=(const Interrupt&) -> Interrupt& = delete;
   };
 
   struct IRQ {
@@ -150,14 +152,14 @@ struct Registers {
 
   struct WaitControl {
     uint2 nwait[4];
-    uint2 swait[4];
+    uint1 swait[4];
     uint2 phi;
     uint1 prefetch;
     uint1 gametype;
 
     operator uint16() const;
-    uint16 operator=(uint16 source);
-    WaitControl& operator=(const WaitControl&) = delete;
+    auto operator=(uint16 source) -> uint16;
+    auto operator=(const WaitControl&) -> WaitControl& = delete;
   };
 
   struct Wait {
@@ -172,8 +174,8 @@ struct Registers {
     uint4 unknown2;
 
     operator uint32() const;
-    uint32 operator=(uint32 source);
-    MemoryControl& operator=(const MemoryControl&) = delete;
+    auto operator=(uint32 source) -> uint32;
+    auto operator=(const MemoryControl&) -> MemoryControl& = delete;
   };
 
   struct Memory {
@@ -181,6 +183,6 @@ struct Registers {
   } memory;
 
   uint1 postboot;
-  enum class Mode : unsigned { Normal, Halt, Stop } mode;
-  unsigned clock;
+  enum class Mode : uint { Normal, Halt, Stop } mode;
+  uint clock;
 } regs;

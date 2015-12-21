@@ -1,155 +1,191 @@
 #ifdef NALL_STRING_INTERNAL_HPP
 
 //BML v1.0 parser
-//revision 0.03
+//revision 0.04
 
 namespace nall {
 namespace BML {
 
-struct Node : Markup::Node {
+//metadata is used to store nesting level
+
+struct ManagedNode;
+using SharedNode = shared_pointer<ManagedNode>;
+
+struct ManagedNode : Markup::ManagedNode {
 protected:
   //test to verify if a valid character for a node name
-  bool valid(char p) const {  //A-Z, a-z, 0-9, -.
+  auto valid(char p) const -> bool {  //A-Z, a-z, 0-9, -.
     return p - 'A' < 26u || p - 'a' < 26u || p - '0' < 10u || p - '-' < 2u;
   }
 
   //determine indentation level, without incrementing pointer
-  unsigned readDepth(const char* p) {
-    unsigned depth = 0;
+  auto readDepth(const char* p) -> uint {
+    uint depth = 0;
     while(p[depth] == '\t' || p[depth] == ' ') depth++;
     return depth;
   }
 
   //determine indentation level
-  unsigned parseDepth(const char*& p) {
-    unsigned depth = readDepth(p);
+  auto parseDepth(const char*& p) -> uint {
+    uint depth = readDepth(p);
     p += depth;
     return depth;
   }
 
   //read name
-  void parseName(const char*& p) {
-    unsigned length = 0;
+  auto parseName(const char*& p) -> void {
+    uint length = 0;
     while(valid(p[length])) length++;
     if(length == 0) throw "Invalid node name";
-    name = substr(p, 0, length);
+    _name = slice(p, 0, length);
     p += length;
   }
 
-  void parseData(const char*& p) {
+  auto parseData(const char*& p) -> void {
     if(*p == '=' && *(p + 1) == '\"') {
-      unsigned length = 2;
+      uint length = 2;
       while(p[length] && p[length] != '\n' && p[length] != '\"') length++;
       if(p[length] != '\"') throw "Unescaped value";
-      data = {substr(p, 2, length - 2), "\n"};
+      _value = {slice(p, 2, length - 2), "\n"};
       p += length + 1;
     } else if(*p == '=') {
-      unsigned length = 1;
+      uint length = 1;
       while(p[length] && p[length] != '\n' && p[length] != '\"' && p[length] != ' ') length++;
       if(p[length] == '\"') throw "Illegal character in value";
-      data = {substr(p, 1, length - 1), "\n"};
+      _value = {slice(p, 1, length - 1), "\n"};
       p += length;
     } else if(*p == ':') {
-      unsigned length = 1;
+      uint length = 1;
       while(p[length] && p[length] != '\n') length++;
-      data = {substr(p, 1, length - 1), "\n"};
+      _value = {slice(p, 1, length - 1), "\n"};
       p += length;
     }
   }
 
   //read all attributes for a node
-  void parseAttributes(const char*& p) {
+  auto parseAttributes(const char*& p) -> void {
     while(*p && *p != '\n') {
       if(*p != ' ') throw "Invalid node name";
       while(*p == ' ') p++;  //skip excess spaces
       if(*(p + 0) == '/' && *(p + 1) == '/') break;  //skip comments
 
-      Node node;
-      node.attribute = true;
-      unsigned length = 0;
+      SharedNode node(new ManagedNode);
+      uint length = 0;
       while(valid(p[length])) length++;
       if(length == 0) throw "Invalid attribute name";
-      node.name = substr(p, 0, length);
-      node.parseData(p += length);
-      node.data.rtrim<1>("\n");
-      children.append(node);
+      node->_name = slice(p, 0, length);
+      node->parseData(p += length);
+      node->_value.rtrim("\n", 1L);
+      _children.append(node);
     }
   }
 
   //read a node and all of its child nodes
-  void parseNode(const lstring& text, unsigned& y) {
+  auto parseNode(const lstring& text, uint& y) -> void {
     const char* p = text[y++];
-    level = parseDepth(p);
+    _metadata = parseDepth(p);
     parseName(p);
     parseData(p);
     parseAttributes(p);
 
     while(y < text.size()) {
-      unsigned depth = readDepth(text[y]);
-      if(depth <= level) break;
+      uint depth = readDepth(text[y]);
+      if(depth <= _metadata) break;
 
       if(text[y][depth] == ':') {
-        data.append(substr(text[y++], depth + 1), "\n");
+        _value.append(slice(text[y++], depth + 1), "\n");
         continue;
       }
 
-      Node node;
-      node.parseNode(text, y);
-      children.append(node);
+      SharedNode node(new ManagedNode);
+      node->parseNode(text, y);
+      _children.append(node);
     }
 
-    data.rtrim<1>("\n");
+    _value.rtrim("\n", 1L);
   }
 
   //read top-level nodes
-  void parse(const string& document) {
-    lstring text = string{document}.replace("\r", "").split("\n");
-
-    //remove empty lines and comment lines
-    for(unsigned y = 0; y < text.size();) {
-      unsigned x = 0;
+  auto parse(string document) -> void {
+    //in order to simplify the parsing logic; we do an initial pass to normalize the data
+    //the below code will turn '\r\n' into '\n'; skip empty lines; and skip comment lines
+    char* p = document.get(), *output = p;
+    while(*p) {
+      char* origin = p;
       bool empty = true;
-      while(x < text[y].size()) {
-        if(text[y][x] == ' ' || text[y][x] == '\t') { x++; continue; }
-        empty = (text[y][x + 0] == '/' && text[y][x + 1] == '/');
+      while(*p) {
+        //scan for first non-whitespace character. if it's a line feed or comment; skip the line
+        if(p[0] == ' ' || p[0] == '\t') { p++; continue; }
+        empty = p[0] == '\r' || p[0] == '\n' || (p[0] == '/' && p[1] == '/');
         break;
       }
-      if(empty) text.remove(y);
-      else y++;
-    }
+      while(*p) {
+        if(p[0] == '\r') p[0] = '\n';  //turns '\r\n' into '\n\n' (second '\n' will be skipped)
+        if(*p++ == '\n') break;        //include '\n' in the output to be copied
+      }
+      if(empty) continue;
 
-    unsigned y = 0;
+      memory::move(output, origin, p - origin);
+      output += p - origin;
+    }
+    document.resize(document.size() - (p - output)).rtrim("\n");
+    if(document.size() == 0) return;  //empty document
+
+    auto text = document.split("\n");
+    uint y = 0;
     while(y < text.size()) {
-      Node node;
-      node.parseNode(text, y);
-      if(node.level > 0) throw "Root nodes cannot be indented";
-      children.append(node);
+      SharedNode node(new ManagedNode);
+      node->parseNode(text, y);
+      if(node->_metadata > 0) throw "Root nodes cannot be indented";
+      _children.append(node);
     }
   }
 
-  friend class Document;
+  friend auto unserialize(const string&) -> Markup::Node;
 };
 
-struct Document : Node {
-  string error;
+inline auto unserialize(const string& markup) -> Markup::Node {
+  SharedNode node(new ManagedNode);
+  try {
+    node->parse(markup);
+  } catch(const char* error) {
+    node.reset();
+  }
+  return (Markup::SharedNode&)node;
+}
 
-  bool load(const string& document) {
-    name = "", data = "";
-
-    try {
-      parse(document);
-    } catch(const char* error) {
-      this->error = error;
-      children.reset();
-      return false;
+inline auto serialize(const Markup::Node& node, uint depth = 0) -> string {
+  if(!node.name()) {
+    string result;
+    for(auto leaf : node) {
+      result.append(serialize(leaf, depth));
     }
-    return true;
+    return result;
   }
 
-  Document(const string& document = "") {
-    load(document);
+  string padding;
+  padding.resize(depth * 2);
+  for(auto& byte : padding) byte = ' ';
+
+  lstring lines;
+  if(auto value = node.value()) lines = value.split("\n");
+
+  string result;
+  result.append(padding);
+  result.append(node.name());
+  if(lines.size() == 1) result.append(":", lines[0]);
+  result.append("\n");
+  if(lines.size() > 1) {
+    padding.append("  ");
+    for(auto& line : lines) {
+      result.append(padding, ":", line, "\n");
+    }
   }
-};
+  for(auto leaf : node) {
+    result.append(serialize(leaf, depth + 1));
+  }
+  return result;
+}
 
 }
 }

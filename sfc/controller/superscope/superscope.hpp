@@ -1,8 +1,13 @@
 struct SuperScope : Controller {
-  void enter();
-  uint2 data();
-  void latch(bool data);
+  enum : uint {
+    X, Y, Trigger, Cursor, Turbo, Pause,
+  };
+
   SuperScope(bool port);
+
+  auto enter() -> void;
+  auto data() -> uint2;
+  auto latch(bool data) -> void;
 
 //private:
   bool latched;

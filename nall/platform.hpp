@@ -1,23 +1,25 @@
 #ifndef NALL_PLATFORM_HPP
 #define NALL_PLATFORM_HPP
 
+#include <nall/intrinsics.hpp>
+
 namespace Math {
   static const long double e  = 2.71828182845904523536;
   static const long double Pi = 3.14159265358979323846;
 }
 
-#if defined(_WIN32)
-  //minimum version needed for _wstat64, etc
+#if defined(PLATFORM_WINDOWS)
+  //minimum version needed for _wstat64, AI_ADDRCONFIG, etc
+  #undef  _WIN32_WINNT
+  #define _WIN32_WINNT 0x0601
   #undef  __MSVCRT_VERSION__
-  #define __MSVCRT_VERSION__ 0x0601
+  #define __MSVCRT_VERSION__ _WIN32_WINNT
   #include <nall/windows/utf8.hpp>
 #endif
 
-//=========================
-//standard platform headers
-//=========================
-
+#include <atomic>
 #include <limits>
+#include <mutex>
 #include <utility>
 
 #include <assert.h>
@@ -29,72 +31,99 @@ namespace Math {
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <fcntl.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#if defined(_WIN32)
+#if defined(PLATFORM_WINDOWS)
   #include <io.h>
   #include <direct.h>
   #include <shlobj.h>
   #include <wchar.h>
-  #undef interface
-  #define dllexport __declspec(dllexport)
+  #include <winsock2.h>
+  #include <ws2tcpip.h>
 #else
-#ifdef __APPLE__
-  #include <machine/endian.h>
-#else
-  #include <endian.h>
-#endif
+  #include <dlfcn.h>
   #include <unistd.h>
   #include <pwd.h>
-  #define dllexport
+  #include <grp.h>
+  #include <sys/socket.h>
+  #include <sys/wait.h>
+  #include <netinet/in.h>
+  #include <netdb.h>
+  #include <poll.h>
 #endif
 
-//==========
-//Visual C++
-//==========
-
-#if defined(_MSC_VER)
-  #pragma warning(disable:4996)  //disable libc "deprecation" warnings
+#if defined(COMPILER_VISUALCPP)
   #define va_copy(dest, src) ((dest) = (src))
 #endif
 
-#if defined(_WIN32)
-  __declspec(dllimport) int _fileno(FILE*);
+#if defined(PLATFORM_WINDOWS)
+  //fight Microsoft's ardent efforts at vendor lock-in
 
-  inline int access(const char* path, int amode) { return _waccess(nall::utf16_t(path), amode); }
-  inline int fileno(FILE* stream) { return _fileno(stream); }
-  inline char* getcwd(char* buf, size_t size) { wchar_t wpath[PATH_MAX] = L""; if(!_wgetcwd(wpath, size)) return nullptr; strcpy(buf, nall::utf8_t(wpath)); return buf; }
-  inline int putenv(char* string) { return _wputenv(nall::utf16_t(string)); }
-  inline char* realpath(const char* file_name, char* resolved_name) { wchar_t wfile_name[PATH_MAX] = L""; if(!_wfullpath(wfile_name, nall::utf16_t(file_name), PATH_MAX)) return nullptr; strcpy(resolved_name, nall::utf8_t(wfile_name)); return resolved_name; }
-  inline int rename(const char* oldname, const char* newname) { return _wrename(nall::utf16_t(oldname), nall::utf16_t(newname)); }
-  inline void usleep(unsigned milliseconds) { Sleep(milliseconds / 1000); }
-#endif
+  #undef  interface
+  #define dllexport __declspec(dllexport)
+  #define MSG_NOSIGNAL 0
 
-//================
-//inline expansion
-//================
+  extern "C" {
+    using pollfd = WSAPOLLFD;
+  }
 
-#if defined(__clang__) || defined(__GNUC__)
-  #define noinline      __attribute__((noinline))
-  #define alwaysinline  inline __attribute__((always_inline))
-#elif defined(_MSC_VER)
-  #define noinline      __declspec(noinline)
-  #define alwaysinline  inline __forceinline
+  inline auto access(const char* path, int amode) -> int { return _waccess(nall::utf16_t(path), amode); }
+  inline auto getcwd(char* buf, size_t size) -> char* { wchar_t wpath[PATH_MAX] = L""; if(!_wgetcwd(wpath, size)) return nullptr; strcpy(buf, nall::utf8_t(wpath)); return buf; }
+  inline auto mkdir(const char* path, int mode) -> int { return _wmkdir(nall::utf16_t(path)); }
+  inline auto poll(struct pollfd fds[], unsigned long nfds, int timeout) -> int { return WSAPoll(fds, nfds, timeout); }
+  inline auto putenv(const char* value) -> int { return _wputenv(nall::utf16_t(value)); }
+  inline auto realpath(const char* file_name, char* resolved_name) -> char* { wchar_t wfile_name[PATH_MAX] = L""; if(!_wfullpath(wfile_name, nall::utf16_t(file_name), PATH_MAX)) return nullptr; strcpy(resolved_name, nall::utf8_t(wfile_name)); return resolved_name; }
+  inline auto rename(const char* oldname, const char* newname) -> int { return _wrename(nall::utf16_t(oldname), nall::utf16_t(newname)); }
+  inline auto usleep(unsigned milliseconds) -> void { Sleep(milliseconds / 1000); }
+
+  namespace nall {
+    //network functions take void*, not char*. this allows them to be used without casting
+
+    inline auto recv(int socket, void* buffer, size_t length, int flags) -> ssize_t {
+      return ::recv(socket, (char*)buffer, length, flags);
+    }
+
+    inline auto send(int socket, const void* buffer, size_t length, int flags) -> ssize_t {
+      return ::send(socket, (const char*)buffer, length, flags);
+    }
+
+    inline auto setsockopt(int socket, int level, int option_name, const void* option_value, socklen_t option_len) -> int {
+      return ::setsockopt(socket, level, option_name, (const char*)option_value, option_len);
+    }
+  }
 #else
-  #define noinline
-  #define alwaysinline  inline
+  #define dllexport
 #endif
 
-//===========
-//unreachable
-//===========
+#if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
+  #define neverinline   __attribute__((noinline))
+  #define alwaysinline  inline __attribute__((always_inline))
+  #define deprecated    __attribute__((deprecated))
+#elif defined(COMPILER_VISUALCPP)
+  #define neverinline   __declspec(noinline)
+  #define alwaysinline  inline __forceinline
+  #define deprecated    __declspec(deprecated)
+#else
+  #define neverinline
+  #define alwaysinline  inline
+  #define deprecated
+#endif
 
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
   #define unreachable __builtin_unreachable()
 #else
   #define unreachable throw
+#endif
+
+#if defined(COMPILER_GCC) && __GNUC__ == 4 && __GNUC_MINOR__ <= 7
+  //GCC 4.7.x has a bug (#54849) when specifying override with a trailing return type:
+  //auto function() -> return_type override;  //this is the syntax that the C++11 standard requires
+  //auto function() override -> return_type;  //this is the syntax that GCC 4.7.x requires
+  //in order to compile code correctly with both compilers, we disable the override keyword for GCC
+  #define override
 #endif
 
 #endif

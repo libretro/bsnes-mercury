@@ -1,33 +1,51 @@
-struct Memory {
+struct MROM {
   uint8* data;
-  unsigned size;
-  unsigned mask;
-} rom, ram;
+  uint size;
+  uint mask;
+
+  auto read(uint mode, uint32 addr) -> uint32;
+  auto write(uint mode, uint32 addr, uint32 word) -> void;
+
+  auto serialize(serializer&) -> void;
+} mrom;
+
+struct SRAM {
+  uint8* data;
+  uint size;
+  uint mask;
+
+  auto read(uint mode, uint32 addr) -> uint32;
+  auto write(uint mode, uint32 addr, uint32 word) -> void;
+
+  auto serialize(serializer&) -> void;
+} sram;
 
 struct EEPROM {
   uint8* data;
-  unsigned size;
-  unsigned mask;
-  unsigned test;
-  unsigned bits;
+  uint size;
+  uint mask;
+  uint test;
+  uint bits;
 
-  enum class Mode : unsigned { Wait, Command, ReadAddress, ReadValidate, ReadData, WriteAddress, WriteData, WriteValidate } mode;
-  unsigned offset;
-  unsigned address;
-  unsigned addressbits;
+  enum class Mode : uint {
+    Wait, Command, ReadAddress, ReadValidate, ReadData, WriteAddress, WriteData, WriteValidate
+  } mode;
+  uint offset;
+  uint address;
+  uint addressbits;
 
-  bool read(unsigned addr);
-  void write(unsigned addr, bool bit);
+  auto read(uint addr) -> bool;
+  auto write(uint addr, bool bit) -> void;
 
-  bool read();
-  void write(bool bit);
-  void power();
-  void serialize(serializer&);
+  auto read() -> bool;
+  auto write(bool bit) -> void;
+  auto power() -> void;
+  auto serialize(serializer&) -> void;
 } eeprom;
 
-struct FlashROM {
+struct FLASH {
   uint8* data;
-  unsigned size;
+  uint size;
   uint16 id;
 
   bool unlockhi;
@@ -38,8 +56,9 @@ struct FlashROM {
   bool writeselect;
   bool bank;
 
-  uint8 read(uint16 addr);
-  void write(uint16 addr, uint8 byte);
-  void power();
-  void serialize(serializer&);
-} flashrom;
+  auto read(uint16 addr) -> uint8;
+  auto write(uint16 addr, uint8 byte) -> void;
+
+  auto power() -> void;
+  auto serialize(serializer&) -> void;
+} flash;

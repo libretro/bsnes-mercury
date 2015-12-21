@@ -3,7 +3,7 @@
 namespace nall {
 namespace Eval {
 
-inline bool isLiteral(const char*& s) {
+inline auto isLiteral(const char*& s) -> bool {
   char n = s[0];
   return (n >= 'A' && n <= 'Z')
       || (n >= 'a' && n <= 'z')
@@ -12,7 +12,7 @@ inline bool isLiteral(const char*& s) {
       || (n == '\'' || n == '\"');
 }
 
-inline string literalNumber(const char*& s) {
+inline auto literalNumber(const char*& s) -> string {
   const char* p = s;
 
   //binary
@@ -21,7 +21,7 @@ inline string literalNumber(const char*& s) {
     p += prefix;
     while(p[0] == '\'' || p[0] == '0' || p[0] == '1') p++;
     if(p - s <= prefix) throw "invalid binary literal";
-    string result = substr(s, 0, p - s);
+    string result = slice(s, 0, p - s);
     s = p;
     return result;
   }
@@ -32,7 +32,7 @@ inline string literalNumber(const char*& s) {
     p += prefix;
     while(p[0] == '\'' || (p[0] >= '0' && p[0] <= '7')) p++;
     if(p - s <= prefix) throw "invalid octal literal";
-    string result = substr(s, 0, p - s);
+    string result = slice(s, 0, p - s);
     s = p;
     return result;
   }
@@ -43,7 +43,7 @@ inline string literalNumber(const char*& s) {
     p += prefix;
     while(p[0] == '\'' || (p[0] >= '0' && p[0] <= '9') || (p[0] >= 'A' && p[0] <= 'F') || (p[0] >= 'a' && p[0] <= 'f')) p++;
     if(p - s <= prefix) throw "invalid hex literal";
-    string result = substr(s, 0, p - s);
+    string result = slice(s, 0, p - s);
     s = p;
     return result;
   }
@@ -51,7 +51,7 @@ inline string literalNumber(const char*& s) {
   //decimal
   while(p[0] == '\'' || (p[0] >= '0' && p[0] <= '9')) p++;
   if(p[0] != '.') {
-    string result = substr(s, 0, p - s);
+    string result = slice(s, 0, p - s);
     s = p;
     return result;
   }
@@ -59,34 +59,34 @@ inline string literalNumber(const char*& s) {
   //floating-point
   p++;
   while(p[0] == '\'' || (p[0] >= '0' && p[0] <= '9')) p++;
-  string result = substr(s, 0, p - s);
+  string result = slice(s, 0, p - s);
   s = p;
   return result;
 }
 
-inline string literalString(const char*& s) {
+inline auto literalString(const char*& s) -> string {
   const char* p = s;
   char escape = *p++;
 
   while(p[0] && p[0] != escape) p++;
   if(*p++ != escape) throw "unclosed string literal";
 
-  string result = substr(s, 0, p - s);
+  string result = slice(s, 0, p - s);
   s = p;
   return result;
 }
 
-inline string literalVariable(const char*& s) {
+inline auto literalVariable(const char*& s) -> string {
   const char* p = s;
 
   while(p[0] == '_' || p[0] == '.' || (p[0] >= 'A' && p[0] <= 'Z') || (p[0] >= 'a' && p[0] <= 'z') || (p[0] >= '0' && p[0] <= '9')) p++;
 
-  string result = substr(s, 0, p - s);
+  string result = slice(s, 0, p - s);
   s = p;
   return result;
 }
 
-inline string literal(const char*& s) {
+inline auto literal(const char*& s) -> string {
   const char* p = s;
 
   if(p[0] >= '0' && p[0] <= '9') return literalNumber(s);

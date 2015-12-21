@@ -1,18 +1,17 @@
 #ifndef NALL_VARINT_HPP
 #define NALL_VARINT_HPP
 
-#include <nall/bit.hpp>
+#include <nall/primitives.hpp>
 #include <nall/serializer.hpp>
 #include <nall/stdint.hpp>
-#include <nall/traits.hpp>
 
 namespace nall {
 
 struct varint {
-  virtual uint8_t read() = 0;
-  virtual void write(uint8_t) = 0;
+  virtual auto read() -> uint8_t = 0;
+  virtual auto write(uint8_t) -> void = 0;
 
-  uintmax_t readvu() {
+  auto readvu() -> uintmax_t {
     uintmax_t data = 0, shift = 1;
     while(true) {
       uint8_t x = read();
@@ -24,15 +23,15 @@ struct varint {
     return data;
   }
 
-  intmax_t readvs() {
+  auto readvs() -> intmax_t {
     uintmax_t data = readvu();
-    bool sign = data & 1;
+    bool negate = data & 1;
     data >>= 1;
-    if(sign) data = -data;
+    if(negate) data = ~data;
     return data;
   }
 
-  void writevu(uintmax_t data) {
+  auto writevu(uintmax_t data) -> void {
     while(true) {
       uint8_t x = data & 0x7f;
       data >>= 7;
@@ -42,179 +41,173 @@ struct varint {
     }
   }
 
-  void writevs(intmax_t data) {
-    bool sign = data < 0;
-    if(sign) data = -data;
-    data = (data << 1) | sign;
+  auto writevs(intmax_t data) -> void {
+    bool negate = data < 0;
+    if(negate) data = ~data;
+    data = (data << 1) | negate;
     writevu(data);
   }
 };
 
-template<unsigned bits> struct uint_t {
-private:
-  typedef typename type_if<bits <= 8 * sizeof(unsigned), unsigned, uintmax_t>::type type_t;
-  type_t data;
-
-public:
-  inline operator type_t() const { return data; }
-  inline type_t operator ++(int) { type_t r = data; data = uclip<bits>(data + 1); return r; }
-  inline type_t operator --(int) { type_t r = data; data = uclip<bits>(data - 1); return r; }
-  inline type_t operator ++() { return data = uclip<bits>(data + 1); }
-  inline type_t operator --() { return data = uclip<bits>(data - 1); }
-  inline type_t operator  =(const type_t i) { return data = uclip<bits>(i); }
-  inline type_t operator |=(const type_t i) { return data = uclip<bits>(data  | i); }
-  inline type_t operator ^=(const type_t i) { return data = uclip<bits>(data  ^ i); }
-  inline type_t operator &=(const type_t i) { return data = uclip<bits>(data  & i); }
-  inline type_t operator<<=(const type_t i) { return data = uclip<bits>(data << i); }
-  inline type_t operator>>=(const type_t i) { return data = uclip<bits>(data >> i); }
-  inline type_t operator +=(const type_t i) { return data = uclip<bits>(data  + i); }
-  inline type_t operator -=(const type_t i) { return data = uclip<bits>(data  - i); }
-  inline type_t operator *=(const type_t i) { return data = uclip<bits>(data  * i); }
-  inline type_t operator /=(const type_t i) { return data = uclip<bits>(data  / i); }
-  inline type_t operator %=(const type_t i) { return data = uclip<bits>(data  % i); }
-
-  inline uint_t() : data(0) {}
-  inline uint_t(const type_t i) : data(uclip<bits>(i)) {}
-
-  template<unsigned s> inline type_t operator=(const uint_t<s> &i) { return data = uclip<bits>((type_t)i); }
-  template<unsigned s> inline uint_t(const uint_t<s> &i) : data(uclip<bits>(i)) {}
-
-  void serialize(serializer& s) { s(data); }
-};
-
-template<unsigned bits> struct int_t {
-private:
-  typedef typename type_if<bits <= 8 * sizeof(signed), signed, intmax_t>::type type_t;
-  type_t data;
-
-public:
-  inline operator type_t() const { return data; }
-  inline type_t operator ++(int) { type_t r = data; data = sclip<bits>(data + 1); return r; }
-  inline type_t operator --(int) { type_t r = data; data = sclip<bits>(data - 1); return r; }
-  inline type_t operator ++() { return data = sclip<bits>(data + 1); }
-  inline type_t operator --() { return data = sclip<bits>(data - 1); }
-  inline type_t operator  =(const type_t i) { return data = sclip<bits>(i); }
-  inline type_t operator |=(const type_t i) { return data = sclip<bits>(data  | i); }
-  inline type_t operator ^=(const type_t i) { return data = sclip<bits>(data  ^ i); }
-  inline type_t operator &=(const type_t i) { return data = sclip<bits>(data  & i); }
-  inline type_t operator<<=(const type_t i) { return data = sclip<bits>(data << i); }
-  inline type_t operator>>=(const type_t i) { return data = sclip<bits>(data >> i); }
-  inline type_t operator +=(const type_t i) { return data = sclip<bits>(data  + i); }
-  inline type_t operator -=(const type_t i) { return data = sclip<bits>(data  - i); }
-  inline type_t operator *=(const type_t i) { return data = sclip<bits>(data  * i); }
-  inline type_t operator /=(const type_t i) { return data = sclip<bits>(data  / i); }
-  inline type_t operator %=(const type_t i) { return data = sclip<bits>(data  % i); }
-
-  inline int_t() : data(0) {}
-  inline int_t(const type_t i) : data(sclip<bits>(i)) {}
-
-  template<unsigned s> inline type_t operator=(const int_t<s> &i) { return data = sclip<bits>((type_t)i); }
-  template<unsigned s> inline int_t(const int_t<s> &i) : data(sclip<bits>(i)) {}
-
-  void serialize(serializer& s) { s(data); }
-};
-
 template<typename type_t> struct varuint_t {
-private:
-  type_t data;
-  type_t mask;
-
-public:
   inline operator type_t() const { return data; }
-  inline type_t operator ++(int) { type_t r = data; data = (data + 1) & mask; return r; }
-  inline type_t operator --(int) { type_t r = data; data = (data - 1) & mask; return r; }
-  inline type_t operator ++() { return data = (data + 1) & mask; }
-  inline type_t operator --() { return data = (data - 1) & mask; }
-  inline type_t operator  =(const type_t i) { return data = (i) & mask; }
-  inline type_t operator |=(const type_t i) { return data = (data  | i) & mask; }
-  inline type_t operator ^=(const type_t i) { return data = (data  ^ i) & mask; }
-  inline type_t operator &=(const type_t i) { return data = (data  & i) & mask; }
-  inline type_t operator<<=(const type_t i) { return data = (data << i) & mask; }
-  inline type_t operator>>=(const type_t i) { return data = (data >> i) & mask; }
-  inline type_t operator +=(const type_t i) { return data = (data  + i) & mask; }
-  inline type_t operator -=(const type_t i) { return data = (data  - i) & mask; }
-  inline type_t operator *=(const type_t i) { return data = (data  * i) & mask; }
-  inline type_t operator /=(const type_t i) { return data = (data  / i) & mask; }
-  inline type_t operator %=(const type_t i) { return data = (data  % i) & mask; }
+  inline auto operator ++(int) { type_t r = data; data = (data + 1) & mask; return r; }
+  inline auto operator --(int) { type_t r = data; data = (data - 1) & mask; return r; }
+  inline auto operator ++() { return data = (data + 1) & mask; }
+  inline auto operator --() { return data = (data - 1) & mask; }
+  inline auto operator  =(const type_t i) { return data = (i) & mask; }
+  inline auto operator |=(const type_t i) { return data = (data  | i) & mask; }
+  inline auto operator ^=(const type_t i) { return data = (data  ^ i) & mask; }
+  inline auto operator &=(const type_t i) { return data = (data  & i) & mask; }
+  inline auto operator<<=(const type_t i) { return data = (data << i) & mask; }
+  inline auto operator>>=(const type_t i) { return data = (data >> i) & mask; }
+  inline auto operator +=(const type_t i) { return data = (data  + i) & mask; }
+  inline auto operator -=(const type_t i) { return data = (data  - i) & mask; }
+  inline auto operator *=(const type_t i) { return data = (data  * i) & mask; }
+  inline auto operator /=(const type_t i) { return data = (data  / i) & mask; }
+  inline auto operator %=(const type_t i) { return data = (data  % i) & mask; }
 
-  inline void bits(type_t bits) { mask = (1ull << (bits - 1)) + ((1ull << (bits - 1)) - 1); data &= mask; }
+  inline auto bits(type_t bits) { mask = (1ull << (bits - 1)) + ((1ull << (bits - 1)) - 1); data &= mask; }
   inline varuint_t() : data(0ull), mask((type_t)~0ull) {}
   inline varuint_t(const type_t i) : data(i), mask((type_t)~0ull) {}
 
-  void serialize(serializer& s) { s(data); s(mask); }
+  auto serialize(serializer& s) { s(data); s(mask); }
+
+private:
+  type_t data;
+  type_t mask;
 };
 
 }
 
-//typedefs
-  typedef nall::uint_t< 1>  uint1_t;
-  typedef nall::uint_t< 2>  uint2_t;
-  typedef nall::uint_t< 3>  uint3_t;
-  typedef nall::uint_t< 4>  uint4_t;
-  typedef nall::uint_t< 5>  uint5_t;
-  typedef nall::uint_t< 6>  uint6_t;
-  typedef nall::uint_t< 7>  uint7_t;
-//typedef nall::uint_t< 8>  uint8_t;
+using  int1 = nall::Integer< 1>;
+using  int2 = nall::Integer< 2>;
+using  int3 = nall::Integer< 3>;
+using  int4 = nall::Integer< 4>;
+using  int5 = nall::Integer< 5>;
+using  int6 = nall::Integer< 6>;
+using  int7 = nall::Integer< 7>;
+//using  int8 = nall::Integer< 8>;
+using  int9 = nall::Integer< 9>;
+using int10 = nall::Integer<10>;
+using int11 = nall::Integer<11>;
+using int12 = nall::Integer<12>;
+using int13 = nall::Integer<13>;
+using int14 = nall::Integer<14>;
+using int15 = nall::Integer<15>;
+//using int16 = nall::Integer<16>;
+using int17 = nall::Integer<17>;
+using int18 = nall::Integer<18>;
+using int19 = nall::Integer<19>;
+using int20 = nall::Integer<20>;
+using int21 = nall::Integer<21>;
+using int22 = nall::Integer<22>;
+using int23 = nall::Integer<23>;
+using int24 = nall::Integer<24>;
+using int25 = nall::Integer<25>;
+using int26 = nall::Integer<26>;
+using int27 = nall::Integer<27>;
+using int28 = nall::Integer<28>;
+using int29 = nall::Integer<29>;
+using int30 = nall::Integer<30>;
+using int31 = nall::Integer<31>;
+//using int32 = nall::Integer<32>;
+using int33 = nall::Integer<33>;
+using int34 = nall::Integer<34>;
+using int35 = nall::Integer<35>;
+using int36 = nall::Integer<36>;
+using int37 = nall::Integer<37>;
+using int38 = nall::Integer<38>;
+using int39 = nall::Integer<39>;
+using int40 = nall::Integer<40>;
+using int41 = nall::Integer<41>;
+using int42 = nall::Integer<42>;
+using int43 = nall::Integer<43>;
+using int44 = nall::Integer<44>;
+using int45 = nall::Integer<45>;
+using int46 = nall::Integer<46>;
+using int47 = nall::Integer<47>;
+using int48 = nall::Integer<48>;
+using int49 = nall::Integer<49>;
+using int50 = nall::Integer<50>;
+using int51 = nall::Integer<51>;
+using int52 = nall::Integer<52>;
+using int53 = nall::Integer<53>;
+using int54 = nall::Integer<54>;
+using int55 = nall::Integer<55>;
+using int56 = nall::Integer<56>;
+using int57 = nall::Integer<57>;
+using int58 = nall::Integer<58>;
+using int59 = nall::Integer<59>;
+using int60 = nall::Integer<60>;
+using int61 = nall::Integer<61>;
+using int62 = nall::Integer<62>;
+using int63 = nall::Integer<63>;
+//using int64 = nall::Integer<64>;
 
-  typedef nall::uint_t< 9>  uint9_t;
-  typedef nall::uint_t<10> uint10_t;
-  typedef nall::uint_t<11> uint11_t;
-  typedef nall::uint_t<12> uint12_t;
-  typedef nall::uint_t<13> uint13_t;
-  typedef nall::uint_t<14> uint14_t;
-  typedef nall::uint_t<15> uint15_t;
-//typedef nall::uint_t<16> uint16_t;
-
-  typedef nall::uint_t<17> uint17_t;
-  typedef nall::uint_t<18> uint18_t;
-  typedef nall::uint_t<19> uint19_t;
-  typedef nall::uint_t<20> uint20_t;
-  typedef nall::uint_t<21> uint21_t;
-  typedef nall::uint_t<22> uint22_t;
-  typedef nall::uint_t<23> uint23_t;
-  typedef nall::uint_t<24> uint24_t;
-  typedef nall::uint_t<25> uint25_t;
-  typedef nall::uint_t<26> uint26_t;
-  typedef nall::uint_t<27> uint27_t;
-  typedef nall::uint_t<28> uint28_t;
-  typedef nall::uint_t<29> uint29_t;
-  typedef nall::uint_t<30> uint30_t;
-  typedef nall::uint_t<31> uint31_t;
-//typedef nall::uint_t<32> uint32_t;
-
-  typedef nall::int_t< 1>  int1_t;
-  typedef nall::int_t< 2>  int2_t;
-  typedef nall::int_t< 3>  int3_t;
-  typedef nall::int_t< 4>  int4_t;
-  typedef nall::int_t< 5>  int5_t;
-  typedef nall::int_t< 6>  int6_t;
-  typedef nall::int_t< 7>  int7_t;
-//typedef nall::int_t< 8>  int8_t;
-
-  typedef nall::int_t< 9>  int9_t;
-  typedef nall::int_t<10> int10_t;
-  typedef nall::int_t<11> int11_t;
-  typedef nall::int_t<12> int12_t;
-  typedef nall::int_t<13> int13_t;
-  typedef nall::int_t<14> int14_t;
-  typedef nall::int_t<15> int15_t;
-//typedef nall::int_t<16> int16_t;
-
-  typedef nall::int_t<17> int17_t;
-  typedef nall::int_t<18> int18_t;
-  typedef nall::int_t<19> int19_t;
-  typedef nall::int_t<20> int20_t;
-  typedef nall::int_t<21> int21_t;
-  typedef nall::int_t<22> int22_t;
-  typedef nall::int_t<23> int23_t;
-  typedef nall::int_t<24> int24_t;
-  typedef nall::int_t<25> int25_t;
-  typedef nall::int_t<26> int26_t;
-  typedef nall::int_t<27> int27_t;
-  typedef nall::int_t<28> int28_t;
-  typedef nall::int_t<29> int29_t;
-  typedef nall::int_t<30> int30_t;
-  typedef nall::int_t<31> int31_t;
-//typedef nall::int_t<32> int32_t;
+using  uint1 = nall::Natural< 1>;
+using  uint2 = nall::Natural< 2>;
+using  uint3 = nall::Natural< 3>;
+using  uint4 = nall::Natural< 4>;
+using  uint5 = nall::Natural< 5>;
+using  uint6 = nall::Natural< 6>;
+using  uint7 = nall::Natural< 7>;
+//using  uint8 = nall::Natural< 8>;
+using  uint9 = nall::Natural< 9>;
+using uint10 = nall::Natural<10>;
+using uint11 = nall::Natural<11>;
+using uint12 = nall::Natural<12>;
+using uint13 = nall::Natural<13>;
+using uint14 = nall::Natural<14>;
+using uint15 = nall::Natural<15>;
+//using uint16 = nall::Natural<16>;
+using uint17 = nall::Natural<17>;
+using uint18 = nall::Natural<18>;
+using uint19 = nall::Natural<19>;
+using uint20 = nall::Natural<20>;
+using uint21 = nall::Natural<21>;
+using uint22 = nall::Natural<22>;
+using uint23 = nall::Natural<23>;
+using uint24 = nall::Natural<24>;
+using uint25 = nall::Natural<25>;
+using uint26 = nall::Natural<26>;
+using uint27 = nall::Natural<27>;
+using uint28 = nall::Natural<28>;
+using uint29 = nall::Natural<29>;
+using uint30 = nall::Natural<30>;
+using uint31 = nall::Natural<31>;
+//using uint32 = nall::Natural<32>;
+using uint33 = nall::Natural<33>;
+using uint34 = nall::Natural<34>;
+using uint35 = nall::Natural<35>;
+using uint36 = nall::Natural<36>;
+using uint37 = nall::Natural<37>;
+using uint38 = nall::Natural<38>;
+using uint39 = nall::Natural<39>;
+using uint40 = nall::Natural<40>;
+using uint41 = nall::Natural<41>;
+using uint42 = nall::Natural<42>;
+using uint43 = nall::Natural<43>;
+using uint44 = nall::Natural<44>;
+using uint45 = nall::Natural<45>;
+using uint46 = nall::Natural<46>;
+using uint47 = nall::Natural<47>;
+using uint48 = nall::Natural<48>;
+using uint49 = nall::Natural<49>;
+using uint50 = nall::Natural<50>;
+using uint51 = nall::Natural<51>;
+using uint52 = nall::Natural<52>;
+using uint53 = nall::Natural<53>;
+using uint54 = nall::Natural<54>;
+using uint55 = nall::Natural<55>;
+using uint56 = nall::Natural<56>;
+using uint57 = nall::Natural<57>;
+using uint58 = nall::Natural<58>;
+using uint59 = nall::Natural<59>;
+using uint60 = nall::Natural<60>;
+using uint61 = nall::Natural<61>;
+using uint62 = nall::Natural<62>;
+using uint63 = nall::Natural<63>;
+//using uint64 = nall::Natural<64>;
 
 #endif

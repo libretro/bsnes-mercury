@@ -8,13 +8,13 @@
 #include "joypad/xinput.cpp"
 #include "joypad/directinput.cpp"
 
-namespace ruby {
-
-struct pInputWindows {
+struct InputWindows : Input {
   InputKeyboardRawInput rawinputKeyboard;
   InputMouseRawInput rawinputMouse;
   InputJoypadXInput xinput;
   InputJoypadDirectInput directinput;
+  InputWindows() : rawinputKeyboard(*this), rawinputMouse(*this), xinput(*this), directinput(*this) {}
+  ~InputWindows() { term(); }
 
   LPDIRECTINPUT8 directinputContext = nullptr;
 
@@ -22,7 +22,7 @@ struct pInputWindows {
     uintptr_t handle = 0;
   } settings;
 
-  bool cap(const string& name) {
+  auto cap(const string& name) -> bool {
     if(name == Input::Handle) return true;
     if(name == Input::KeyboardSupport) return true;
     if(name == Input::MouseSupport) return true;
@@ -31,33 +31,33 @@ struct pInputWindows {
     return false;
   }
 
-  any get(const string& name) {
+  auto get(const string& name) -> any {
     if(name == Input::Handle) return (uintptr_t)settings.handle;
-    return false;
+    return {};
   }
 
-  bool set(const string& name, const any& value) {
-    if(name == Input::Handle) {
-      settings.handle = any_cast<uintptr_t>(value);
+  auto set(const string& name, const any& value) -> bool {
+    if(name == Input::Handle && value.is<uintptr_t>()) {
+      settings.handle = value.get<uintptr_t>();
       return true;
     }
     return false;
   }
 
-  bool acquire() {
+  auto acquire() -> bool {
     return rawinputMouse.acquire();
   }
 
-  bool unacquire() {
-    return rawinputMouse.unacquire();
+  auto release() -> bool {
+    return rawinputMouse.release();
   }
 
-  bool acquired() {
+  auto acquired() -> bool {
     return rawinputMouse.acquired();
   }
 
-  vector<HID::Device*> poll() {
-    vector<HID::Device*> devices;
+  auto poll() -> vector<shared_pointer<HID::Device>> {
+    vector<shared_pointer<HID::Device>> devices;
     rawinputKeyboard.poll(devices);
     rawinputMouse.poll(devices);
     xinput.poll(devices);
@@ -65,13 +65,13 @@ struct pInputWindows {
     return devices;
   }
 
-  bool rumble(uint64_t id, bool enable) {
+  auto rumble(uint64_t id, bool enable) -> bool {
     if(xinput.rumble(id, enable)) return true;
     if(directinput.rumble(id, enable)) return true;
     return false;
   }
 
-  bool init() {
+  auto init() -> bool {
     if(rawinput.initialized == false) {
       rawinput.initialized = true;
       rawinput.mutex = CreateMutex(NULL, FALSE, NULL);
@@ -94,7 +94,7 @@ struct pInputWindows {
     return true;
   }
 
-  void term() {
+  auto term() -> void {
     rawinputKeyboard.term();
     rawinputMouse.term();
     xinput.term();
@@ -103,7 +103,3 @@ struct pInputWindows {
     if(directinputContext) { directinputContext->Release(); directinputContext = nullptr; }
   }
 };
-
-DeclareInput(Windows)
-
-}

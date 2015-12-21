@@ -1,36 +1,40 @@
-enum class Input : unsigned {
+enum class Input : uint {
   A, B, Select, Start, Right, Left, Up, Down, R, L,
 };
 
 struct BIOS : Memory {
-  uint8* data;
-  unsigned size;
-  uint32 mdr;
-
-  uint32 read(uint32 addr, uint32 size);
-  void write(uint32 addr, uint32 size, uint32 word);
-
   BIOS();
   ~BIOS();
+
+  auto read(uint mode, uint32 addr) -> uint32 override;
+  auto write(uint mode, uint32 addr, uint32 word) -> void override;
+
+  uint8* data = nullptr;
+  uint size = 0;
+  uint32 mdr = 0;
 };
 
 struct System {
-  void init();
-  void term();
-  void load();
-  void power();
-  void run();
-  void runtosave();
-  void runthreadtosave();
+  auto init() -> void;
+  auto term() -> void;
+  auto load() -> void;
+  auto power() -> void;
+  auto run() -> void;
+  auto runtosave() -> void;
+  auto runthreadtosave() -> void;
 
-  unsigned serialize_size;
+  auto serialize() -> serializer;
+  auto unserialize(serializer&) -> bool;
 
-  serializer serialize();
-  bool unserialize(serializer&);
+  auto serialize(serializer&) -> void;
+  auto serialize_all(serializer&) -> void;
+  auto serialize_init() -> void;
 
-  void serialize(serializer&);
-  void serialize_all(serializer&);
-  void serialize_init();
+  struct Information {
+    string manifest;
+  } information;
+
+  uint serialize_size;
 };
 
 extern BIOS bios;

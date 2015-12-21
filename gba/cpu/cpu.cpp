@@ -3,6 +3,8 @@
 namespace GameBoyAdvance {
 
 #include "registers.cpp"
+#include "prefetch.cpp"
+#include "bus.cpp"
 #include "mmio.cpp"
 #include "memory.cpp"
 #include "dma.cpp"
@@ -10,7 +12,33 @@ namespace GameBoyAdvance {
 #include "serialization.cpp"
 CPU cpu;
 
-void CPU::Enter() {
+CPU::CPU() {
+  iwram = new uint8[ 32 * 1024];
+  ewram = new uint8[256 * 1024];
+
+  regs.dma[0].source.bits(27); regs.dma[0].run.source.bits(27);
+  regs.dma[0].target.bits(27); regs.dma[0].run.target.bits(27);
+  regs.dma[0].length.bits(14); regs.dma[0].run.length.bits(14);
+
+  regs.dma[1].source.bits(28); regs.dma[1].run.source.bits(28);
+  regs.dma[1].target.bits(27); regs.dma[1].run.target.bits(27);
+  regs.dma[1].length.bits(14); regs.dma[1].run.length.bits(14);
+
+  regs.dma[2].source.bits(28); regs.dma[2].run.source.bits(28);
+  regs.dma[2].target.bits(27); regs.dma[2].run.target.bits(27);
+  regs.dma[2].length.bits(14); regs.dma[2].run.length.bits(14);
+
+  regs.dma[3].source.bits(28); regs.dma[3].run.source.bits(28);
+  regs.dma[3].target.bits(28); regs.dma[3].run.target.bits(28);
+  regs.dma[3].length.bits(16); regs.dma[3].run.length.bits(16);
+}
+
+CPU::~CPU() {
+  delete[] iwram;
+  delete[] ewram;
+}
+
+auto CPU::Enter() -> void {
   while(true) {
     if(scheduler.sync == Scheduler::SynchronizeMode::CPU) {
       scheduler.sync = Scheduler::SynchronizeMode::All;
@@ -21,7 +49,7 @@ void CPU::Enter() {
   }
 }
 
-void CPU::main() {
+auto CPU::main() -> void {
   #if defined(DEBUG)
   if(crash) {
     print(cpsr().t ? disassemble_thumb_instruction(pipeline.execute.address)
@@ -57,12 +85,12 @@ void CPU::main() {
   exec();
 }
 
-void CPU::step(unsigned clocks) {
+auto CPU::step(uint clocks) -> void {
   timer_step(clocks);
   sync_step(clocks);
 }
 
-void CPU::sync_step(unsigned clocks) {
+auto CPU::sync_step(uint clocks) -> void {
   ppu.clock -= clocks;
   if(ppu.clock < 0) co_switch(ppu.thread);
 
@@ -70,26 +98,11 @@ void CPU::sync_step(unsigned clocks) {
   if(apu.clock < 0) co_switch(apu.thread);
 }
 
-void CPU::bus_idle(uint32 addr) {
-  step(1);
-  return bus.idle(addr);
-}
-
-uint32 CPU::bus_read(uint32 addr, uint32 size) {
-  step(bus.speed(addr, size));
-  return bus.read(addr, size);
-}
-
-void CPU::bus_write(uint32 addr, uint32 size, uint32 word) {
-  step(bus.speed(addr, size));
-  return bus.write(addr, size, word);
-}
-
-void CPU::keypad_run() {
+auto CPU::keypad_run() -> void {
   if(regs.keypad.control.enable == false) return;
 
   bool test = regs.keypad.control.condition;  //0 = OR, 1 = AND
-  for(unsigned n = 0; n < 10; n++) {
+  for(auto n : range(10)) {
     if(regs.keypad.control.flag[n] == false) continue;
     bool input = interface->inputPoll(0, 0, n);
     if(regs.keypad.control.condition == 0) test |= input;
@@ -98,17 +111,18 @@ void CPU::keypad_run() {
   if(test) regs.irq.flag.keypad = true;
 }
 
-void CPU::power() {
-  create(CPU::Enter, 16777216);
+auto CPU::power() -> void {
+  create(CPU::Enter, 16'777'216);
 
   ARM::power();
-  for(unsigned n = 0; n <  32 * 1024; n++) iwram[n] = 0;
-  for(unsigned n = 0; n < 256 * 1024; n++) ewram[n] = 0;
+  for(auto n : range( 32 * 1024)) iwram[n] = 0;
+  for(auto n : range(256 * 1024)) ewram[n] = 0;
 
   for(auto& dma : regs.dma) {
     dma.source = 0;
     dma.target = 0;
     dma.length = 0;
+    dma.data = 0;
     dma.control = 0;
     dma.pending = 0;
     dma.run.target = 0;
@@ -118,6 +132,7 @@ void CPU::power() {
   for(auto& timer : regs.timer) {
     timer.period = 0;
     timer.reload = 0;
+    timer.pending = false;
     timer.control = 0;
   }
   regs.keypad.control = 0;
@@ -128,46 +143,22 @@ void CPU::power() {
   regs.postboot = 0;
   regs.mode = Registers::Mode::Normal;
   regs.clock = 0;
-  regs.memory.control = 0x0d000020;
+  regs.memory.control = 0x0d00'0020;
 
   pending.dma.vblank = 0;
   pending.dma.hblank = 0;
   pending.dma.hdma = 0;
 
-  for(unsigned n = 0x0b0; n <= 0x0df; n++) bus.mmio[n] = this;  //DMA
-  for(unsigned n = 0x100; n <= 0x10f; n++) bus.mmio[n] = this;  //Timers
-  for(unsigned n = 0x120; n <= 0x12b; n++) bus.mmio[n] = this;  //Serial
-  for(unsigned n = 0x130; n <= 0x133; n++) bus.mmio[n] = this;  //Keypad
-  for(unsigned n = 0x134; n <= 0x159; n++) bus.mmio[n] = this;  //Serial
-  for(unsigned n = 0x200; n <= 0x209; n++) bus.mmio[n] = this;  //System
-  for(unsigned n = 0x300; n <= 0x301; n++) bus.mmio[n] = this;  //System
-  //0x080-0x083 mirrored via gba/memory/memory.cpp              //System
-}
+  active.dma = false;
 
-CPU::CPU() {
-  iwram = new uint8[ 32 * 1024];
-  ewram = new uint8[256 * 1024];
-
-  regs.dma[0].source.bits(27); regs.dma[0].run.source.bits(27);
-  regs.dma[0].target.bits(27); regs.dma[0].run.target.bits(27);
-  regs.dma[0].length.bits(14); regs.dma[0].run.length.bits(14);
-
-  regs.dma[1].source.bits(28); regs.dma[1].run.source.bits(28);
-  regs.dma[1].target.bits(27); regs.dma[1].run.target.bits(27);
-  regs.dma[1].length.bits(14); regs.dma[1].run.length.bits(14);
-
-  regs.dma[2].source.bits(28); regs.dma[2].run.source.bits(28);
-  regs.dma[2].target.bits(27); regs.dma[2].run.target.bits(27);
-  regs.dma[2].length.bits(14); regs.dma[2].run.length.bits(14);
-
-  regs.dma[3].source.bits(28); regs.dma[3].run.source.bits(28);
-  regs.dma[3].target.bits(28); regs.dma[3].run.target.bits(28);
-  regs.dma[3].length.bits(16); regs.dma[3].run.length.bits(16);
-}
-
-CPU::~CPU() {
-  delete[] iwram;
-  delete[] ewram;
+  for(uint n = 0x0b0; n <= 0x0df; n++) bus.mmio[n] = this;  //DMA
+  for(uint n = 0x100; n <= 0x10f; n++) bus.mmio[n] = this;  //Timers
+  for(uint n = 0x120; n <= 0x12b; n++) bus.mmio[n] = this;  //Serial
+  for(uint n = 0x130; n <= 0x133; n++) bus.mmio[n] = this;  //Keypad
+  for(uint n = 0x134; n <= 0x159; n++) bus.mmio[n] = this;  //Serial
+  for(uint n = 0x200; n <= 0x209; n++) bus.mmio[n] = this;  //System
+  for(uint n = 0x300; n <= 0x301; n++) bus.mmio[n] = this;  //System
+  //0x080-0x083 mirrored via gba/memory/memory.cpp          //System
 }
 
 }

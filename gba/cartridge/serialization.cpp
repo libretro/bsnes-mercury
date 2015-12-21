@@ -1,5 +1,6 @@
 void Cartridge::serialize(serializer& s) {
-  if(has_sram) s.array(ram.data, ram.size);
-  if(has_eeprom) eeprom.serialize(s);
-  if(has_flashrom) flashrom.serialize(s);
+  mrom.serialize(s);
+  if(hasSRAM) sram.serialize(s);
+  if(hasEEPROM) eeprom.serialize(s);
+  if(hasFLASH) flash.serialize(s);
 }

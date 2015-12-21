@@ -1,14 +1,15 @@
 #ifndef RUBY_INPUT_MOUSE_RAWINPUT
 #define RUBY_INPUT_MOUSE_RAWINPUT
 
-namespace ruby {
-
 struct InputMouseRawInput {
+  Input& input;
+  InputMouseRawInput(Input& input) : input(input) {}
+
   uintptr_t handle = 0;
   bool mouseAcquired = false;
 
   struct Mouse {
-    HID::Mouse hid;
+    shared_pointer<HID::Mouse> hid{new HID::Mouse};
 
     signed relativeX = 0;
     signed relativeY = 0;
@@ -16,26 +17,26 @@ struct InputMouseRawInput {
     bool buttons[5] = {0};
   } ms;
 
-  bool acquire() {
-    if(mouseAcquired == false) {
+  auto acquire() -> bool {
+    if(!mouseAcquired) {
       mouseAcquired = true;
       ShowCursor(false);
     }
-    return true;
+    return acquired();
   }
 
-  bool unacquire() {
-    if(mouseAcquired == true) {
+  auto release() -> bool {
+    if(mouseAcquired) {
       mouseAcquired = false;
       ReleaseCapture();
-      ClipCursor(NULL);
+      ClipCursor(nullptr);
       ShowCursor(true);
     }
     return true;
   }
 
-  bool acquired() {
-    if(mouseAcquired == true) {
+  auto acquired() -> bool {
+    if(mouseAcquired) {
       SetFocus((HWND)handle);
       SetCapture((HWND)handle);
       RECT rc;
@@ -45,7 +46,7 @@ struct InputMouseRawInput {
     return GetCapture() == (HWND)handle;
   }
 
-  void update(RAWINPUT* input) {
+  auto update(RAWINPUT* input) -> void {
     if((input->data.mouse.usFlags & 1) == MOUSE_MOVE_RELATIVE) {
       ms.relativeX += input->data.mouse.lLastX;
       ms.relativeY += input->data.mouse.lLastY;
@@ -67,14 +68,14 @@ struct InputMouseRawInput {
     if(input->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_5_UP  ) ms.buttons[4] = 0;
   }
 
-  void assign(unsigned groupID, unsigned inputID, int16_t value) {
-    auto& group = ms.hid.group[groupID];
-    if(group.input[inputID].value == value) return;
-    if(input.onChange) input.onChange(ms.hid, groupID, inputID, group.input[inputID].value, value);
-    group.input[inputID].value = value;
+  auto assign(unsigned groupID, unsigned inputID, int16_t value) -> void {
+    auto& group = ms.hid->group(groupID);
+    if(group.input(inputID).value() == value) return;
+    input.doChange(ms.hid, groupID, inputID, group.input(inputID).value(), value);
+    group.input(inputID).setValue(value);
   }
 
-  void poll(vector<HID::Device*>& devices) {
+  auto poll(vector<shared_pointer<HID::Device>>& devices) -> void {
     assign(HID::Mouse::GroupID::Axis, 0, ms.relativeX);
     assign(HID::Mouse::GroupID::Axis, 1, ms.relativeY);
     assign(HID::Mouse::GroupID::Axis, 2, ms.relativeZ);
@@ -91,33 +92,31 @@ struct InputMouseRawInput {
     ms.relativeY = 0;
     ms.relativeZ = 0;
 
-    devices.append(&ms.hid);
+    devices.append(ms.hid);
   }
 
-  bool init(uintptr_t handle) {
+  auto init(uintptr_t handle) -> bool {
     this->handle = handle;
 
-    ms.hid.id = 2;
+    ms.hid->setID(2);
 
-    ms.hid.axis().append({"X"});
-    ms.hid.axis().append({"Y"});
-    ms.hid.axis().append({"Z"});
+    ms.hid->axes().append("X");
+    ms.hid->axes().append("Y");
+    ms.hid->axes().append("Z");
 
-    ms.hid.button().append({"Left"});
-    ms.hid.button().append({"Middle"});
-    ms.hid.button().append({"Right"});
-    ms.hid.button().append({"Up"});
-    ms.hid.button().append({"Down"});
+    ms.hid->buttons().append("Left");
+    ms.hid->buttons().append("Middle");
+    ms.hid->buttons().append("Right");
+    ms.hid->buttons().append("Up");
+    ms.hid->buttons().append("Down");
 
     rawinput.updateMouse = {&InputMouseRawInput::update, this};
     return true;
   }
 
-  void term() {
-    unacquire();
+  auto term() -> void {
+    release();
   }
 };
-
-}
 
 #endif

@@ -2,175 +2,138 @@
 
 namespace GameBoyAdvance {
 
+#include "mrom.cpp"
+#include "sram.cpp"
 #include "eeprom.cpp"
-#include "flashrom.cpp"
+#include "flash.cpp"
 #include "serialization.cpp"
 Cartridge cartridge;
 
-string Cartridge::title() {
+Cartridge::Cartridge() {
+  mrom.data = new uint8[mrom.size = 32 * 1024 * 1024];
+  sram.data = new uint8[sram.size = 32 * 1024];
+  eeprom.data = new uint8[eeprom.size = 8 * 1024];
+  flash.data = new uint8[flash.size = 128 * 1024];
+}
+
+Cartridge::~Cartridge() {
+  delete[] mrom.data;
+  delete[] sram.data;
+  delete[] eeprom.data;
+  delete[] flash.data;
+}
+
+auto Cartridge::loaded() const -> bool {
+  return isLoaded;
+}
+
+auto Cartridge::sha256() const -> string {
+  return information.sha256;
+}
+
+auto Cartridge::manifest() const -> string {
+  return information.markup;
+}
+
+auto Cartridge::title() const -> string {
   return information.title;
 }
 
-void Cartridge::load() {
-  interface->loadRequest(ID::Manifest, "manifest.bml");
+auto Cartridge::load() -> void {
+  interface->loadRequest(ID::Manifest, "manifest.bml", true);
 
-  auto document = Markup::Document(information.markup);
+  auto document = BML::unserialize(information.markup);
   information.title = document["information/title"].text();
 
-  unsigned rom_size = 0;
-  if(document["cartridge/rom"].exists()) {
-    auto info = document["cartridge/rom"];
-    interface->loadRequest(ID::ROM, info["name"].data);
-    rom_size = numeral(info["size"].data);
-    for(unsigned addr = rom_size; addr < rom.size; addr++) {
-      rom.data[addr] = rom.data[Bus::mirror(addr, rom_size)];
-    }
+  hasSRAM   = false;
+  hasEEPROM = false;
+  hasFLASH  = false;
+
+  if(auto info = document["board/rom"]) {
+    mrom.size = min(32 * 1024 * 1024, info["size"].natural());
+
+    interface->loadRequest(ID::MROM, info["name"].text(), true);
   }
 
-  has_sram     = false;
-  has_eeprom   = false;
-  has_flashrom = false;
+  if(auto info = document["board/ram"]) {
+    if(info["type"].text() == "sram") {
+      hasSRAM = true;
+      sram.size = min(32 * 1024, info["size"].natural());
+      sram.mask = sram.size - 1;
+      for(auto n : range(sram.size)) sram.data[n] = 0xff;
 
-  if(document["cartridge/ram"].exists()) {
-    auto info = document["cartridge/ram"];
-
-    if(info["type"].data == "SRAM" || info["type"].data == "FRAM") {
-      has_sram = true;
-      ram.size = numeral(info["size"].data);
-      ram.mask = ram.size - 1;
-      for(unsigned n = 0; n < ram.size; n++) ram.data[n] = 0xff;
-
-      interface->loadRequest(ID::RAM, info["name"].data);
-      memory.append({ID::RAM, info["name"].data});
+      interface->loadRequest(ID::SRAM, info["name"].text(), false);
+      memory.append({ID::SRAM, info["name"].text()});
     }
 
-    if(info["type"].data == "EEPROM") {
-      has_eeprom = true;
-      eeprom.size = numeral(info["size"].data);
+    if(info["type"].text() == "eeprom") {
+      hasEEPROM = true;
+      eeprom.size = min(8 * 1024, info["size"].natural());
       eeprom.bits = eeprom.size <= 512 ? 6 : 14;
       if(eeprom.size == 0) eeprom.size = 8192, eeprom.bits = 0;  //auto-detect size
-      eeprom.mask = rom_size > 16 * 1024 * 1024 ? 0x0fffff00 : 0x0f000000;
-      eeprom.test = rom_size > 16 * 1024 * 1024 ? 0x0dffff00 : 0x0d000000;
-      for(unsigned n = 0; n < eeprom.size; n++) eeprom.data[n] = 0xff;
+      eeprom.mask = mrom.size > 16 * 1024 * 1024 ? 0x0fffff00 : 0x0f000000;
+      eeprom.test = mrom.size > 16 * 1024 * 1024 ? 0x0dffff00 : 0x0d000000;
+      for(auto n : range(eeprom.size)) eeprom.data[n] = 0xff;
 
-      interface->loadRequest(ID::EEPROM, info["name"].data);
-      memory.append({ID::EEPROM, info["name"].data});
+      interface->loadRequest(ID::EEPROM, info["name"].text(), false);
+      memory.append({ID::EEPROM, info["name"].text()});
     }
 
-    if(info["type"].data == "FlashROM") {
-      has_flashrom = true;
-      flashrom.id = numeral(info["id"].data);
-      flashrom.size = numeral(info["size"].data);
-      for(unsigned n = 0; n < flashrom.size; n++) flashrom.data[n] = 0xff;
+    if(info["type"].text() == "flash") {
+      hasFLASH = true;
+      flash.id = info["id"].natural();
+      flash.size = min(128 * 1024, info["size"].natural());
+      for(auto n : range(flash.size)) flash.data[n] = 0xff;
 
-      interface->loadRequest(ID::FlashROM, info["name"].data);
-      memory.append({ID::FlashROM, info["name"].data});
+      //if flash ID not provided; guess that it's a Macronix chip
+      //this will not work for all games; in which case, the ID must be specified manually
+      if(!flash.id && flash.size ==  64 * 1024) flash.id = 0x1cc2;
+      if(!flash.id && flash.size == 128 * 1024) flash.id = 0x09c2;
+
+      interface->loadRequest(ID::FLASH, info["name"].text(), false);
+      memory.append({ID::FLASH, info["name"].text()});
     }
   }
 
-  sha256 = nall::sha256(rom.data, rom_size);
+  information.sha256 = Hash::SHA256(mrom.data, mrom.size).digest();
 
   system.load();
-  loaded = true;
+  isLoaded = true;
 }
 
-void Cartridge::unload() {
-  if(loaded == false) return;
-  loaded = false;
-  memory.reset();
-}
-
-void Cartridge::power() {
-  eeprom.power();
-  flashrom.power();
-}
-
-uint8* Cartridge::ram_data() {
-  if(has_sram) return ram.data;
-  if(has_eeprom) return eeprom.data;
-  if(has_flashrom) return flashrom.data;
-  return nullptr;
-}
-
-unsigned Cartridge::ram_size() {
-  if(has_sram) return ram.size;
-  if(has_eeprom) return eeprom.size;
-  if(has_flashrom) return flashrom.size;
-  return 0u;
-}
-
-uint32 Cartridge::read(uint8 *data, uint32 addr, uint32 size) {
-  if(size == Word) addr &= ~3;
-  if(size == Half) addr &= ~1;
-  data += addr;
-  if(size == Word) return data[0] << 0 | data[1] << 8 | data[2] << 16 | data[3] << 24;
-  if(size == Half) return data[0] << 0 | data[1] << 8;
-  return data[0];
-}
-
-void Cartridge::write(uint8 *data, uint32 addr, uint32 size, uint32 word) {
-  if(size == Word) addr &= ~3;
-  if(size == Half) addr &= ~1;
-  data += addr;
-  switch(size) {
-  case Word: data[3] = word >> 24;
-             data[2] = word >> 16;
-  case Half: data[1] = word >>  8;
-  case Byte: data[0] = word >>  0;
+auto Cartridge::unload() -> void {
+  if(isLoaded) {
+    isLoaded = false;
+    memory.reset();
   }
+}
+
+auto Cartridge::power() -> void {
+  eeprom.power();
+  flash.power();
 }
 
 #define RAM_ANALYZE
 
-uint32 Cartridge::read(uint32 addr, uint32 size) {
-  #ifdef RAM_ANALYZE
-  if((addr & 0x0e000000) == 0x0e000000) {
-    static bool once = true;
-    if(once) once = false, print("* SRAM/FlashROM read detected\n");
+auto Cartridge::read(uint mode, uint32 addr) -> uint32 {
+  if(addr < 0x0e00'0000) {
+    if(hasEEPROM && (addr & eeprom.mask) == eeprom.test) return eeprom.read();
+    return mrom.read(mode, addr);
+  } else {
+    if(hasSRAM) return sram.read(mode, addr);
+    if(hasFLASH) return flash.read(addr);
+    return cpu.pipeline.fetch.instruction;
   }
-  #endif
-
-  if(has_sram     && (addr & 0x0e000000 ) == 0x0e000000 ) return read(ram.data, addr & ram.mask, size);
-  if(has_eeprom   && (addr & eeprom.mask) == eeprom.test) return eeprom.read();
-  if(has_flashrom && (addr & 0x0e000000 ) == 0x0e000000 ) return flashrom.read(addr);
-  if(addr < 0x0e000000) return read(rom.data, addr & 0x01ffffff, size);
-  return cpu.pipeline.fetch.instruction;
 }
 
-void Cartridge::write(uint32 addr, uint32 size, uint32 word) {
-  #ifdef RAM_ANALYZE
-  if((addr & 0x0e000000) == 0x0e000000) {
-    static bool once = true;
-    if(once) once = false, print("* SRAM/FlashROM write detected\n");
+auto Cartridge::write(uint mode, uint32 addr, uint32 word) -> void {
+  if(addr < 0x0e00'0000) {
+    if(hasEEPROM && (addr & eeprom.mask) == eeprom.test) return eeprom.write(word & 1);
+    return mrom.write(mode, addr, word);
+  } else {
+    if(hasSRAM) return sram.write(mode, addr, word);
+    if(hasFLASH) return flash.write(addr, word);
   }
-  if((addr & 0x0f000000) == 0x0d000000) {
-    static bool once = true;
-    if(once) once = false, print("* EEPROM write detected\n");
-  }
-  if((addr & 0x0e00ffff) == 0x0e005555 && (word & 0xff) == 0xaa) {
-    static bool once = true;
-    if(once) once = false, print("* FlashROM write detected\n");
-  }
-  #endif
-
-  if(has_sram     && (addr & 0x0e000000 ) == 0x0e000000 ) return write(ram.data, addr & ram.mask, size, word);
-  if(has_eeprom   && (addr & eeprom.mask) == eeprom.test) return eeprom.write(word & 1);
-  if(has_flashrom && (addr & 0x0e000000 ) == 0x0e000000 ) return flashrom.write(addr, word);
-}
-
-Cartridge::Cartridge() {
-  loaded = false;
-  rom.data = new uint8[rom.size = 32 * 1024 * 1024];
-  ram.data = new uint8[ram.size = 32 * 1024];
-  eeprom.data = new uint8[eeprom.size = 8 * 1024];
-  flashrom.data = new uint8[flashrom.size = 128 * 1024];
-}
-
-Cartridge::~Cartridge() {
-  delete[] rom.data;
-  delete[] ram.data;
-  delete[] eeprom.data;
-  delete[] flashrom.data;
 }
 
 }

@@ -27,22 +27,20 @@ ifeq ($(profile),performance)
 							$(SRCDIR)/sfc/alt/smp/smp.cpp \
 							$(SRCDIR)/sfc/alt/dsp/dsp.cpp \
 							$(SRCDIR)/sfc/alt/ppu-performance/ppu.cpp
-  LOCAL_MODULE := retro_bsnes_performance
 else ifeq ($(profile),balanced)
   LOCAL_CFLAGS += -DPROFILE_BALANCED
   LOCAL_SRC_FILES += $(SRCDIR)/sfc/cpu/cpu.cpp \
 							$(SRCDIR)/sfc/smp/smp.cpp \
 							$(SRCDIR)/sfc/alt/dsp/dsp.cpp \
 							$(SRCDIR)/sfc/alt/ppu-balanced/ppu.cpp
-  LOCAL_MODULE := retro_bsnes_balanced
 else ifeq ($(profile),accuracy) # If you're batshit insane
   LOCAL_CFLAGS += -DPROFILE_ACCURACY
   LOCAL_SRC_FILES += $(SRCDIR)/sfc/cpu/cpu.cpp \
 							$(SRCDIR)/sfc/smp/smp.cpp \
 							$(SRCDIR)/sfc/dsp/dsp.cpp \
 							$(SRCDIR)/sfc/ppu/ppu.cpp
-  LOCAL_MODULE := retro_bsnes_accuracy
 endif
+LOCAL_MODULE := retro_bsnes_$(profile)
 
 LOCAL_SRC_FILES += $(SRCDIR)/libco/libco.c \
 						 $(SRCDIR)/processor/arm/arm.cpp \
@@ -73,13 +71,6 @@ LOCAL_SRC_FILES += $(SRCDIR)/libco/libco.c \
 						 $(SRCDIR)/sfc/chip/epsonrtc/epsonrtc.cpp \
 						 $(SRCDIR)/sfc/chip/sharprtc/sharprtc.cpp \
 						 $(SRCDIR)/sfc/chip/spc7110/spc7110.cpp \
-						 $(SRCDIR)/sfc/chip/dsp1/dsp1.cpp \
-						 $(SRCDIR)/sfc/chip/dsp2/dsp2.cpp \
-						 $(SRCDIR)/sfc/chip/dsp3/dsp3.cpp \
-						 $(SRCDIR)/sfc/chip/dsp4/dsp4.cpp \
-						 $(SRCDIR)/sfc/chip/cx4/cx4.cpp \
-						 $(SRCDIR)/sfc/chip/st0010/st0010.cpp \
-						 $(SRCDIR)/sfc/chip/sgb-external/sgb-external.cpp \
 						 $(SRCDIR)/sfc/chip/sdd1/sdd1.cpp \
 						 $(SRCDIR)/sfc/chip/obc1/obc1.cpp \
 						 $(SRCDIR)/sfc/chip/hsu1/hsu1.cpp \

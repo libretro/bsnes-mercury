@@ -1,20 +1,18 @@
 #ifndef RUBY_INPUT_SHARED_RAWINPUT
 #define RUBY_INPUT_SHARED_RAWINPUT
 
-namespace ruby {
-
-LRESULT CALLBACK RawInputWindowProc(HWND, UINT, WPARAM, LPARAM);
+auto CALLBACK RawInputWindowProc(HWND, UINT, WPARAM, LPARAM) -> LRESULT;
 
 struct RawInput {
-  HANDLE mutex;
-  HWND hwnd;
+  HANDLE mutex = nullptr;
+  HWND hwnd = nullptr;
   bool ready = false;
   bool initialized = false;
   function<void (RAWINPUT*)> updateKeyboard;
   function<void (RAWINPUT*)> updateMouse;
 
   struct Device {
-    HANDLE handle;
+    HANDLE handle = nullptr;
     string path;
     enum class Type : unsigned { Keyboard, Mouse, Joypad } type;
     uint16_t vendorID = 0;
@@ -23,14 +21,14 @@ struct RawInput {
   };
   vector<Device> devices;
 
-  optional<Device&> find(uint16_t vendorID, uint16_t productID) {
+  auto find(uint16_t vendorID, uint16_t productID) -> maybe<Device&> {
     for(auto& device : devices) {
-      if(device.vendorID == vendorID && device.productID == productID) return {true, device};
+      if(device.vendorID == vendorID && device.productID == productID) return device;
     }
-    return false;
+    return nothing;
   }
 
-  void scanDevices() {
+  auto scanDevices() -> void {
     devices.reset();
 
     unsigned deviceCount = 0;
@@ -79,7 +77,7 @@ struct RawInput {
     delete[] list;
   }
 
-  LRESULT windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
+  auto windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT {
     if(msg != WM_INPUT) return DefWindowProc(hwnd, msg, wparam, lparam);
 
     unsigned size = 0;
@@ -102,7 +100,7 @@ struct RawInput {
     return result;
   }
 
-  void main() {
+  auto main() -> void {
     WNDCLASS wc;
     wc.cbClsExtra = 0;
     wc.cbWndExtra = 0;
@@ -148,15 +146,13 @@ struct RawInput {
 
 static RawInput rawinput;
 
-DWORD WINAPI RawInputThreadProc(void*) {
+auto WINAPI RawInputThreadProc(void*) -> DWORD {
   rawinput.main();
   return 0;
 }
 
-LRESULT CALLBACK RawInputWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
+auto CALLBACK RawInputWindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) -> LRESULT {
   return rawinput.windowProc(hwnd, msg, wparam, lparam);
-}
-
 }
 
 #endif

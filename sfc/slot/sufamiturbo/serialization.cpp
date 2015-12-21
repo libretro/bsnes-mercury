@@ -1,7 +1,3 @@
-#ifdef SUFAMITURBO_CPP
-
-void SufamiTurboCartridge::serialize(serializer& s) {
+auto SufamiTurboCartridge::serialize(serializer& s) -> void {
   s.array(ram.data(), ram.size());
 }
-
-#endif

@@ -2,36 +2,42 @@
 
 namespace nall {
 
-template<unsigned Limit, bool Insensitive, bool Quoted> lstring& lstring::usplit(rstring key, rstring base) {
+template<bool Insensitive, bool Quoted>
+auto lstring::_split(rstring source, rstring find, long limit) -> lstring& {
   reset();
-  if(key.size() == 0) return *this;
+  if(limit <= 0 || find.size() == 0) return *this;
 
-  const char* b = base;
-  const char* p = base;
+  const char* p = source.data();
+  signed size = source.size();
+  signed base = 0;
+  signed matches = 0;
 
-  while(*p) {
-    if(Limit) if(size() >= Limit) break;
-    if(quoteskip<Quoted>(p)) continue;
-    for(unsigned n = 0;; n++) {
-      if(key[n] == 0) {
-        append(substr(b, 0, p - b));
-        p += n;
-        b = p;
-        break;
-      }
-      if(!chrequal<Insensitive>(key[n], p[n])) { p++; break; }
-    }
+  for(signed n = 0, quoted = 0; n <= size - (signed)find.size();) {
+    if(Quoted) { if(p[n] == '\"') { quoted ^= 1; n++; continue; } if(quoted) { n++; continue; } }
+    if(string::_compare<Insensitive>(p + n, size - n, find.data(), find.size())) { n++; continue; }
+    if(matches >= limit) break;
+
+    string& s = operator()(matches);
+    s.resize(n - base);
+    memory::copy(s.get(), p + base, n - base);
+
+    n += find.size();
+    base = n;
+    matches++;
   }
 
-  append(b);
+  string& s = operator()(matches);
+  s.resize(size - base);
+  memory::copy(s.get(), p + base, size - base);
+
   return *this;
 }
 
-template<unsigned Limit> lstring& lstring::split(rstring key, rstring src) { return usplit<Limit, false, false>(key, src); }
-template<unsigned Limit> lstring& lstring::isplit(rstring key, rstring src) { return usplit<Limit, true, false>(key, src); }
-template<unsigned Limit> lstring& lstring::qsplit(rstring key, rstring src) { return usplit<Limit, false, true>(key, src); }
-template<unsigned Limit> lstring& lstring::iqsplit(rstring key, rstring src) { return usplit<Limit, true, true>(key, src); }
+auto string::split(rstring on, long limit) const -> lstring { return lstring()._split<0, 0>(*this, on, limit); }
+auto string::isplit(rstring on, long limit) const -> lstring { return lstring()._split<1, 0>(*this, on, limit); }
+auto string::qsplit(rstring on, long limit) const -> lstring { return lstring()._split<0, 1>(*this, on, limit); }
+auto string::iqsplit(rstring on, long limit) const -> lstring { return lstring()._split<1, 1>(*this, on, limit); }
 
-};
+}
 
 #endif

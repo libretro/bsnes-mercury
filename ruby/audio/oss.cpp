@@ -1,8 +1,3 @@
-/*
-  audio.oss (2007-12-26)
-  author: Nach
-*/
-
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -16,98 +11,105 @@
 //Failing that, one can disable OSS4 ioctl calls inside init() and remove the below defines
 
 #ifndef SNDCTL_DSP_COOKEDMODE
-  #define SNDCTL_DSP_COOKEDMODE _IOW('P', 30, int)
+  #define SNDCTL_DSP_COOKEDMODE _IOW('P', 30, signed)
 #endif
 
 #ifndef SNDCTL_DSP_POLICY
-  #define SNDCTL_DSP_POLICY _IOW('P', 45, int)
+  #define SNDCTL_DSP_POLICY _IOW('P', 45, signed)
 #endif
 
-namespace ruby {
+struct AudioOSS : Audio {
+  ~AudioOSS() { term(); }
 
-class pAudioOSS {
-public:
   struct {
-    int fd;
-    int format;
-    int channels;
-    const char* name;
+    signed fd = -1;
+    signed format = AFMT_S16_LE;
+    signed channels = 2;
   } device;
 
   struct {
-    unsigned frequency;
+    string device = "/dev/dsp";
+    bool synchronize = true;
+    unsigned frequency = 22050;
   } settings;
 
-  bool cap(const string& name) {
+  auto cap(const string& name) -> bool {
+    if(name == Audio::Device) return true;
+    if(name == Audio::Synchronize) return true;
     if(name == Audio::Frequency) return true;
     return false;
   }
 
-  any get(const string& name) {
+  auto get(const string& name) -> any {
+    if(name == Audio::Device) return settings.device;
+    if(name == Audio::Synchronize) return settings.synchronize;
     if(name == Audio::Frequency) return settings.frequency;
-    return false;
+    return {};
   }
 
-  bool set(const string& name, const any& value) {
-    if(name == Audio::Frequency) {
-      settings.frequency = any_cast<unsigned>(value);
-      if(device.fd > 0) init();
+  auto set(const string& name, const any& value) -> bool {
+    if(name == Audio::Device && value.is<string>()) {
+      settings.device = value.get<string>();
+      if(!settings.device) settings.device = "/dev/dsp";
+      return true;
+    }
+
+    if(name == Audio::Synchronize && value.is<bool>()) {
+      settings.synchronize = value.get<bool>();
+      updateSynchronization();
+      return true;
+    }
+
+    if(name == Audio::Frequency && value.is<unsigned>()) {
+      settings.frequency = value.get<unsigned>();
+      if(device.fd >= 0) init();
       return true;
     }
 
     return false;
   }
 
-  void sample(uint16_t sl, uint16_t sr) {
-    uint32_t sample = sl + (sr << 16);
-    unsigned unused = write(device.fd, &sample, 4);
+  auto sample(uint16_t left, uint16_t right) -> void {
+    uint32_t sample = left << 0 | right << 16;
+    auto unused = write(device.fd, &sample, 4);
   }
 
-  void clear() {
+  auto clear() -> void {
   }
 
-  bool init() {
-    term();
-
-    device.fd = open(device.name, O_WRONLY, O_NONBLOCK);
+  auto init() -> bool {
+    device.fd = open(settings.device, O_WRONLY, O_NONBLOCK);
     if(device.fd < 0) return false;
 
     #if 1 //SOUND_VERSION >= 0x040000
     //attempt to enable OSS4-specific features regardless of version
     //OSS3 ioctl calls will silently fail, but sound will still work
-    int cooked = 1, policy = 4; //policy should be 0 - 10, lower = less latency, more CPU usage
+    signed cooked = 1, policy = 4; //policy should be 0 - 10, lower = less latency, more CPU usage
     ioctl(device.fd, SNDCTL_DSP_COOKEDMODE, &cooked);
     ioctl(device.fd, SNDCTL_DSP_POLICY, &policy);
     #endif
-    int freq = settings.frequency;
+    signed freq = settings.frequency;
     ioctl(device.fd, SNDCTL_DSP_CHANNELS, &device.channels);
     ioctl(device.fd, SNDCTL_DSP_SETFMT, &device.format);
     ioctl(device.fd, SNDCTL_DSP_SPEED, &freq);
 
+    updateSynchronization();
     return true;
   }
 
-  void term() {
-    if(device.fd > 0) {
+  auto term() -> void {
+    if(device.fd >= 0) {
       close(device.fd);
       device.fd = -1;
     }
   }
 
-  pAudioOSS() {
-    device.fd = -1;
-    device.format = AFMT_S16_LE;
-    device.channels = 2;
-    device.name = "/dev/dsp";
-
-    settings.frequency = 22050;
+private:
+  auto updateSynchronization() -> void {
+    if(device.fd < 0) return;
+    auto flags = fcntl(device.fd, F_GETFL);
+    if(flags < 0) return;
+    settings.synchronize ? flags &=~ O_NONBLOCK : flags |= O_NONBLOCK;
+    fcntl(device.fd, F_SETFL, flags);
   }
-
-  ~pAudioOSS() {
-    term();
-  }
-};
-
-DeclareAudio(OSS)
-
 };

@@ -1,4 +1,4 @@
-uint8 PPU::read(uint32 addr) {
+auto PPU::read(uint32 addr) -> uint8 {
   switch(addr) {
 
   //DISPCNT
@@ -37,12 +37,18 @@ uint8 PPU::read(uint32 addr) {
   case 0x04000050: return regs.blend.control >> 0;
   case 0x04000051: return regs.blend.control >> 8;
 
+  //BLDALPHA
+  case 0x04000052: return regs.blend.eva;
+  case 0x04000053: return regs.blend.evb;
+
+  //BLDY is write-only
+
   }
 
   return 0u;
 }
 
-void PPU::write(uint32 addr, uint8 byte) {
+auto PPU::write(uint32 addr, uint8 byte) -> void {
   switch(addr) {
 
   //DISPCNT
@@ -70,6 +76,7 @@ void PPU::write(uint32 addr, uint8 byte) {
   case 0x0400000e: case 0x0400000f: {
     auto& bg = regs.bg[(addr >> 1) & 3];
     unsigned shift = (addr & 1) * 8;
+    if(addr == 0x04000009 || addr == 0x0400000b) byte &= 0xdf;  //clear affine wrap for BG0,1
     bg.control = (bg.control & ~(255 << shift)) | (byte << shift);
     return;
   }
@@ -189,11 +196,11 @@ void PPU::write(uint32 addr, uint8 byte) {
   case 0x04000051: regs.blend.control = (regs.blend.control & 0x00ff) | (byte << 8); return;
 
   //BLDALPHA
-  case 0x04000052: regs.blend.eva = std::min(16, byte & 0x1f); return;
-  case 0x04000053: regs.blend.evb = std::min(16, byte & 0x1f); return;
+  case 0x04000052: regs.blend.eva = byte & 0x1f; return;
+  case 0x04000053: regs.blend.evb = byte & 0x1f; return;
 
   //BLDY
-  case 0x04000054: regs.blend.evy = std::min(16, byte & 0x1f); return;
+  case 0x04000054: regs.blend.evy = byte & 0x1f; return;
   case 0x04000055: return;
 
   }

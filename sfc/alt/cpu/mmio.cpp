@@ -1,27 +1,25 @@
-#ifdef CPU_CPP
-
-uint8 CPU::mmio_read(unsigned addr) {
+auto CPU::mmio_read(uint addr, uint8 data) -> uint8 {
   if((addr & 0xffc0) == 0x2140) {
-    synchronize_smp();
+    synchronizeSMP();
     return smp.port_read(addr & 3);
   }
 
   switch(addr & 0xffff) {
     case 0x2180: {
-      uint8 result = bus.read(0x7e0000 | status.wram_addr);
+      uint8 result = bus.read(0x7e0000 | status.wram_addr, regs.mdr);
       status.wram_addr = (status.wram_addr + 1) & 0x01ffff;
       return result;
     }
 
     case 0x4016: {
       uint8 result = regs.mdr & 0xfc;
-      result |= input.port1->data() & 3;
+      result |= device.controllerPort1->data() & 3;
       return result;
     }
 
     case 0x4017: {
       uint8 result = (regs.mdr & 0xe0) | 0x1c;
-      result |= input.port2->data() & 3;
+      result |= device.controllerPort2->data() & 3;
       return result;
     }
 
@@ -94,12 +92,12 @@ uint8 CPU::mmio_read(unsigned addr) {
     }
   }
 
-  return regs.mdr;
+  return data;
 }
 
-void CPU::mmio_write(unsigned addr, uint8 data) {
+auto CPU::mmio_write(uint addr, uint8 data) -> void {
   if((addr & 0xffc0) == 0x2140) {
-    synchronize_smp();
+    synchronizeSMP();
     port_write(addr & 3, data);
     return;
   }
@@ -127,8 +125,8 @@ void CPU::mmio_write(unsigned addr, uint8 data) {
     }
 
     case 0x4016: {
-      input.port1->latch(data & 1);
-      input.port2->latch(data & 1);
+      device.controllerPort1->latch(data & 1);
+      device.controllerPort2->latch(data & 1);
       return;
     }
 
@@ -230,7 +228,7 @@ void CPU::mmio_write(unsigned addr, uint8 data) {
   }
 
   if((addr & 0xff80) == 0x4300) {
-    unsigned i = (addr >> 4) & 7;
+    uint i = (addr >> 4) & 7;
     switch(addr & 0xff8f) {
       case 0x4300: {
         channel[i].direction = data & 0x80;
@@ -299,5 +297,3 @@ void CPU::mmio_write(unsigned addr, uint8 data) {
     }
   }
 }
-
-#endif
