@@ -1,5 +1,5 @@
 --- ../bsnes-libretro/target-libretro/libretro.cpp	2015-12-21 17:25:14.550262562 +0100
-+++ target-libretro/libretro.cpp	2015-12-21 16:22:41.698255974 +0100
++++ target-libretro/libretro.cpp	2015-12-21 17:27:19.846262782 +0100
 @@ -79,6 +79,8 @@
  }
  static retro_log_printf_t output;
@@ -68,15 +68,10 @@
     static const retro_subsystem_memory_info sgb_memory[] = {
        { "srm", RETRO_MEMORY_SNES_GAME_BOY_RAM },
        { "rtc", RETRO_MEMORY_SNES_GAME_BOY_RTC },
-@@ -539,11 +578,19 @@
+@@ -539,6 +578,14 @@
     environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
  }
  
--void retro_set_video_refresh(retro_video_refresh_t cb)           { core_bind.pvideo_refresh = cb; }
--void retro_set_audio_sample(retro_audio_sample_t)                { }
--void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) { core_bind.paudio         = cb; }
--void retro_set_input_poll(retro_input_poll_t cb)                 { core_bind.pinput_poll    = cb; }
--void retro_set_input_state(retro_input_state_t cb)               { core_bind.pinput_state   = cb; }
 +static void update_variables(void) {
 +   if (SuperFamicom::cartridge.hasSuperFX()) {
 +      const char * speed=read_opt("bsnes_superfx_overclock", "100%");
@@ -85,14 +80,9 @@
 +   }
 +}
 +
-+void retro_set_video_refresh(retro_video_refresh_t video_refresh) { core_bind.pvideo_refresh = video_refresh; }
-+void retro_set_audio_sample(retro_audio_sample_t)    { }
-+void retro_set_audio_sample_batch(retro_audio_sample_batch_t audio_sample) { core_bind.paudio  = audio_sample; }
-+void retro_set_input_poll(retro_input_poll_t input_poll)          { core_bind.pinput_poll    = input_poll; }
-+void retro_set_input_state(retro_input_state_t input_state)       { core_bind.pinput_state   = input_state; }
- 
- void retro_set_controller_port_device(unsigned port, unsigned device) {
-   if (port < 2)
+ void retro_set_video_refresh(retro_video_refresh_t cb)           { core_bind.pvideo_refresh = cb; }
+ void retro_set_audio_sample(retro_audio_sample_t)                { }
+ void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) { core_bind.paudio         = cb; }
 @@ -630,7 +677,7 @@
  
  void retro_get_system_info(struct retro_system_info *info) {

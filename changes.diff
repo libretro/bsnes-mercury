@@ -1,10 +1,11 @@
 Only in bsneshle096: changes.diff
+Only in bsneshle096: changes-libretro.diff
 Only in bsneshle096: COPYING
 Only in bsneshle096: diff.sh
-diff -ru higan_v096-source/emulator/interface.hpp bsneshle096/emulator/interface.hpp
+diff -rup higan_v096-source/emulator/interface.hpp bsneshle096/emulator/interface.hpp
 --- higan_v096-source/emulator/interface.hpp	2015-12-20 18:50:18.000000000 +0100
 +++ bsneshle096/emulator/interface.hpp	2015-12-21 14:59:57.862247260 +0100
-@@ -58,6 +58,7 @@
+@@ -58,6 +58,7 @@ struct Interface {
      virtual auto dipSettings(const Markup::Node&) -> uint { return 0; }
      virtual auto path(uint) -> string { return ""; }
      virtual auto notify(string text) -> void { print(text, "\n"); }
@@ -14,7 +15,7 @@ diff -ru higan_v096-source/emulator/interface.hpp bsneshle096/emulator/interface
  
 Only in bsneshle096: .git
 Only in bsneshle096: .gitignore
-diff -ru higan_v096-source/GNUmakefile bsneshle096/GNUmakefile
+diff -rup higan_v096-source/GNUmakefile bsneshle096/GNUmakefile
 --- higan_v096-source/GNUmakefile	2015-12-04 08:34:08.000000000 +0100
 +++ bsneshle096/GNUmakefile	2015-12-21 15:00:40.518247335 +0100
 @@ -1,16 +1,32 @@
@@ -52,7 +53,7 @@ diff -ru higan_v096-source/GNUmakefile bsneshle096/GNUmakefile
  objects := libco
  
  # profile-guided optimization mode
-@@ -24,35 +40,56 @@
+@@ -24,35 +40,56 @@ else ifeq ($(pgo),optimize)
    flags += -fprofile-use
  endif
  
@@ -131,7 +132,7 @@ diff -ru higan_v096-source/GNUmakefile bsneshle096/GNUmakefile
  compile = \
    $(strip \
      $(if $(filter %.c,$<), \
-@@ -103,3 +140,9 @@
+@@ -103,3 +140,9 @@ ifeq ($(shell id -un),byuu)
  endif
  
  help:;
@@ -146,10 +147,10 @@ Only in higan_v096-source: libco
 Only in bsneshle096: libretro-sdk
 Only in bsneshle096: LICENSE
 Only in bsneshle096: make.sh
-diff -ru higan_v096-source/nall/GNUmakefile bsneshle096/nall/GNUmakefile
+diff -rup higan_v096-source/nall/GNUmakefile bsneshle096/nall/GNUmakefile
 --- higan_v096-source/nall/GNUmakefile	2015-12-20 18:20:53.000000000 +0100
 +++ bsneshle096/nall/GNUmakefile	2015-12-21 13:38:23.994238000 +0100
-@@ -6,6 +6,7 @@
+@@ -6,6 +6,7 @@ MAKEFLAGS := Rr
  [a-z] = a b c d e f g h i j k l m n o p q r s t u v w x y z
  [0-9] = 0 1 2 3 4 5 6 7 8 9
  [markup] = ` ~ ! @ \# $$ % ^ & * ( ) - _ = + [ { ] } \ | ; : ' " , < . > / ?
@@ -215,10 +216,10 @@ Only in bsneshle096/obj: sfc-system-accuracy.o
 Only in bsneshle096/out: bsnes_accuracy_libretro.so
 Only in bsneshle096/out: .gitignore
 Only in bsneshle096: README
-diff -ru higan_v096-source/sfc/alt/cpu/cpu.cpp bsneshle096/sfc/alt/cpu/cpu.cpp
+diff -rup higan_v096-source/sfc/alt/cpu/cpu.cpp bsneshle096/sfc/alt/cpu/cpu.cpp
 --- higan_v096-source/sfc/alt/cpu/cpu.cpp	2015-12-19 14:38:08.000000000 +0100
 +++ bsneshle096/sfc/alt/cpu/cpu.cpp	2015-12-21 15:01:23.990247411 +0100
-@@ -98,9 +98,9 @@
+@@ -98,9 +98,9 @@ auto CPU::enable() -> void {
    reader = [](uint addr, uint8 data) { return cpu.wram[addr]; };
    writer = [](uint addr, uint8 data) { cpu.wram[addr] = data; };
  
@@ -231,10 +232,10 @@ diff -ru higan_v096-source/sfc/alt/cpu/cpu.cpp bsneshle096/sfc/alt/cpu/cpu.cpp
  }
  
  auto CPU::power() -> void {
-diff -ru higan_v096-source/sfc/cartridge/cartridge.cpp bsneshle096/sfc/cartridge/cartridge.cpp
+diff -rup higan_v096-source/sfc/cartridge/cartridge.cpp bsneshle096/sfc/cartridge/cartridge.cpp
 --- higan_v096-source/sfc/cartridge/cartridge.cpp	2015-12-18 14:28:15.000000000 +0100
 +++ bsneshle096/sfc/cartridge/cartridge.cpp	2015-12-21 15:02:07.254247487 +0100
-@@ -73,6 +73,13 @@
+@@ -73,6 +73,13 @@ auto Cartridge::load() -> void {
    hasOBC1       = false;
    hasMSU1       = false;
  
@@ -248,10 +249,10 @@ diff -ru higan_v096-source/sfc/cartridge/cartridge.cpp bsneshle096/sfc/cartridge
    hasGameBoySlot      = false;
    hasBSMemorySlot     = false;
    hasSufamiTurboSlots = false;
-diff -ru higan_v096-source/sfc/cartridge/cartridge.hpp bsneshle096/sfc/cartridge/cartridge.hpp
+diff -rup higan_v096-source/sfc/cartridge/cartridge.hpp bsneshle096/sfc/cartridge/cartridge.hpp
 --- higan_v096-source/sfc/cartridge/cartridge.hpp	2015-12-18 14:14:11.000000000 +0100
 +++ bsneshle096/sfc/cartridge/cartridge.hpp	2015-12-21 16:15:10.210255181 +0100
-@@ -24,6 +24,13 @@
+@@ -24,6 +24,13 @@ struct Cartridge : property<Cartridge> {
    readonly<bool> hasOBC1;
    readonly<bool> hasMSU1;
  
@@ -265,7 +266,7 @@ diff -ru higan_v096-source/sfc/cartridge/cartridge.hpp bsneshle096/sfc/cartridge
    readonly<bool> hasGameBoySlot;
    readonly<bool> hasBSMemorySlot;
    readonly<bool> hasSufamiTurboSlots;
-@@ -47,6 +54,9 @@
+@@ -47,6 +54,9 @@ struct Cartridge : property<Cartridge> {
      uint base = 0;
      uint mask = 0;
  
@@ -275,7 +276,7 @@ diff -ru higan_v096-source/sfc/cartridge/cartridge.hpp bsneshle096/sfc/cartridge
      Mapping() = default;
      Mapping(const function<uint8 (uint, uint8)>&, const function<void (uint, uint8)>&);
      Mapping(SuperFamicom::Memory&);
-@@ -87,6 +97,7 @@
+@@ -87,6 +97,7 @@ private:
    //markup.cpp
    auto parseMarkup(const string&) -> void;
    auto parseMarkupMap(Markup::Node, SuperFamicom::Memory&) -> void;
@@ -283,7 +284,7 @@ diff -ru higan_v096-source/sfc/cartridge/cartridge.hpp bsneshle096/sfc/cartridge
    auto parseMarkupMap(Markup::Node, const function<uint8 (uint, uint8)>&, const function<void (uint, uint8)>&) -> void;
    auto parseMarkupMemory(MappedRAM&, Markup::Node, unsigned id, bool writable) -> void;
  
-@@ -110,6 +121,9 @@
+@@ -110,6 +121,9 @@ private:
    auto parseMarkupOBC1(Markup::Node) -> void;
    auto parseMarkupMSU1(Markup::Node) -> void;
  
@@ -293,7 +294,7 @@ diff -ru higan_v096-source/sfc/cartridge/cartridge.hpp bsneshle096/sfc/cartridge
    bool _loaded = false;
    string _sha256;
    Region _region = Region::NTSC;
-diff -ru higan_v096-source/sfc/cartridge/markup.cpp bsneshle096/sfc/cartridge/markup.cpp
+diff -rup higan_v096-source/sfc/cartridge/markup.cpp bsneshle096/sfc/cartridge/markup.cpp
 --- higan_v096-source/sfc/cartridge/markup.cpp	2015-12-19 14:14:00.000000000 +0100
 +++ bsneshle096/sfc/cartridge/markup.cpp	2015-12-21 16:20:16.274255718 +0100
 @@ -1,11 +1,13 @@
@@ -310,7 +311,7 @@ diff -ru higan_v096-source/sfc/cartridge/markup.cpp bsneshle096/sfc/cartridge/ma
  }
  
  auto Cartridge::parseMarkup(const string& markup) -> void {
-@@ -49,6 +51,18 @@
+@@ -49,6 +51,18 @@ auto Cartridge::parseMarkupMap(Markup::N
    if(m.size != 0) mapping.append(m);
  }
  
@@ -329,7 +330,7 @@ diff -ru higan_v096-source/sfc/cartridge/markup.cpp bsneshle096/sfc/cartridge/ma
  auto Cartridge::parseMarkupMap(
    Markup::Node map,
    const function<uint8 (uint, uint8)>& reader,
-@@ -251,6 +265,13 @@
+@@ -251,6 +265,13 @@ auto Cartridge::parseMarkupARMDSP(Markup
  }
  
  auto Cartridge::parseMarkupHitachiDSP(Markup::Node root, uint roms) -> void {
@@ -343,7 +344,7 @@ diff -ru higan_v096-source/sfc/cartridge/markup.cpp bsneshle096/sfc/cartridge/ma
    hasHitachiDSP = true;
  
    hitachidsp.Frequency = root["frequency"].natural();
-@@ -284,6 +305,12 @@
+@@ -284,6 +305,12 @@ auto Cartridge::parseMarkupHitachiDSP(Ma
  }
  
  auto Cartridge::parseMarkupNECDSP(Markup::Node root) -> void {
@@ -356,7 +357,7 @@ diff -ru higan_v096-source/sfc/cartridge/markup.cpp bsneshle096/sfc/cartridge/ma
    hasNECDSP = true;
  
    necdsp.frequency = root["frequency"].natural();
-@@ -398,3 +425,74 @@
+@@ -398,3 +425,74 @@ auto Cartridge::parseMarkupMSU1(Markup::
      parseMarkupMap(node, {&MSU1::mmioRead, &msu1}, {&MSU1::mmioWrite, &msu1});
    }
  }
@@ -431,10 +432,10 @@ diff -ru higan_v096-source/sfc/cartridge/markup.cpp bsneshle096/sfc/cartridge/ma
 +//    }
 +//  }
 +}
-diff -ru higan_v096-source/sfc/coprocessor/coprocessor.hpp bsneshle096/sfc/coprocessor/coprocessor.hpp
+diff -rup higan_v096-source/sfc/coprocessor/coprocessor.hpp bsneshle096/sfc/coprocessor/coprocessor.hpp
 --- higan_v096-source/sfc/coprocessor/coprocessor.hpp	2015-12-14 08:45:35.000000000 +0100
 +++ bsneshle096/sfc/coprocessor/coprocessor.hpp	2015-12-21 15:42:40.434251758 +0100
-@@ -24,6 +24,14 @@
+@@ -24,6 +24,14 @@ struct Coprocessor : Thread {
  
  #include <sfc/coprocessor/msu1/msu1.hpp>
  
@@ -455,10 +456,10 @@ Only in bsneshle096/sfc/coprocessor: dsp2
 Only in bsneshle096/sfc/coprocessor: dsp3
 Only in bsneshle096/sfc/coprocessor: dsp4
 Only in bsneshle096/sfc/coprocessor: st0010
-diff -ru higan_v096-source/sfc/cpu/cpu.cpp bsneshle096/sfc/cpu/cpu.cpp
+diff -rup higan_v096-source/sfc/cpu/cpu.cpp bsneshle096/sfc/cpu/cpu.cpp
 --- higan_v096-source/sfc/cpu/cpu.cpp	2015-12-14 08:12:40.000000000 +0100
 +++ bsneshle096/sfc/cpu/cpu.cpp	2015-12-21 15:44:04.946251907 +0100
-@@ -111,9 +111,9 @@
+@@ -111,9 +111,9 @@ auto CPU::enable() -> void {
    reader = [](uint addr, uint8) -> uint8 { return cpu.wram[addr]; };
    writer = [](uint addr, uint8 data) -> void { cpu.wram[addr] = data; };
  
@@ -471,10 +472,10 @@ diff -ru higan_v096-source/sfc/cpu/cpu.cpp bsneshle096/sfc/cpu/cpu.cpp
  }
  
  auto CPU::power() -> void {
-diff -ru higan_v096-source/sfc/GNUmakefile bsneshle096/sfc/GNUmakefile
+diff -rup higan_v096-source/sfc/GNUmakefile bsneshle096/sfc/GNUmakefile
 --- higan_v096-source/sfc/GNUmakefile	2015-12-18 13:57:40.000000000 +0100
 +++ bsneshle096/sfc/GNUmakefile	2015-12-21 16:25:00.174256217 +0100
-@@ -9,22 +9,23 @@
+@@ -9,22 +9,23 @@ sfc_objects += sfc-epsonrtc sfc-sharprtc
  sfc_objects += sfc-spc7110 sfc-sdd1 sfc-obc1
  sfc_objects += sfc-msu1
  sfc_objects += sfc-bsmemory sfc-sufamiturbo
@@ -502,7 +503,7 @@ diff -ru higan_v096-source/sfc/GNUmakefile bsneshle096/sfc/GNUmakefile
    sfccpu := $(sfc)/alt/cpu
    sfcsmp := $(sfc)/alt/smp
    sfcdsp := $(sfc)/alt/dsp
-@@ -33,40 +34,48 @@
+@@ -33,40 +34,48 @@ else
    $(error unknown Super Famicom profile)
  endif
  
@@ -588,10 +589,10 @@ diff -ru higan_v096-source/sfc/GNUmakefile bsneshle096/sfc/GNUmakefile
 +obj/sfc-hlecx4-$(profile).o:      $(sfc)/coprocessor/cx4/cx4.cpp $(sfc)/coprocessor/cx4/*
 +obj/sfc-hlest0010-$(profile).o:   $(sfc)/coprocessor/st0010/st0010.cpp $(sfc)/coprocessor/st0010/*
 \ No newline at end of file
-diff -ru higan_v096-source/sfc/interface/interface.hpp bsneshle096/sfc/interface/interface.hpp
+diff -rup higan_v096-source/sfc/interface/interface.hpp bsneshle096/sfc/interface/interface.hpp
 --- higan_v096-source/sfc/interface/interface.hpp	2015-12-18 14:09:31.000000000 +0100
 +++ bsneshle096/sfc/interface/interface.hpp	2015-12-21 15:44:40.082251969 +0100
-@@ -89,6 +89,19 @@
+@@ -89,6 +89,19 @@ struct ID {
    };
  };
  
@@ -611,10 +612,10 @@ diff -ru higan_v096-source/sfc/interface/interface.hpp bsneshle096/sfc/interface
  struct Interface : Emulator::Interface {
    Interface();
  
-diff -ru higan_v096-source/sfc/memory/memory.cpp bsneshle096/sfc/memory/memory.cpp
+diff -rup higan_v096-source/sfc/memory/memory.cpp bsneshle096/sfc/memory/memory.cpp
 --- higan_v096-source/sfc/memory/memory.cpp	2015-12-14 07:33:59.000000000 +0100
 +++ bsneshle096/sfc/memory/memory.cpp	2015-12-21 16:17:26.770255421 +0100
-@@ -18,6 +18,10 @@
+@@ -18,6 +18,10 @@ auto Bus::reset() -> void {
    function<auto (uint, uint8) -> uint8> reader = [](uint, uint8 data) { return data; };
    function<auto (uint, uint8) -> void> writer = [](uint, uint8) {};
  
@@ -625,7 +626,7 @@ diff -ru higan_v096-source/sfc/memory/memory.cpp bsneshle096/sfc/memory/memory.c
    idcount = 0;
    map(reader, writer, 0x00, 0xff, 0x0000, 0xffff);
  }
-@@ -35,7 +39,7 @@
+@@ -35,7 +39,7 @@ auto Bus::map() -> void {
          uint bankhi = hex(bankpart(1, bankpart(0)));
          uint addrlo = hex(addrpart(0));
          uint addrhi = hex(addrpart(1, addrpart(0)));
@@ -634,7 +635,7 @@ diff -ru higan_v096-source/sfc/memory/memory.cpp bsneshle096/sfc/memory/memory.c
        }
      }
    }
-@@ -45,22 +49,73 @@
+@@ -45,22 +49,73 @@ auto Bus::map(
    const function<uint8 (uint, uint8)>& reader,
    const function<void (uint, uint8)>& writer,
    uint banklo, uint bankhi, uint addrlo, uint addrhi,
@@ -715,7 +716,7 @@ diff -ru higan_v096-source/sfc/memory/memory.cpp bsneshle096/sfc/memory/memory.c
      }
    }
  }
-diff -ru higan_v096-source/sfc/memory/memory.hpp bsneshle096/sfc/memory/memory.hpp
+diff -rup higan_v096-source/sfc/memory/memory.hpp bsneshle096/sfc/memory/memory.hpp
 --- higan_v096-source/sfc/memory/memory.hpp	2015-12-14 08:16:09.000000000 +0100
 +++ bsneshle096/sfc/memory/memory.hpp	2015-12-21 15:48:37.598252385 +0100
 @@ -1,7 +1,12 @@
@@ -731,7 +732,7 @@ diff -ru higan_v096-source/sfc/memory/memory.hpp bsneshle096/sfc/memory/memory.h
  };
  
  struct StaticRAM : Memory {
-@@ -28,6 +33,7 @@
+@@ -28,6 +33,7 @@ struct MappedRAM : Memory {
    inline auto read(const stream& memory) -> void;
  
    inline auto write_protect(bool status) -> void;
@@ -739,7 +740,7 @@ diff -ru higan_v096-source/sfc/memory/memory.hpp bsneshle096/sfc/memory/memory.h
    inline auto data() -> uint8*;
    inline auto size() const -> uint;
  
-@@ -57,7 +63,8 @@
+@@ -57,7 +63,8 @@ struct Bus {
      const function<uint8 (uint, uint8)>& reader,
      const function<void (uint, uint8)>& writer,
      uint banklo, uint bankhi, uint addrlo, uint addrhi,
@@ -749,7 +750,7 @@ diff -ru higan_v096-source/sfc/memory/memory.hpp bsneshle096/sfc/memory/memory.h
    ) -> void;
  
    uint8* lookup = nullptr;
-@@ -66,6 +73,16 @@
+@@ -66,6 +73,16 @@ struct Bus {
    uint idcount = 0;
    function<auto (uint, uint8) -> uint8> reader[256];
    function<auto (uint, uint8) -> void> writer[256];
@@ -766,10 +767,10 @@ diff -ru higan_v096-source/sfc/memory/memory.hpp bsneshle096/sfc/memory/memory.h
  };
  
  extern Bus bus;
-diff -ru higan_v096-source/sfc/memory/memory-inline.hpp bsneshle096/sfc/memory/memory-inline.hpp
+diff -rup higan_v096-source/sfc/memory/memory-inline.hpp bsneshle096/sfc/memory/memory-inline.hpp
 --- higan_v096-source/sfc/memory/memory-inline.hpp	2015-12-14 07:40:19.000000000 +0100
 +++ bsneshle096/sfc/memory/memory-inline.hpp	2015-12-21 15:49:55.518252522 +0100
-@@ -45,6 +45,7 @@
+@@ -45,6 +45,7 @@ auto MappedRAM::read(const stream& memor
  }
  
  auto MappedRAM::write_protect(bool status) -> void { write_protect_ = status; }
@@ -777,7 +778,7 @@ diff -ru higan_v096-source/sfc/memory/memory-inline.hpp bsneshle096/sfc/memory/m
  auto MappedRAM::data() -> uint8* { return data_; }
  auto MappedRAM::size() const -> uint { return size_; }
  
-@@ -80,15 +81,19 @@
+@@ -80,15 +81,19 @@ auto Bus::reduce(uint addr, uint mask) -
  }
  
  auto Bus::read(uint addr, uint8 data) -> uint8 {
@@ -799,10 +800,10 @@ diff -ru higan_v096-source/sfc/memory/memory-inline.hpp bsneshle096/sfc/memory/m
 +  if (fast_write[addr>>fast_page_size_bits]) fast_write[addr>>fast_page_size_bits][addr] = data;
 +  else writer[lookup[addr]](target[addr], data);
  }
-diff -ru higan_v096-source/sfc/ppu/background/background.hpp bsneshle096/sfc/ppu/background/background.hpp
+diff -rup higan_v096-source/sfc/ppu/background/background.hpp bsneshle096/sfc/ppu/background/background.hpp
 --- higan_v096-source/sfc/ppu/background/background.hpp	2015-11-11 13:07:10.000000000 +0100
 +++ bsneshle096/sfc/ppu/background/background.hpp	2015-12-21 15:54:33.806253011 +0100
-@@ -62,20 +62,20 @@
+@@ -62,20 +62,20 @@ struct Background {
      uint8 data[8];
    };
  
@@ -834,7 +835,7 @@ diff -ru higan_v096-source/sfc/ppu/background/background.hpp bsneshle096/sfc/ppu
  
    PPU& self;
    friend class PPU;
-diff -ru higan_v096-source/sfc/ppu/mmio/mmio.hpp bsneshle096/sfc/ppu/mmio/mmio.hpp
+diff -rup higan_v096-source/sfc/ppu/mmio/mmio.hpp bsneshle096/sfc/ppu/mmio/mmio.hpp
 --- higan_v096-source/sfc/ppu/mmio/mmio.hpp	2015-12-14 08:13:28.000000000 +0100
 +++ bsneshle096/sfc/ppu/mmio/mmio.hpp	2015-12-21 15:55:58.574253160 +0100
 @@ -1,6 +1,6 @@
@@ -846,7 +847,7 @@ diff -ru higan_v096-source/sfc/ppu/mmio/mmio.hpp bsneshle096/sfc/ppu/mmio/mmio.h
  
  privileged:
  struct {
-@@ -95,71 +95,71 @@
+@@ -95,71 +95,71 @@ alwaysinline auto oam_write(uint addr, u
  alwaysinline auto cgram_read(uint addr) -> uint8;
  alwaysinline auto cgram_write(uint addr, uint8 data) -> void;
  
@@ -984,10 +985,10 @@ diff -ru higan_v096-source/sfc/ppu/mmio/mmio.hpp bsneshle096/sfc/ppu/mmio/mmio.h
  
 -auto mmio_reset() -> void;
 +inline auto mmio_reset() -> void;
-diff -ru higan_v096-source/sfc/ppu/ppu.hpp bsneshle096/sfc/ppu/ppu.hpp
+diff -rup higan_v096-source/sfc/ppu/ppu.hpp bsneshle096/sfc/ppu/ppu.hpp
 --- higan_v096-source/sfc/ppu/ppu.hpp	2015-11-11 12:59:09.000000000 +0100
 +++ bsneshle096/sfc/ppu/ppu.hpp	2015-12-21 16:44:18.694258251 +0100
-@@ -12,7 +12,7 @@
+@@ -12,7 +12,7 @@ struct PPU : Thread, public PPUcounter {
    auto overscan() const -> bool;
    auto hires() const -> bool;
  
@@ -996,7 +997,7 @@ diff -ru higan_v096-source/sfc/ppu/ppu.hpp bsneshle096/sfc/ppu/ppu.hpp
    auto enable() -> void;
    auto power() -> void;
    auto reset() -> void;
-@@ -49,11 +49,11 @@
+@@ -49,11 +49,11 @@ privileged:
    Window window;
    Screen screen;
  
@@ -1011,10 +1012,10 @@ diff -ru higan_v096-source/sfc/ppu/ppu.hpp bsneshle096/sfc/ppu/ppu.hpp
  
    friend class PPU::Background;
    friend class PPU::Sprite;
-diff -ru higan_v096-source/sfc/ppu/screen/screen.hpp bsneshle096/sfc/ppu/screen/screen.hpp
+diff -rup higan_v096-source/sfc/ppu/screen/screen.hpp bsneshle096/sfc/ppu/screen/screen.hpp
 --- higan_v096-source/sfc/ppu/screen/screen.hpp	2015-11-11 13:27:35.000000000 +0100
 +++ bsneshle096/sfc/ppu/screen/screen.hpp	2015-12-21 15:56:11.902253183 +0100
-@@ -29,20 +29,20 @@
+@@ -29,20 +29,20 @@ struct Screen {
      bool color_halve;
    } math;
  
@@ -1042,10 +1043,10 @@ diff -ru higan_v096-source/sfc/ppu/screen/screen.hpp bsneshle096/sfc/ppu/screen/
  
    PPU& self;
    friend class PPU;
-diff -ru higan_v096-source/sfc/ppu/sprite/sprite.hpp bsneshle096/sfc/ppu/sprite/sprite.hpp
+diff -rup higan_v096-source/sfc/ppu/sprite/sprite.hpp bsneshle096/sfc/ppu/sprite/sprite.hpp
 --- higan_v096-source/sfc/ppu/sprite/sprite.hpp	2015-11-11 13:34:47.000000000 +0100
 +++ bsneshle096/sfc/ppu/sprite/sprite.hpp	2015-12-21 15:56:25.502253207 +0100
-@@ -62,21 +62,21 @@
+@@ -62,21 +62,21 @@ struct Sprite {
    Sprite(PPU& self);
  
    //list.cpp
@@ -1076,10 +1077,10 @@ diff -ru higan_v096-source/sfc/ppu/sprite/sprite.hpp bsneshle096/sfc/ppu/sprite/
  
    PPU& self;
    friend class PPU;
-diff -ru higan_v096-source/sfc/ppu/window/window.hpp bsneshle096/sfc/ppu/window/window.hpp
+diff -rup higan_v096-source/sfc/ppu/window/window.hpp bsneshle096/sfc/ppu/window/window.hpp
 --- higan_v096-source/sfc/ppu/window/window.hpp	2015-11-11 13:30:46.000000000 +0100
 +++ bsneshle096/sfc/ppu/window/window.hpp	2015-12-21 15:56:34.314253222 +0100
-@@ -71,18 +71,18 @@
+@@ -71,18 +71,18 @@ struct Window {
  
    Window(PPU& self);
  
@@ -1103,10 +1104,10 @@ diff -ru higan_v096-source/sfc/ppu/window/window.hpp bsneshle096/sfc/ppu/window/
  
    PPU& self;
    friend class PPU;
-diff -ru higan_v096-source/sfc/system/serialization.cpp bsneshle096/sfc/system/serialization.cpp
+diff -rup higan_v096-source/sfc/system/serialization.cpp bsneshle096/sfc/system/serialization.cpp
 --- higan_v096-source/sfc/system/serialization.cpp	2015-11-11 13:42:18.000000000 +0100
 +++ bsneshle096/sfc/system/serialization.cpp	2015-12-21 15:58:16.906253402 +0100
-@@ -71,6 +71,13 @@
+@@ -71,6 +71,13 @@ auto System::serializeAll(serializer& s)
    if(cartridge.hasMSU1()) msu1.serialize(s);
  
    if(cartridge.hasSufamiTurboSlots()) sufamiturboA.serialize(s), sufamiturboB.serialize(s);
@@ -1120,10 +1121,10 @@ diff -ru higan_v096-source/sfc/system/serialization.cpp bsneshle096/sfc/system/s
  }
  
  //perform dry-run state save:
-diff -ru higan_v096-source/sfc/system/system.cpp bsneshle096/sfc/system/system.cpp
+diff -rup higan_v096-source/sfc/system/system.cpp bsneshle096/sfc/system/system.cpp
 --- higan_v096-source/sfc/system/system.cpp	2015-12-18 14:12:22.000000000 +0100
 +++ bsneshle096/sfc/system/system.cpp	2015-12-21 16:02:09.982253812 +0100
-@@ -89,6 +89,13 @@
+@@ -89,6 +89,13 @@ auto System::init() -> void {
  
    bsmemory.init();
  
@@ -1137,7 +1138,7 @@ diff -ru higan_v096-source/sfc/system/system.cpp bsneshle096/sfc/system/system.c
    video.init();
    audio.init();
  
-@@ -101,11 +108,15 @@
+@@ -101,11 +108,15 @@ auto System::term() -> void {
  
  auto System::load() -> void {
    interface->loadRequest(ID::SystemManifest, "manifest.bml", true);
@@ -1153,7 +1154,7 @@ diff -ru higan_v096-source/sfc/system/system.cpp bsneshle096/sfc/system/system.c
  
    region = configuration.region;
    if(region == Region::Autodetect) {
-@@ -145,6 +156,13 @@
+@@ -145,6 +156,13 @@ auto System::load() -> void {
    if(cartridge.hasBSMemorySlot()) bsmemory.load();
    if(cartridge.hasSufamiTurboSlots()) sufamiturboA.load(), sufamiturboB.load();
  
@@ -1167,7 +1168,7 @@ diff -ru higan_v096-source/sfc/system/system.cpp bsneshle096/sfc/system/system.c
    serializeInit();
  }
  
-@@ -170,6 +188,13 @@
+@@ -170,6 +188,13 @@ auto System::unload() -> void {
  
    if(cartridge.hasBSMemorySlot()) bsmemory.unload();
    if(cartridge.hasSufamiTurboSlots()) sufamiturboA.unload(), sufamiturboB.unload();
@@ -1181,7 +1182,7 @@ diff -ru higan_v096-source/sfc/system/system.cpp bsneshle096/sfc/system/system.c
  }
  
  auto System::power() -> void {
-@@ -201,6 +226,13 @@
+@@ -201,6 +226,13 @@ auto System::power() -> void {
  
    if(cartridge.hasBSMemorySlot()) bsmemory.power();
  
@@ -1195,7 +1196,7 @@ diff -ru higan_v096-source/sfc/system/system.cpp bsneshle096/sfc/system/system.c
    reset();
  }
  
-@@ -231,6 +263,13 @@
+@@ -231,6 +263,13 @@ auto System::reset() -> void {
  
    if(cartridge.hasBSMemorySlot()) bsmemory.reset();
  

@@ -586,11 +586,11 @@ static void update_variables(void) {
    }
 }
 
-void retro_set_video_refresh(retro_video_refresh_t video_refresh) { core_bind.pvideo_refresh = video_refresh; }
-void retro_set_audio_sample(retro_audio_sample_t)    { }
-void retro_set_audio_sample_batch(retro_audio_sample_batch_t audio_sample) { core_bind.paudio  = audio_sample; }
-void retro_set_input_poll(retro_input_poll_t input_poll)          { core_bind.pinput_poll    = input_poll; }
-void retro_set_input_state(retro_input_state_t input_state)       { core_bind.pinput_state   = input_state; }
+void retro_set_video_refresh(retro_video_refresh_t cb)           { core_bind.pvideo_refresh = cb; }
+void retro_set_audio_sample(retro_audio_sample_t)                { }
+void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) { core_bind.paudio         = cb; }
+void retro_set_input_poll(retro_input_poll_t cb)                 { core_bind.pinput_poll    = cb; }
+void retro_set_input_state(retro_input_state_t cb)               { core_bind.pinput_state   = cb; }
 
 void retro_set_controller_port_device(unsigned port, unsigned device) {
   if (port < 2)
