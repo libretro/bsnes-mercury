@@ -205,7 +205,7 @@ struct Callbacks : Emulator::Interface::Bind {
     }
   }
 
-  inline void loadFile(unsigned id, string p) {
+  inline void loadFile(unsigned id, string p, bool required) {
     // Look for BIOS in system directory as well.
     const char *dir = 0;
     penviron(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir);
@@ -219,11 +219,11 @@ struct Callbacks : Emulator::Interface::Bind {
       if(file::exists(load_path)) {
         mmapstream stream(load_path);
         iface->load(id, stream);
-      } else {
+      } else if (required) {
         output(RETRO_LOG_ERROR, "Cannot find requested file in system directory: \"%s\".\n", (const char*)load_path);
         load_request_error = true;
       }
-    } else {
+    } else if (required) {
       fprintf(stderr, "Cannot find requested file: \"%s\" in ROM directory nor system directory.\n", (const char*)p);
       load_request_error = true;
     }
@@ -259,7 +259,7 @@ struct Callbacks : Emulator::Interface::Bind {
     iface->load(id, stream);
   }
 
-  inline void loadRequestManifest(unsigned id, const string& p) {
+  inline void loadRequestManifest(unsigned id, const string& p, bool required) {
     output(RETRO_LOG_INFO, "[Manifest]: ID %u, Request \"%s\".\n", id, (const char*)p);
     switch(id) {
       case SuperFamicom::ID::IPLROM:
@@ -275,12 +275,12 @@ struct Callbacks : Emulator::Interface::Bind {
         break;
 
       default:
-        loadFile(id, p);
+        loadFile(id, p, required);
         break;
     }
   }
 
-  inline void loadRequestMemory(unsigned id, const string& p) {
+  inline void loadRequestMemory(unsigned id, const string& p, bool required) {
     output(RETRO_LOG_INFO, "[Memory]: ID %u, Request \"%s\".\n", id, (const char*)p);
     switch(id) {
       case SuperFamicom::ID::Manifest:
@@ -338,6 +338,7 @@ struct Callbacks : Emulator::Interface::Bind {
         sram = SuperFamicom::armdsp.programRAM;
         sram_size = 16 * 1024 * sizeof(SuperFamicom::armdsp.programRAM[0]);
         break;
+      case SuperFamicom::ID::Nec7725DSPRAM:
       case SuperFamicom::ID::Nec96050DSPRAM:
         sram = SuperFamicom::necdsp.dataRAM;
         sram_size = sizeof(SuperFamicom::necdsp.dataRAM);
@@ -357,16 +358,16 @@ struct Callbacks : Emulator::Interface::Bind {
 
       default:
         output(RETRO_LOG_INFO, "Load BIOS.\n");
-        loadFile(id, p);
+        loadFile(id, p, required);
         break;
     }
   }
 
   void loadRequest(unsigned id, string p, bool required) override {
     if (manifest)
-       loadRequestManifest(id, p);
+       loadRequestManifest(id, p, required);
     else
-       loadRequestMemory(id, p);
+       loadRequestMemory(id, p, required);
     output(RETRO_LOG_INFO, "Complete load request.\n");
   }
 
