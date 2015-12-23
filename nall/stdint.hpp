@@ -34,7 +34,9 @@
 
 using float32_t = float;
 using float64_t = double;
+#if !defined(__APPLE__) || !TARGET_OS_IPHONE
 using float80_t = long double;
+#endif
 
 static_assert(sizeof(int8_t)   == 1, "int8_t is not of the correct size" );
 static_assert(sizeof(int16_t)  == 2, "int16_t is not of the correct size");
@@ -48,7 +50,9 @@ static_assert(sizeof(uint64_t) == 8, "int64_t is not of the correct size");
 
 static_assert(sizeof(float)       >=  4, "float32_t is not of the correct size");
 static_assert(sizeof(double)      >=  8, "float64_t is not of the correct size");
+#if !defined(__APPLE__) || !TARGET_OS_IPHONE
 static_assert(sizeof(long double) >= 10, "float80_t is not of the correct size");
+#endif
 
 using int8 = int8_t;
 using int16 = int16_t;
