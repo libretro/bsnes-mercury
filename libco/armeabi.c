@@ -22,7 +22,7 @@ extern "C" {
 static thread_local uint32_t co_active_buffer[64];
 static thread_local cothread_t co_active_handle;
 
-asm (
+__asm__ (
       ".arm\n"
       ".align 4\n"
       ".globl co_switch_arm\n"
