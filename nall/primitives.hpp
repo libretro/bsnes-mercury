@@ -186,7 +186,11 @@ template<uint Bits> struct Real {
 #if !defined(__APPLE__) || !TARGET_OS_IPHONE
     type_if<expression<Bits == 80>, float80_t,
 #endif
-    void>>>;
+    void
+#if !defined(__APPLE__) || !TARGET_OS_IPHONE
+    >
+#endif
+    >>;
 
   inline Real() : data(0.0) {}
   inline Real(const type value) : data(value) {}
