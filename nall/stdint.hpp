@@ -1,6 +1,8 @@
 #ifndef NALL_STDINT_HPP
 #define NALL_STDINT_HPP
 
+#include <nall/intrinsics.hpp>
+
 #if defined(_MSC_VER)
   typedef signed char int8_t;
   typedef signed short int16_t;
@@ -34,7 +36,7 @@
 
 using float32_t = float;
 using float64_t = double;
-#if !defined(__APPLE__) || !TARGET_OS_IPHONE
+#ifndef PROCESSOR_ARM
 using float80_t = long double;
 #endif
 
@@ -50,7 +52,7 @@ static_assert(sizeof(uint64_t) == 8, "int64_t is not of the correct size");
 
 static_assert(sizeof(float)       >=  4, "float32_t is not of the correct size");
 static_assert(sizeof(double)      >=  8, "float64_t is not of the correct size");
-#if !defined(__APPLE__) || !TARGET_OS_IPHONE
+#ifndef PROCESSOR_ARM
 static_assert(sizeof(long double) >= 10, "float80_t is not of the correct size");
 #endif
 

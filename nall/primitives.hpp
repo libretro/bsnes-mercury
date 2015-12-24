@@ -1,6 +1,7 @@
 #ifndef NALL_PRIMITIVES_HPP
 #define NALL_PRIMITIVES_HPP
 
+#include <nall/stdint.hpp>
 #include <nall/serializer.hpp>
 #include <nall/traits.hpp>
 
@@ -183,11 +184,11 @@ template<uint Bits> struct Real {
   using type =
     type_if<expression<Bits == 32>, float32_t,
     type_if<expression<Bits == 64>, float64_t,
-#if !defined(__APPLE__) || !TARGET_OS_IPHONE
+#ifndef PROCESSOR_ARM
     type_if<expression<Bits == 80>, float80_t,
 #endif
     void
-#if !defined(__APPLE__) || !TARGET_OS_IPHONE
+#ifndef PROCESSOR_ARM
     >
 #endif
     >>;
