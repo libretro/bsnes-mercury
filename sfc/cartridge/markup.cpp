@@ -305,11 +305,12 @@ auto Cartridge::parseMarkupHitachiDSP(Markup::Node root, uint roms) -> void {
 }
 
 auto Cartridge::parseMarkupNECDSP(Markup::Node root) -> void {
-  if(interface->bind->altImplementation(Alt::ForDSP)==Alt::DSP::HLE)
-  {
-    parseMarkupNecDSPHLE(root);
-    return;
-  }
+//doesn't work
+  //if(interface->bind->altImplementation(Alt::ForDSP)==Alt::DSP::HLE)
+  //{
+  //  parseMarkupNecDSPHLE(root);
+  //  return;
+  //}
 
   hasNECDSP = true;
 
