@@ -99,6 +99,8 @@ struct Callbacks : Emulator::Interface::Bind {
   Emulator::Interface *iface;
   string basename;
 
+  bool input_polled;
+
   static unsigned snes_to_retro(unsigned device) {
     switch ((SuperFamicom::Input::Device)device) {
        default:
@@ -159,7 +161,6 @@ struct Callbacks : Emulator::Interface::Bind {
             ptr[x] = palette[data[x]];
       
       pvideo_refresh(video_buffer, width, height, width*sizeof(uint32_t));
-      pinput_poll();
     }
     else
     {
@@ -169,7 +170,6 @@ struct Callbacks : Emulator::Interface::Bind {
             ptr[x] = palette[data[x]];
       
       pvideo_refresh(video_buffer_16, width, height, width*sizeof(uint16_t));
-      pinput_poll();
     }
   }
 
@@ -187,6 +187,11 @@ struct Callbacks : Emulator::Interface::Bind {
 
   int16_t inputPoll(unsigned port, unsigned device, unsigned id) override {
     if(id > 11) return 0;
+    if (!input_polled)
+    {
+      pinput_poll();
+      input_polled=true;
+    }
     return pinput_state(port, snes_to_retro(device), 0, snes_to_retro(device, id));
   }
 
@@ -609,6 +614,7 @@ void retro_reset(void) {
 }
 
 void retro_run(void) {
+  core_bind.input_polled=false;
   bool updated = false;
   if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
     update_variables();
