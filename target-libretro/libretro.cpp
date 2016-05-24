@@ -26,6 +26,8 @@
 #define RETRO_DEVICE_LIGHTGUN_JUSTIFIER    RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_LIGHTGUN, 1)
 #define RETRO_DEVICE_LIGHTGUN_JUSTIFIERS   RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_LIGHTGUN, 2)
 
+#define SNES_8_7_PAR (base_width * (8.0 / 7.0)) / base_height
+
 using namespace nall;
 
 const uint8 iplrom[64] = {
@@ -83,6 +85,7 @@ struct Callbacks : Emulator::Interface::Bind {
   retro_input_state_t pinput_state;
   retro_environment_t penviron;
   bool overscan;
+  bool use_par;
   bool manifest;
 
   bool load_request_error;
@@ -494,6 +497,7 @@ void retro_set_environment(retro_environment_t environ_cb)
       { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
          //Any integer is usable here, but there is no such thing as "any integer" in core options.
       { "bsnes_overscan", "Crop Overscan; enabled|disabled" },
+      { "bsnes_aspect", "Core-provided aspect ratio; 8:7 PAR|4:3" },
 #ifdef EXPERIMENTAL_FEATURES
       { "bsnes_sgb_core", "Super Game Boy core; Internal|Gambatte" },
 #endif
@@ -592,6 +596,16 @@ static void update_variables(void) {
          core_bind.overscan = false;
       else if(!strcmp(var.value, "disabled"))
          core_bind.overscan = true;
+   }
+
+   var.key = "bsnes_aspect";
+
+   if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      if (!strcmp(var.value, "8:7 PAR"))
+         core_bind.use_par = true;
+      else if(!strcmp(var.value, "4:3"))
+         core_bind.use_par = false;
    }
 
    retro_get_system_av_info(&av_info);
@@ -706,7 +720,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
 
   unsigned base_width = 256;
   unsigned base_height = core_bind.overscan ? 240 : 224;
-  struct retro_game_geometry geom = { base_width, base_height, base_width << 1, base_height << 1, 4.0 / 3.0 };
+  struct retro_game_geometry geom = { base_width, base_height, base_width << 1, base_height << 1, (float)(core_bind.use_par ? SNES_8_7_PAR : (4.0 / 3.0)) };
 
   info->timing   = timing;
   info->geometry = geom;
@@ -941,6 +955,8 @@ bool retro_load_game(const struct retro_game_info *info) {
   std::string manifest;
   if (core_bind.manifest)
     manifest = std::string((const char*)info->data, info->size); // Might not be 0 terminated.
+
+  update_variables();
   
   bool ret=snes_load_cartridge_normal(core_bind.manifest ? manifest.data() : info->meta, data, size);
   if (ret) {
