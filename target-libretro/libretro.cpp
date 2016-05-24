@@ -493,6 +493,7 @@ void retro_set_environment(retro_environment_t environ_cb)
       { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
       { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
          //Any integer is usable here, but there is no such thing as "any integer" in core options.
+      { "bsnes_overscan", "Crop Overscan; enabled|disabled" },
 #ifdef EXPERIMENTAL_FEATURES
       { "bsnes_sgb_core", "Super Game Boy core; Internal|Gambatte" },
 #endif
@@ -573,11 +574,28 @@ void retro_set_environment(retro_environment_t environ_cb)
 }
 
 static void update_variables(void) {
+
+   struct retro_variable var;
+   struct retro_system_av_info av_info;
+
    if (SuperFamicom::cartridge.has_superfx()) {
       const char * speed=read_opt("bsnes_superfx_overclock", "100%");
       unsigned percent=strtoul(speed, NULL, 10);//we can assume that the input is one of our advertised options
       SuperFamicom::superfx.frequency=(uint64)superfx_freq_orig*percent/100;
    }
+
+   var.key = "bsnes_overscan";
+
+   if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      if (!strcmp(var.value, "enabled"))
+         core_bind.overscan = false;
+      else if(!strcmp(var.value, "disabled"))
+         core_bind.overscan = true;
+   }
+
+   retro_get_system_av_info(&av_info);
+   core_bind.penviron(RETRO_ENVIRONMENT_SET_GEOMETRY, &av_info);
 }
 
 void retro_set_video_refresh(retro_video_refresh_t cb)           { core_bind.pvideo_refresh = cb; }
@@ -685,9 +703,6 @@ void retro_get_system_info(struct retro_system_info *info) {
 void retro_get_system_av_info(struct retro_system_av_info *info) {
   struct retro_system_timing timing = { 0.0, 32040.5 };
   timing.fps = retro_get_region() == RETRO_REGION_NTSC ? 21477272.0 / 357366.0 : 21281370.0 / 425568.0;
-
-  if (!core_bind.penviron(RETRO_ENVIRONMENT_GET_OVERSCAN, &core_bind.overscan))
-     core_bind.overscan = false;
 
   unsigned base_width = 256;
   unsigned base_height = core_bind.overscan ? 240 : 224;
