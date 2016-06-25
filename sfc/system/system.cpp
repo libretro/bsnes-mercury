@@ -1,6 +1,8 @@
 #include <sfc/sfc.hpp>
 
 #define SYSTEM_CPP
+#define LAGFIX 0
+
 namespace SuperFamicom {
 
 System system;
@@ -282,7 +284,11 @@ void System::reset() {
 
 void System::scanline() {
   video.scanline();
-  if(cpu.vcounter() == 241) scheduler.exit(Scheduler::ExitReason::FrameEvent);
+  #if LAGFIX
+     if(cpu.vcounter() == (ppu.overscan() == false ? 225 : 240)) scheduler.exit(Scheduler::ExitReason::FrameEvent);
+  #else
+     if(cpu.vcounter() == 241) scheduler.exit(Scheduler::ExitReason::FrameEvent);
+  #endif
 }
 
 void System::frame() {
