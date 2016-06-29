@@ -56,6 +56,8 @@ privileged:
     bool nmi_transition;
     bool nmi_pending;
     bool nmi_hold;
+    
+    bool frame_event_performed;
 
     bool irq_valid;
     bool irq_line;

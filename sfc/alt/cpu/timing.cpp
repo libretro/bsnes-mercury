@@ -17,6 +17,8 @@ void CPU::last_cycle() {
     regs.wai = false;
     status.nmi_transition = false;
     status.nmi_pending = true;
+    scheduler.exit(Scheduler::ExitReason::FrameEvent);
+    status.frame_event_performed = true;
   }
 
   if(status.irq_transition || regs.irq) {
@@ -62,9 +64,13 @@ void CPU::scanline() {
   synchronize_smp();
   synchronize_ppu();
   synchronize_coprocessors();
-  system.scanline();
+  system.scanline(&status.frame_event_performed);
 
-  if(vcounter() == 0) hdma_init();
+  if(vcounter() == 0)
+  {
+    status.frame_event_performed = false;
+    hdma_init();
+  }
 
   queue.enqueue(534, QueueEvent::DramRefresh);
 

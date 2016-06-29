@@ -46,9 +46,11 @@ void CPU::scanline() {
   synchronize_smp();
   synchronize_ppu();
   synchronize_coprocessors();
-  system.scanline();
+  system.scanline(&status.frame_event_performed);
 
   if(vcounter() == 0) {
+    status.frame_event_performed = false;
+    
     //HDMA init triggers once every frame
     status.hdma_init_position = (cpu_version == 1 ? 12 + 8 - dma_counter() : 12 + dma_counter());
     status.hdma_init_triggered = false;
@@ -181,6 +183,8 @@ void CPU::timing_reset() {
   status.nmi_transition = false;
   status.nmi_pending    = false;
   status.nmi_hold       = false;
+  
+  status.frame_event_performed = false;
 
   status.irq_valid      = false;
   status.irq_line       = false;

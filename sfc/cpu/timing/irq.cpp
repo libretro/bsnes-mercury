@@ -9,7 +9,12 @@ void CPU::poll_interrupts() {
   //NMI hold
   if(status.nmi_hold) {
     status.nmi_hold = false;
-    if(status.nmi_enabled) status.nmi_transition = true;
+    if(status.nmi_enabled)
+    {
+      status.nmi_transition = true;
+      scheduler.exit(Scheduler::ExitReason::FrameEvent);
+      status.frame_event_performed = true;
+    }
   }
 
   //NMI test
@@ -57,6 +62,8 @@ void CPU::nmitimen_update(uint8 data) {
   //0->1 edge sensitive transition
   if(!nmi_enabled && status.nmi_enabled && status.nmi_line) {
     status.nmi_transition = true;
+    scheduler.exit(Scheduler::ExitReason::FrameEvent);
+    status.frame_event_performed = true;
   }
 
   //?->1 level sensitive transition
