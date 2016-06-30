@@ -35,6 +35,10 @@ else
   $(error unknown profile.)
 endif
 
+ifeq ($(sfc_lagfix),1)
+	flags += -DSFC_LAGFIX
+endif
+
 obj/sfc-interface-$(profile).o:       $(sfc)/interface/interface.cpp $(call rwildcard,$(sfc)/interface)
 obj/sfc-system-$(profile).o:          $(sfc)/system/system.cpp $(call rwildcard,$(sfc)/system/)
 obj/sfc-controller-$(profile).o:      $(sfc)/controller/controller.cpp $(call rwildcard,$(sfc)/controller/)

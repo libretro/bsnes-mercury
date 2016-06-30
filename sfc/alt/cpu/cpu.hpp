@@ -107,7 +107,9 @@ private:
     bool nmi_transition;
     bool nmi_pending;
     
+#ifdef SFC_LAGFIX
     bool frame_event_performed;
+#endif
 
     bool irq_valid;
     bool irq_line;

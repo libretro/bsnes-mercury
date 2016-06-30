@@ -12,8 +12,10 @@ void CPU::poll_interrupts() {
     if(status.nmi_enabled)
     {
       status.nmi_transition = true;
+#ifdef SFC_LAGFIX
       scheduler.exit(Scheduler::ExitReason::FrameEvent);
       status.frame_event_performed = true;
+#endif
     }
   }
 
@@ -62,8 +64,10 @@ void CPU::nmitimen_update(uint8 data) {
   //0->1 edge sensitive transition
   if(!nmi_enabled && status.nmi_enabled && status.nmi_line) {
     status.nmi_transition = true;
+#ifdef SFC_LAGFIX
     scheduler.exit(Scheduler::ExitReason::FrameEvent);
     status.frame_event_performed = true;
+#endif
   }
 
   //?->1 level sensitive transition

@@ -139,7 +139,9 @@ void CPU::reset() {
   status.nmi_transition = false;
   status.nmi_pending = false;
   
+#ifdef SFC_LAGFIX
   status.frame_event_performed = false;
+#endif
 
   status.irq_valid = false;
   status.irq_line = false;

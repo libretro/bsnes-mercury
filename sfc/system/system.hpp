@@ -15,7 +15,8 @@ struct System : property<System> {
   void reset();
 
   void frame();
-  void scanline(bool * frame_event_performed);
+  void scanline(bool& frame_event_performed);
+  void scanline();
 
   //return *active* system information (settings are cached upon power-on)
   readonly<Region> region;

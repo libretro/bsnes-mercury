@@ -41,7 +41,9 @@ void CPU::serialize(serializer& s) {
   s.integer(status.nmi_transition);
   s.integer(status.nmi_pending);
   
+#ifdef SFC_LAGFIX
   s.integer(status.frame_event_performed);
+#endif
 
   s.integer(status.irq_valid);
   s.integer(status.irq_line);
