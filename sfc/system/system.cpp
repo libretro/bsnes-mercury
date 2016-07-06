@@ -281,8 +281,17 @@ void System::reset() {
 }
 
 void System::scanline() {
+  bool frame_event_performed = false;
+  scanline(frame_event_performed);
+}
+
+void System::scanline(bool& frame_event_performed) {
   video.scanline();
-  if(cpu.vcounter() == 241) scheduler.exit(Scheduler::ExitReason::FrameEvent);
+  if(cpu.vcounter() == 241 && !frame_event_performed)
+  {
+    scheduler.exit(Scheduler::ExitReason::FrameEvent);
+    frame_event_performed = true;
+  }
 }
 
 void System::frame() {

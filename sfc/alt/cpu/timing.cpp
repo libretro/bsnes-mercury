@@ -17,6 +17,10 @@ void CPU::last_cycle() {
     regs.wai = false;
     status.nmi_transition = false;
     status.nmi_pending = true;
+#ifdef SFC_LAGFIX
+    scheduler.exit(Scheduler::ExitReason::FrameEvent);
+    status.frame_event_performed = true;
+#endif
   }
 
   if(status.irq_transition || regs.irq) {
@@ -62,9 +66,19 @@ void CPU::scanline() {
   synchronize_smp();
   synchronize_ppu();
   synchronize_coprocessors();
+#ifdef SFC_LAGFIX
+  system.scanline(status.frame_event_performed);
+#else
   system.scanline();
+#endif
 
-  if(vcounter() == 0) hdma_init();
+  if(vcounter() == 0)
+  {
+#ifdef SFC_LAGFIX
+    status.frame_event_performed = false;
+#endif
+    hdma_init();
+  }
 
   queue.enqueue(534, QueueEvent::DramRefresh);
 

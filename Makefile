@@ -20,6 +20,9 @@ gba := gba
 profile := accuracy
 target  := libretro
 
+# SFC input lag fix
+sfc_lagfix := 1
+
 # options += debugger
 # arch := x86
 # console := true
