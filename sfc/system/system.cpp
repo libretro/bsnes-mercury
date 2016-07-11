@@ -287,10 +287,11 @@ void System::scanline() {
 
 void System::scanline(bool& frame_event_performed) {
   video.scanline();
-  if(cpu.vcounter() == 241 && !frame_event_performed)
-  {
-    scheduler.exit(Scheduler::ExitReason::FrameEvent);
-    frame_event_performed = true;
+  if(cpu.vcounter() == 241) {
+    if(!frame_event_performed) {
+      scheduler.exit(Scheduler::ExitReason::FrameEvent);
+    }
+    frame_event_performed = false;
   }
 }
 

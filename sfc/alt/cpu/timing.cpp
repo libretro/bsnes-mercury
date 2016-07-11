@@ -18,7 +18,9 @@ void CPU::last_cycle() {
     status.nmi_transition = false;
     status.nmi_pending = true;
 #ifdef SFC_LAGFIX
-    scheduler.exit(Scheduler::ExitReason::FrameEvent);
+    if (!status.frame_event_performed) {
+      scheduler.exit(Scheduler::ExitReason::FrameEvent);
+    }
     status.frame_event_performed = true;
 #endif
   }
@@ -72,13 +74,7 @@ void CPU::scanline() {
   system.scanline();
 #endif
 
-  if(vcounter() == 0)
-  {
-#ifdef SFC_LAGFIX
-    status.frame_event_performed = false;
-#endif
-    hdma_init();
-  }
+  if(vcounter() == 0) hdma_init();
 
   queue.enqueue(534, QueueEvent::DramRefresh);
 

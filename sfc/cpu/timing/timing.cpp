@@ -53,10 +53,6 @@ void CPU::scanline() {
 #endif
 
   if(vcounter() == 0) {
-#ifdef SFC_LAGFIX
-    status.frame_event_performed = false;
-#endif
-    
     //HDMA init triggers once every frame
     status.hdma_init_position = (cpu_version == 1 ? 12 + 8 - dma_counter() : 12 + dma_counter());
     status.hdma_init_triggered = false;
