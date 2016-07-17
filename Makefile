@@ -21,7 +21,7 @@ profile := accuracy
 target  := libretro
 
 # SFC input lag fix
-sfc_lagfix := 0
+sfc_lagfix := 1
 
 # options += debugger
 # arch := x86
