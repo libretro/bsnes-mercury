@@ -581,6 +581,7 @@ static void update_variables(void) {
 
    struct retro_variable var;
    struct retro_system_av_info av_info;
+   bool geometry_update = false;
 
    if (SuperFamicom::cartridge.has_superfx()) {
       const char * speed=read_opt("bsnes_superfx_overclock", "100%");
@@ -590,26 +591,28 @@ static void update_variables(void) {
 
    var.key = "bsnes_overscan";
 
-   if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
+   if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
       if (!strcmp(var.value, "enabled"))
          core_bind.overscan = false;
       else
          core_bind.overscan = true;
+      geometry_update = true;
    }
 
    var.key = "bsnes_aspect";
 
-   if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-   {
+   if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
       if (!strcmp(var.value, "8:7 PAR"))
          core_bind.use_par = true;
       else
          core_bind.use_par = false;
+      geometry_update = true;
    }
 
-   retro_get_system_av_info(&av_info);
-   core_bind.penviron(RETRO_ENVIRONMENT_SET_GEOMETRY, &av_info);
+   if (geometry_update) {
+      retro_get_system_av_info(&av_info);
+      core_bind.penviron(RETRO_ENVIRONMENT_SET_GEOMETRY, &av_info);
+   }
 }
 
 void retro_set_video_refresh(retro_video_refresh_t cb)           { core_bind.pvideo_refresh = cb; }
