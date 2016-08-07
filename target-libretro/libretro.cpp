@@ -594,7 +594,7 @@ static void update_variables(void) {
    {
       if (!strcmp(var.value, "enabled"))
          core_bind.overscan = false;
-      else if(!strcmp(var.value, "disabled"))
+      else
          core_bind.overscan = true;
    }
 
@@ -604,7 +604,7 @@ static void update_variables(void) {
    {
       if (!strcmp(var.value, "8:7 PAR"))
          core_bind.use_par = true;
-      else if(!strcmp(var.value, "4:3"))
+      else
          core_bind.use_par = false;
    }
 
