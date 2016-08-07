@@ -592,21 +592,23 @@ static void update_variables(void) {
    var.key = "bsnes_overscan";
 
    if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
-      if (!strcmp(var.value, "enabled"))
-         core_bind.overscan = false;
-      else
-         core_bind.overscan = true;
-      geometry_update = true;
+      bool newval = (!strcmp(var.value, "disabled"));
+      if (newval != core_bind.overscan)
+      {
+        core_bind.overscan = newval;
+        geometry_update = true;
+      }
    }
 
    var.key = "bsnes_aspect";
 
    if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
-      if (!strcmp(var.value, "8:7 PAR"))
-         core_bind.use_par = true;
-      else
-         core_bind.use_par = false;
-      geometry_update = true;
+      bool newval = (!strcmp(var.value, "8:7 PAR"));
+      if (newval != core_bind.use_par)
+      {
+        core_bind.use_par = newval;
+        geometry_update = true;
+      }
    }
 
    if (geometry_update) {
