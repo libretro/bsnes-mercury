@@ -74,7 +74,14 @@ void CPU::scanline() {
   system.scanline();
 #endif
 
-  if(vcounter() == 0) hdma_init();
+  if(vcounter() == 0)
+  {
+#ifdef SFC_LAGFIX
+    status.frame_event_performed = false;
+#endif
+    
+    hdma_init();
+  }
 
   queue.enqueue(534, QueueEvent::DramRefresh);
 
