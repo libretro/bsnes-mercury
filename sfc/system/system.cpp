@@ -291,7 +291,7 @@ void System::scanline(bool& frame_event_performed) {
     if(!frame_event_performed) {
       scheduler.exit(Scheduler::ExitReason::FrameEvent);
     }
-    frame_event_performed = false;
+    frame_event_performed = true;
   }
 }
 
