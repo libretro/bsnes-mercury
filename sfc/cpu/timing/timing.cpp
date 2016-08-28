@@ -46,16 +46,10 @@ void CPU::scanline() {
   synchronize_smp();
   synchronize_ppu();
   synchronize_coprocessors();
-#ifdef SFC_LAGFIX
   system.scanline(status.frame_event_performed);
-#else
-  system.scanline();
-#endif
 
   if(vcounter() == 0) {
-#ifdef SFC_LAGFIX
     status.frame_event_performed = false;
-#endif
     
     //HDMA init triggers once every frame
     status.hdma_init_position = (cpu_version == 1 ? 12 + 8 - dma_counter() : 12 + dma_counter());
@@ -189,10 +183,8 @@ void CPU::timing_reset() {
   status.nmi_transition = false;
   status.nmi_pending    = false;
   status.nmi_hold       = false;
-  
-#ifdef SFC_LAGFIX
+
   status.frame_event_performed = false;
-#endif
 
   status.irq_valid      = false;
   status.irq_line       = false;

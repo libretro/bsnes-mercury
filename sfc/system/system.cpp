@@ -280,11 +280,6 @@ void System::reset() {
   input.connect(1, configuration.controller_port2);
 }
 
-void System::scanline() {
-  bool frame_event_performed = false;
-  scanline(frame_event_performed);
-}
-
 void System::scanline(bool& frame_event_performed) {
   video.scanline();
   if(cpu.vcounter() == 241) {

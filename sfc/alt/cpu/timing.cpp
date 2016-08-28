@@ -68,18 +68,12 @@ void CPU::scanline() {
   synchronize_smp();
   synchronize_ppu();
   synchronize_coprocessors();
-#ifdef SFC_LAGFIX
   system.scanline(status.frame_event_performed);
-#else
-  system.scanline();
-#endif
 
   if(vcounter() == 0)
   {
-#ifdef SFC_LAGFIX
     status.frame_event_performed = false;
-#endif
-    
+
     hdma_init();
   }
 
