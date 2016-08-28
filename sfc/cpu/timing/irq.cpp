@@ -30,6 +30,7 @@ void CPU::poll_interrupts() {
   } else if(status.nmi_valid && !nmi_valid) {
     //1->0 edge sensitive transition
     status.nmi_line = false;
+    status.frame_event_performed = false;
   }
   status.nmi_valid = nmi_valid;
 

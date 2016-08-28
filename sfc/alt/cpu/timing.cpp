@@ -70,12 +70,7 @@ void CPU::scanline() {
   synchronize_coprocessors();
   system.scanline(status.frame_event_performed);
 
-  if(vcounter() == 0)
-  {
-    status.frame_event_performed = false;
-
-    hdma_init();
-  }
+  if(vcounter() == 0) hdma_init();
 
   queue.enqueue(534, QueueEvent::DramRefresh);
 
@@ -90,6 +85,7 @@ void CPU::scanline() {
     if(status.nmi_enabled) status.nmi_transition = true;
   } else if(nmi_valid && !status.nmi_valid) {
     status.nmi_line = false;
+    status.frame_event_performed = false;
   }
 
   if(status.auto_joypad_poll_enabled && vcounter() == (ppu.overscan() == false ? 227 : 242)) {

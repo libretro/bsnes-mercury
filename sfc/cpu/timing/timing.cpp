@@ -49,8 +49,6 @@ void CPU::scanline() {
   system.scanline(status.frame_event_performed);
 
   if(vcounter() == 0) {
-    status.frame_event_performed = false;
-    
     //HDMA init triggers once every frame
     status.hdma_init_position = (cpu_version == 1 ? 12 + 8 - dma_counter() : 12 + dma_counter());
     status.hdma_init_triggered = false;
