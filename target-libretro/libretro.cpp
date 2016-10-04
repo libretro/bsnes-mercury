@@ -596,7 +596,6 @@ void retro_set_environment(retro_environment_t environ_cb)
 }
 
 static bool update_viewport = false;
-static void update_region(void);
 
 static void update_variables(void) {
    if (SuperFamicom::cartridge.has_superfx()) {
@@ -630,11 +629,6 @@ static void update_variables(void) {
      SuperFamicom::configuration.region = SuperFamicom::System::Region::PAL;
    else
      SuperFamicom::configuration.region = SuperFamicom::System::Region::Autodetect;
-
-   if (old_region_mode != core_bind.region_mode) 
-   {
-     update_region();
-   }
 
    unsigned short old_aspect_ratio_mode = core_bind.aspect_ratio_mode;
    struct retro_variable aspect_ratio_var = { "bsnes_aspect_ratio", "auto" };
@@ -708,9 +702,7 @@ bool retro_serialize(void *data, size_t size) {
 
 bool retro_unserialize(const void *data, size_t size) {
   serializer s((const uint8_t*)data, size);
-  bool b = SuperFamicom::system.unserialize(s);
-  update_region();
-  return b;
+  return SuperFamicom::system.unserialize(s);
 }
 
 #if 0
@@ -1272,11 +1264,4 @@ size_t retro_get_memory_size(unsigned id) {
   return size;
 }
 
-static void update_region() {
-  update_viewport = true;
-  SuperFamicom::system.update_region();
-  if (SuperFamicom::cartridge.has_superfx())
-    superfx_freq_orig = SuperFamicom::superfx.frequency;
-  update_variables();
-}
 

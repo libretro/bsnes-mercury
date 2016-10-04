@@ -12,7 +12,6 @@ struct DSP : Thread {
   void enter();
   void power();
   void reset();
-  void refresh();
 
   void channel_enable(unsigned channel, bool enable);
 

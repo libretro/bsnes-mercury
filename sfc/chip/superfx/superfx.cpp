@@ -63,8 +63,4 @@ void SuperFX::reset() {
   timing_reset();
 }
 
-void SuperFX::refresh() {
-  Thread::frequency = system.cpu_frequency();
-}
-
 }

@@ -127,10 +127,6 @@ void PPU::set_frameskip(unsigned frameskip) {
   display.framecounter = 0;
 }
 
-void PPU::refresh() {
-  Thread::frequency = system.cpu_frequency();
-}
-
 PPU::PPU() :
 cache(*this),
 bg1(*this, Background::ID::BG1),

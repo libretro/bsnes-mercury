@@ -113,10 +113,6 @@ void SMP::reset() {
   timer2.enable = false;
 }
 
-void SMP::refresh() {
-  Thread::frequency = system.apu_frequency();
-}
-
 SMP::SMP() {
   for(auto& byte : iplrom) byte = 0;
 }

@@ -20,7 +20,6 @@ struct CPU : Processor::R65816, Thread, public PPUcounter {
   void enable();
   void power();
   void reset();
-  void refresh();
 
   void serialize(serializer&);
   CPU();

@@ -173,10 +173,6 @@ void CPU::reset() {
   dma_reset();
 }
 
-void CPU::refresh() {
-  Thread::frequency = system.cpu_frequency();
-}
-
 CPU::CPU() : queue(512, {&CPU::queue_event, this}) {
   PPUcounter::scanline = {&CPU::scanline, this};
 }

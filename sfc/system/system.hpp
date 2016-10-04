@@ -13,7 +13,6 @@ struct System : property<System> {
   void unload();
   void power();
   void reset();
-  bool update_region();
 
   void frame();
   void scanline(bool& frame_event_performed);

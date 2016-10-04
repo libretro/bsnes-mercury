@@ -13,7 +13,6 @@ struct SMP : Processor::SPC700, Thread {
   void enter();
   void power();
   void reset();
-  void refresh();
 
   void serialize(serializer&);
   SMP();

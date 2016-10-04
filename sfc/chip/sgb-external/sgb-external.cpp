@@ -103,9 +103,4 @@ void SGBExternal::write(unsigned addr, uint8 data) {
   sgb_write(addr, data);
 }
 
-void SGBExternal::refresh() {
-  Thread::frequency = revision == 1 ? system.cpu_frequency() / 10 : 2097152;
-  audio.coprocessor_frequency(revision == 1 ? 2147727.0 : 2097152.0);
-}
-
 }

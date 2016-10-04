@@ -16,7 +16,6 @@ struct SuperFX : Processor::GSU, Coprocessor {
   void unload();
   void power();
   void reset();
-  void refresh();
   void serialize(serializer&);
 
 privileged:

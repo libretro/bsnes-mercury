@@ -32,7 +32,6 @@ struct SA1 : Processor::R65816, public Coprocessor {
   void unload();
   void power();
   void reset();
-  void refresh();
 
   void serialize(serializer&);
 };

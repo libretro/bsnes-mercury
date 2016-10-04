@@ -6,8 +6,7 @@ struct MSU1 : Coprocessor {
   void unload();
   void power();
   void reset();
-  void refresh();
-  
+
   void data_open();
   void audio_open();
 

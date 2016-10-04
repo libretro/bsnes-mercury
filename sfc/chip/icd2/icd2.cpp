@@ -78,9 +78,4 @@ void ICD2::reset() {
   GameBoy::system.power();
 }
 
-void ICD2::refresh() {
-  Thread::frequency = cpu.frequency / 5;
-  audio.coprocessor_frequency(2 * 1024 * 1024);
-}
-
 }

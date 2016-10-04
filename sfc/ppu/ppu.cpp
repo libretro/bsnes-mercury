@@ -135,10 +135,6 @@ void PPU::frame() {
   display.overscan = regs.overscan;
 }
 
-void PPU::refresh() {
-  Thread::frequency = system.cpu_frequency();
-}
-
 PPU::PPU() :
 bg1(*this, Background::ID::BG1),
 bg2(*this, Background::ID::BG2),

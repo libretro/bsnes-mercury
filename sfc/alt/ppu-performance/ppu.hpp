@@ -16,7 +16,6 @@ struct PPU : Thread, public PPUcounter {
   void enable();
   void power();
   void reset();
-  void refresh();
   void scanline();
   void frame();
 

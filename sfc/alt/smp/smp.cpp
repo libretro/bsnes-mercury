@@ -137,16 +137,6 @@ void SMP::serialize(serializer& s) {
   s.integer(timer2.stage3_ticks);
 }
 
-void SMP::refresh() {
-  Thread::frequency = system.apu_frequency();
-
-  for (unsigned n = 0; n < 256; n++) {
-    cycle_table_cpu[n] = (cycle_count_table[n] * 24) * cpu.frequency;
-  }
-
-  cycle_step_cpu = 24 * cpu.frequency;
-}
-
 SMP::SMP() {
   apuram = new uint8[64 * 1024];
   for(auto& byte : iplrom) byte = 0;

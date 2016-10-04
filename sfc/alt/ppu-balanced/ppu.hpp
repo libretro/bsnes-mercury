@@ -61,7 +61,6 @@ struct PPU : Thread, public PPUcounter {
   void enable();
   void power();
   void reset();
-  void refresh();
 
   bool layer_enabled[5][4];
   void layer_enable(unsigned layer, unsigned priority, bool enable);
