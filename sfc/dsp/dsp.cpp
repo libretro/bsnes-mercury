@@ -286,6 +286,10 @@ void DSP::reset() {
   state.counter            = 0;
 }
 
+void DSP::refresh() {
+  Thread::frequency = system.apu_frequency();
+}
+
 DSP::DSP() {
   static_assert(sizeof(int) >= 32 / 8,    "int >= 32-bits");
   static_assert((int8)0x80 == -0x80,      "8-bit sign extension");

@@ -11,6 +11,7 @@ struct SGBExternal : Coprocessor, library {
   void unload();
   void power();
   void reset();
+  void refresh();
 
   uint8 read(unsigned addr);
   void write(unsigned addr, uint8 data);

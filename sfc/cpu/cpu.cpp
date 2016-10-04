@@ -156,6 +156,10 @@ void CPU::reset() {
   timing_reset();
 }
 
+void CPU::refresh() {
+  Thread::frequency = system.cpu_frequency();
+}
+
 CPU::CPU() {
   PPUcounter::scanline = {&CPU::scanline, this};
 }

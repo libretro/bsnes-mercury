@@ -10,6 +10,7 @@ struct DSP : Thread {
   void enter();
   void power();
   void reset();
+  void refresh();
 
   void serialize(serializer&);
   DSP();

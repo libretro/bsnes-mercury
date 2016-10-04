@@ -298,4 +298,32 @@ System::System() {
   expansion = ExpansionPortDevice::Satellaview;
 }
 
+bool System::update_region()
+{
+  Region new_region = configuration.region;
+
+  if (new_region == Region::Autodetect) {
+    new_region = (cartridge.region() == Cartridge::Region::NTSC ? Region::NTSC : Region::PAL);
+  }
+
+  if (new_region != region) {
+
+    region = new_region;
+    cpu_frequency = region == Region::NTSC ? 21477272 : 21281370;
+
+    cpu.refresh();
+    smp.refresh();
+    dsp.refresh();
+    ppu.refresh();
+
+    if (cartridge.has_gb_slot()) icd2.refresh();
+    if (cartridge.has_sa1()) sa1.refresh();
+    if (cartridge.has_superfx()) superfx.refresh();
+    if (cartridge.has_sgbexternal()) sgbExternal.refresh();
+    if (cartridge.has_msu1()) msu1.refresh();
+    return true;
+  }
+  return false;
+}
+
 }

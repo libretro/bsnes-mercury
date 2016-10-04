@@ -178,4 +178,8 @@ void MSU1::mmio_write(unsigned addr, uint8 data) {
   }
 }
 
+void MSU1::refresh() {
+  audio.coprocessor_frequency(44100.0);
+}
+
 }

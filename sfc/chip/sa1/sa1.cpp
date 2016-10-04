@@ -327,4 +327,9 @@ void SA1::reset() {
   mmio.overflow = false;
 }
 
+void SA1::refresh() {
+  Thread::frequency = system.cpu_frequency();
+  status.scanlines = system.region() == System::Region::NTSC ? 262 : 312;
+}
+
 }

@@ -390,6 +390,11 @@ void PPU::set_frameskip(unsigned frameskip_) {
   framecounter = 0;
 }
 
+void PPU::refresh() {
+  Thread::frequency = system.cpu_frequency();
+  region = (system.region() == System::Region::NTSC ? 0 : 1);
+}
+
 PPU::PPU() {
   surface = new uint32[512 * 512];
   output = surface + 16 * 512;
