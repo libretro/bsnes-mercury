@@ -85,7 +85,7 @@ struct Callbacks : Emulator::Interface::Bind {
   retro_input_poll_t pinput_poll;
   retro_input_state_t pinput_state;
   retro_environment_t penviron;
-  unsigned short overscan_mode;
+  bool crop_overscan;
   unsigned short region_mode;
   unsigned short aspect_ratio_mode;
   bool manifest;
@@ -151,20 +151,23 @@ struct Callbacks : Emulator::Interface::Bind {
   unsigned previous_height = 224;
   
   void videoRefresh(const uint32_t* palette, const uint32_t* data, unsigned pitch, unsigned width, unsigned height) override {
-    if (overscan_mode == 2) {
-      data += 7 * 1024;
+    if (crop_overscan) {
+      data += 8 * 1024;
       height = SuperFamicom::ppu.interlace() ? 448 : 224;
-    }
-    else if (overscan_mode == 1) {
-      // nothing
     }
     else
     {
-      if (!SuperFamicom::ppu.overscan())
+      if (SuperFamicom::ppu.overscan())
       {
-        data += 7 * 1024;
+        data += 1 * 1024;
+        height = SuperFamicom::ppu.interlace() ? 478 : 239;
+      }
+      else
+      {
+        data += 8 * 1024;
         height = SuperFamicom::ppu.interlace() ? 448 : 224;
       }
+      
     }
 
     if (height != previous_height)
@@ -515,7 +518,7 @@ void retro_set_environment(retro_environment_t environ_cb)
         //Any integer is usable here, but there is no such thing as "any integer" in core options.
       { "bsnes_region", "System region; auto|ntsc|pal" },
       { "bsnes_aspect_ratio", "Aspect ratio; auto|ntsc|pal" },
-      { "bsnes_overscan", "Show overscan; auto|disabled|enabled" }, 
+      { "bsnes_crop_overscan", "Crop overscan; disabled|enabled" }, 
 #ifdef EXPERIMENTAL_FEATURES
       { "bsnes_sgb_core", "Super Game Boy core; Internal|Gambatte" },
 #endif
@@ -604,14 +607,12 @@ static void update_variables(void) {
       SuperFamicom::superfx.frequency=(uint64)superfx_freq_orig*percent/100;
    }
 
-   struct retro_variable overscan_var = { "bsnes_overscan", "auto" };
+   struct retro_variable overscan_var = { "bsnes_crop_overscan", "disabled" };
    core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&overscan_var);
    if (strcmp(overscan_var.value, "enabled") == 0)
-     core_bind.overscan_mode = 1;
-   else if (strcmp(overscan_var.value, "disabled") == 0)
-     core_bind.overscan_mode = 2;
+     core_bind.crop_overscan = true;
    else
-     core_bind.overscan_mode = 0;
+     core_bind.crop_overscan = false;
 
    unsigned short old_region_mode = core_bind.region_mode;
    struct retro_variable region_var = { "bsnes_region", "auto" };
@@ -648,7 +649,7 @@ static void update_variables(void) {
 #ifdef __DEBUG
    output(RETRO_LOG_INFO, "superfx_freq_orig: %u\n", superfx_freq_orig);
    output(RETRO_LOG_INFO, "SuperFamicom::superfx.frequency: %u\n", SuperFamicom::superfx.frequency);
-   output(RETRO_LOG_INFO, "Overscan mode: %u\n", core_bind.overscan_mode);
+   output(RETRO_LOG_INFO, "Overscan mode: %u\n", core_bind.crop_overscan);
    output(RETRO_LOG_INFO, "Region mode: %u\n", core_bind.region_mode);
    output(RETRO_LOG_INFO, "Aspect ratio mode: %u\n", core_bind.aspect_ratio_mode);
 #endif
@@ -766,13 +767,11 @@ static void get_system_av_info(struct retro_system_av_info *info)
   struct retro_system_timing timing = { 0.0, 32040.5 };
   timing.fps = retro_get_region() == RETRO_REGION_NTSC ? 21477272.0 / 357366.0 : 21281370.0 / 425568.0;
   unsigned max_width = 512;
-  unsigned max_height = core_bind.overscan_mode == 2 ? 448 : 478;
+  unsigned max_height = core_bind.crop_overscan ? 448 : 478;
   unsigned base_width = 256;
   unsigned base_height = SuperFamicom::ppu.overscan() ? 239 : 224;
 
-  if (core_bind.overscan_mode == 1)
-    base_height = 239;
-  else if (core_bind.overscan_mode == 2)
+  if (core_bind.crop_overscan)
     base_height = 224;
 
   double aspect_ratio = get_aspect_ratio(base_width, base_height);
