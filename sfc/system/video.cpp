@@ -141,12 +141,31 @@ void Video::update() {
 
   //overscan: when disabled, shift image down (by scrolling video buffer up) to center image onscreen
   //(memory before ppu.output is filled with black scanlines)
+  uint32* output = ppu.output;
+  unsigned int width = 256 << hires;
+  unsigned int height = 239 << ppu.interlace();
+  unsigned int pitch = 4 * (1024 >> ppu.interlace());
+
+  if (!ppu.overscan()) 
+  {
+/* PERFORMANCE and BALANCED profiles don't update bottom overscan area in 224-line-mode at all, 
+   so it's better to be filled with blank here, or it may be filled with garbage. */
+#if defined(PROFILE_PERFORMANCE) || defined(PROFILE_BALANCED)
+    memset(output + (pitch >> 2 << ppu.interlace()) * 225, 0, (pitch << ppu.interlace()) * 8);
+#endif
+    output -= 6 * 1024;
+  }
+  else
+  {
+    output += 1 * 1024;
+  }
+
   interface->videoRefresh(
     video.palette,
-    ppu.output - (ppu.overscan() ? 0 : 7 * 1024),
-    4 * (1024 >> ppu.interlace()),
-    256 << hires,
-    240 << ppu.interlace()
+    output,
+    pitch,
+    width,
+    height
   );
 
   hires = false;

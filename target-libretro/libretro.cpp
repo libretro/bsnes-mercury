@@ -76,13 +76,18 @@ static retro_log_printf_t output;
 
 static const char * read_opt(const char * name, const char * defval);
 
+static void update_system_av_info();
+static void update_system_geometry();
+
 struct Callbacks : Emulator::Interface::Bind {
   retro_video_refresh_t pvideo_refresh;
   retro_audio_sample_batch_t paudio;
   retro_input_poll_t pinput_poll;
   retro_input_state_t pinput_state;
   retro_environment_t penviron;
-  bool overscan;
+  unsigned short overscan_mode;
+  unsigned short region_mode;
+  unsigned short aspect_ratio_mode;
   bool manifest;
 
   bool load_request_error;
@@ -143,14 +148,29 @@ struct Callbacks : Emulator::Interface::Bind {
     uint16_t video_buffer_16[512 * 480];
   };
 
+  unsigned previous_height = 224;
+  
   void videoRefresh(const uint32_t* palette, const uint32_t* data, unsigned pitch, unsigned width, unsigned height) override {
-    if (!overscan) {
-      data += 8 * 1024;
+    if (overscan_mode == 2) {
+      data += 7 * 1024;
+      height = SuperFamicom::ppu.interlace() ? 448 : 224;
+    }
+    else if (overscan_mode == 1) {
+      // nothing
+    }
+    else
+    {
+      if (!SuperFamicom::ppu.overscan())
+      {
+        data += 7 * 1024;
+        height = SuperFamicom::ppu.interlace() ? 448 : 224;
+      }
+    }
 
-      if (height == 240)
-        height = 224;
-      else if (height == 480)
-        height = 448;
+    if (height != previous_height)
+    {
+      previous_height = height;
+      update_system_geometry();
     }
 
     if (video_fmt == video_fmt_32)
@@ -492,7 +512,10 @@ void retro_set_environment(retro_environment_t environ_cb)
       { "bsnes_violate_accuracy", "Respect accuracy-impacting settings; No|Yes" },
       { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
       { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
-         //Any integer is usable here, but there is no such thing as "any integer" in core options.
+        //Any integer is usable here, but there is no such thing as "any integer" in core options.
+      { "bsnes_region", "System region; auto|ntsc|pal" },
+      { "bsnes_aspect_ratio", "Aspect ratio; auto|ntsc|pal" },
+      { "bsnes_overscan", "Show overscan; auto|disabled|enabled" }, 
 #ifdef EXPERIMENTAL_FEATURES
       { "bsnes_sgb_core", "Super Game Boy core; Internal|Gambatte" },
 #endif
@@ -572,12 +595,67 @@ void retro_set_environment(retro_environment_t environ_cb)
    environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
 }
 
+static bool update_viewport = false;
+
 static void update_variables(void) {
    if (SuperFamicom::cartridge.has_superfx()) {
       const char * speed=read_opt("bsnes_superfx_overclock", "100%");
       unsigned percent=strtoul(speed, NULL, 10);//we can assume that the input is one of our advertised options
       SuperFamicom::superfx.frequency=(uint64)superfx_freq_orig*percent/100;
    }
+
+   struct retro_variable overscan_var = { "bsnes_overscan", "auto" };
+   core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&overscan_var);
+   if (strcmp(overscan_var.value, "enabled") == 0)
+     core_bind.overscan_mode = 1;
+   else if (strcmp(overscan_var.value, "disabled") == 0)
+     core_bind.overscan_mode = 2;
+   else
+     core_bind.overscan_mode = 0;
+
+   unsigned short old_region_mode = core_bind.region_mode;
+   struct retro_variable region_var = { "bsnes_region", "auto" };
+   core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&region_var);
+   if (strcmp(region_var.value, "ntsc") == 0)
+     core_bind.region_mode = 1;
+   else if (strcmp(region_var.value, "pal") == 0)
+     core_bind.region_mode = 2;
+   else
+     core_bind.region_mode = 0;
+
+   if (core_bind.region_mode == 1)
+     SuperFamicom::configuration.region = SuperFamicom::System::Region::NTSC;
+   else if (core_bind.region_mode == 2)
+     SuperFamicom::configuration.region = SuperFamicom::System::Region::PAL;
+   else
+     SuperFamicom::configuration.region = SuperFamicom::System::Region::Autodetect;
+
+   if (old_region_mode != core_bind.region_mode) 
+   {
+     SuperFamicom::system.update_region();
+     update_viewport = true;
+   }
+
+   unsigned short old_aspect_ratio_mode = core_bind.aspect_ratio_mode;
+   struct retro_variable aspect_ratio_var = { "bsnes_aspect_ratio", "auto" };
+   core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&aspect_ratio_var);
+   if (strcmp(aspect_ratio_var.value, "ntsc") == 0)
+     core_bind.aspect_ratio_mode = 1;
+   else if (strcmp(aspect_ratio_var.value, "pal") == 0)
+     core_bind.aspect_ratio_mode = 2;
+   else
+     core_bind.aspect_ratio_mode = 0;
+
+   if (old_aspect_ratio_mode != core_bind.aspect_ratio_mode)
+   {
+     update_viewport = true;
+   }
+
+#ifdef __DEBUG
+   output(RETRO_LOG_INFO, "Overscan mode: %u\n", core_bind.overscan_mode);
+   output(RETRO_LOG_INFO, "Region mode: %u\n", core_bind.region_mode);
+   output(RETRO_LOG_INFO, "Aspect ratio mode: %u\n", core_bind.aspect_ratio_mode);
+#endif
 }
 
 void retro_set_video_refresh(retro_video_refresh_t cb)           { core_bind.pvideo_refresh = cb; }
@@ -592,6 +670,7 @@ void retro_set_controller_port_device(unsigned port, unsigned device) {
 }
 
 void retro_init(void) {
+  update_variables();
   SuperFamicom::interface = &core_interface;
   GameBoy::interface = &core_gb_interface;
 
@@ -613,18 +692,6 @@ void retro_reset(void) {
   SuperFamicom::system.reset();
 }
 
-void retro_run(void) {
-  core_bind.input_polled=false;
-  bool updated = false;
-  if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
-    update_variables();
-  SuperFamicom::system.run();
-  if(core_bind.sampleBufPos) {
-    core_bind.paudio(core_bind.sampleBuf, core_bind.sampleBufPos/2);
-    core_bind.sampleBufPos = 0;
-  }
-}
-
 size_t retro_serialize_size(void) {
   return SuperFamicom::system.serialize_size();
 }
@@ -639,7 +706,9 @@ bool retro_serialize(void *data, size_t size) {
 
 bool retro_unserialize(const void *data, size_t size) {
   serializer s((const uint8_t*)data, size);
-  return SuperFamicom::system.unserialize(s);
+  bool b = SuperFamicom::system.unserialize(s);
+  SuperFamicom::system.update_region();
+  return b;
 }
 
 #if 0
@@ -682,19 +751,97 @@ void retro_get_system_info(struct retro_system_info *info) {
   info->need_fullpath    = false;
 }
 
-void retro_get_system_av_info(struct retro_system_av_info *info) {
+#define SAMPLE_FREQ_PAL 14750000.0
+#define SAMPLE_FREQ_NTSC (135000000.0/11.0)
+static double get_aspect_ratio(unsigned width, unsigned height)
+{
+  bool is_pal = retro_get_region() == RETRO_REGION_PAL;
+  if (core_bind.aspect_ratio_mode == 1)
+    is_pal = false; 
+  else if (core_bind.aspect_ratio_mode == 2)
+    is_pal = true;
+
+  double par = (is_pal ? SAMPLE_FREQ_PAL : SAMPLE_FREQ_NTSC) / (SuperFamicom::ppu.frequency / 2.0);
+  return (double)width * par / (double)height; 
+}
+
+static void get_system_av_info(struct retro_system_av_info *info)
+{
+  update_variables();
+  memset(info, 0, sizeof(retro_system_av_info));
   struct retro_system_timing timing = { 0.0, 32040.5 };
   timing.fps = retro_get_region() == RETRO_REGION_NTSC ? 21477272.0 / 357366.0 : 21281370.0 / 425568.0;
-
-  if (!core_bind.penviron(RETRO_ENVIRONMENT_GET_OVERSCAN, &core_bind.overscan))
-     core_bind.overscan = false;
-
+  unsigned max_width = 512;
+  unsigned max_height = core_bind.overscan_mode == 2 ? 448 : 478;
   unsigned base_width = 256;
-  unsigned base_height = core_bind.overscan ? 240 : 224;
-  struct retro_game_geometry geom = { base_width, base_height, base_width << 1, base_height << 1, 4.0 / 3.0 };
+  unsigned base_height = SuperFamicom::ppu.overscan() ? 239 : 224;
 
-  info->timing   = timing;
+  if (core_bind.overscan_mode == 1)
+    base_height = 239;
+  else if (core_bind.overscan_mode == 2)
+    base_height = 224;
+
+  double aspect_ratio = get_aspect_ratio(base_width, base_height);
+#ifdef __DEBUG
+  output(RETRO_LOG_INFO, "Base height: %u\n", base_height);
+  output(RETRO_LOG_INFO, "Base width: %u\n", base_width);
+  output(RETRO_LOG_INFO, "Aspect ratio: %f\n", aspect_ratio);
+  output(RETRO_LOG_INFO, "FPS: %f\n", timing.fps);
+#endif
+  struct retro_game_geometry geom = { base_width, base_height, max_width, max_height, (float)aspect_ratio };
+
+  info->timing = timing;
   info->geometry = geom;
+}
+
+retro_system_av_info current_info;
+
+static void update_system_av_info()
+{
+  struct retro_system_av_info info;
+  get_system_av_info(&info);
+  bool b = false;
+  if (current_info.geometry.aspect_ratio != info.geometry.aspect_ratio)
+    b = true;
+  else if (current_info.geometry.base_height != info.geometry.base_height)
+    b = true;
+  else if (current_info.geometry.base_width != info.geometry.base_width)
+    b = true;
+  else if (current_info.timing.fps != info.timing.fps)
+    b = true;
+
+  if (b)
+  {
+    current_info.geometry = info.geometry;
+    current_info.timing = info.timing;
+    core_bind.penviron(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &info);
+  }
+}
+
+static void update_system_geometry()
+{
+  struct retro_system_av_info info;
+  get_system_av_info(&info);
+  bool b = false;
+  if (current_info.geometry.aspect_ratio != info.geometry.aspect_ratio)
+    b = true;
+  else if (current_info.geometry.base_height != info.geometry.base_height)
+    b = true;
+  else if (current_info.geometry.base_width != info.geometry.base_width)
+    b = true;
+
+  if (b)
+  {
+    current_info.geometry = info.geometry;
+    core_bind.penviron(RETRO_ENVIRONMENT_SET_GEOMETRY, &info.geometry);
+  }
+}
+
+void retro_get_system_av_info(struct retro_system_av_info *info)
+{
+  get_system_av_info(info);
+  current_info.geometry = info->geometry;
+  current_info.timing = info->timing;
 
   enum retro_pixel_format fmt;
   fmt = RETRO_PIXEL_FORMAT_XRGB8888;
@@ -711,6 +858,23 @@ void retro_get_system_av_info(struct retro_system_av_info *info) {
       core_bind.video_fmt = Callbacks::video_fmt_15;
     }
     SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard);
+  }
+}
+
+void retro_run(void) {
+  core_bind.input_polled = false;
+  bool updated = false;
+  if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+    update_variables();
+  if (update_viewport)
+  {
+    update_viewport = false;
+    update_system_geometry();
+  }
+  SuperFamicom::system.run();
+  if (core_bind.sampleBufPos) {
+    core_bind.paudio(core_bind.sampleBuf, core_bind.sampleBufPos / 2);
+    core_bind.sampleBufPos = 0;
   }
 }
 
