@@ -596,6 +596,7 @@ void retro_set_environment(retro_environment_t environ_cb)
 }
 
 static bool update_viewport = false;
+static void update_region(void);
 
 static void update_variables(void) {
    if (SuperFamicom::cartridge.has_superfx()) {
@@ -632,8 +633,7 @@ static void update_variables(void) {
 
    if (old_region_mode != core_bind.region_mode) 
    {
-     SuperFamicom::system.update_region();
-     update_viewport = true;
+     update_region();
    }
 
    unsigned short old_aspect_ratio_mode = core_bind.aspect_ratio_mode;
@@ -652,6 +652,8 @@ static void update_variables(void) {
    }
 
 #ifdef __DEBUG
+   output(RETRO_LOG_INFO, "superfx_freq_orig: %u\n", superfx_freq_orig);
+   output(RETRO_LOG_INFO, "SuperFamicom::superfx.frequency: %u\n", SuperFamicom::superfx.frequency);
    output(RETRO_LOG_INFO, "Overscan mode: %u\n", core_bind.overscan_mode);
    output(RETRO_LOG_INFO, "Region mode: %u\n", core_bind.region_mode);
    output(RETRO_LOG_INFO, "Aspect ratio mode: %u\n", core_bind.aspect_ratio_mode);
@@ -707,7 +709,7 @@ bool retro_serialize(void *data, size_t size) {
 bool retro_unserialize(const void *data, size_t size) {
   serializer s((const uint8_t*)data, size);
   bool b = SuperFamicom::system.unserialize(s);
-  SuperFamicom::system.update_region();
+  update_region();
   return b;
 }
 
@@ -1268,5 +1270,13 @@ size_t retro_get_memory_size(unsigned id) {
 
   if(size == -1U) size = 0;
   return size;
+}
+
+static void update_region() {
+  update_viewport = true;
+  SuperFamicom::system.update_region();
+  if (SuperFamicom::cartridge.has_superfx())
+    superfx_freq_orig = SuperFamicom::superfx.frequency;
+  update_variables();
 }
 
