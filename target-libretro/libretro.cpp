@@ -26,6 +26,9 @@
 #define RETRO_DEVICE_LIGHTGUN_JUSTIFIER    RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_LIGHTGUN, 1)
 #define RETRO_DEVICE_LIGHTGUN_JUSTIFIERS   RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_LIGHTGUN, 2)
 
+#define SAMPLE_FREQ_PAL 14750000.0
+#define SAMPLE_FREQ_NTSC (135000000.0/11.0)
+
 using namespace nall;
 
 const uint8 iplrom[64] = {
@@ -73,10 +76,9 @@ static void retro_log_default(enum retro_log_level level, const char *fmt, ...)
   va_end(args);
 }
 static retro_log_printf_t output;
+static unsigned previous_height = 224; // SNES boots in 256x224 display mode
 
 static const char * read_opt(const char * name, const char * defval);
-
-static void update_system_av_info();
 static void update_system_geometry();
 
 struct Callbacks : Emulator::Interface::Bind {
@@ -148,30 +150,32 @@ struct Callbacks : Emulator::Interface::Bind {
     uint16_t video_buffer_16[512 * 480];
   };
 
-  unsigned previous_height = 224;
-  
   void videoRefresh(const uint32_t* palette, const uint32_t* data, unsigned pitch, unsigned width, unsigned height) override {
-    if (crop_overscan) {
+    if (crop_overscan || !SuperFamicom::ppu.overscan()) {
       data += 8 * 1024;
-      height = SuperFamicom::ppu.interlace() ? 448 : 224;
+
+      if (height == 240)
+        height = 224;
+      else if (height == 480)
+        height = 448;
     }
     else
     {
-      if (SuperFamicom::ppu.overscan())
-      {
-        data += 1 * 1024;
-        height = SuperFamicom::ppu.interlace() ? 478 : 239;
-      }
-      else
-      {
-        data += 8 * 1024;
-        height = SuperFamicom::ppu.interlace() ? 448 : 224;
-      }
+      /* The data contains always 240/480 lines, but the top row/two rows are always blank and 
+         the actual data is in the bottom 239/478 lines. We want to display only the bottom 239/478 
+         active lines so move the data pointer and update the height accordingly. */
+      data += 1 * 1024;
       
+      if (height == 240)
+        height = 239;
+      else if (height == 480)
+        height = 478;
     }
 
     if (height != previous_height)
     {
+      output(RETRO_LOG_DEBUG, "Display height: %u\n", height);
+      output(RETRO_LOG_DEBUG, "Previous display height: %u\n", previous_height);
       previous_height = height;
       update_system_geometry();
     }
@@ -515,9 +519,9 @@ void retro_set_environment(retro_environment_t environ_cb)
       { "bsnes_violate_accuracy", "Respect accuracy-impacting settings; No|Yes" },
       { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
       { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
-        //Any integer is usable here, but there is no such thing as "any integer" in core options.
+         //Any integer is usable here, but there is no such thing as "any integer" in core options.
       { "bsnes_region", "System region; auto|ntsc|pal" },
-      { "bsnes_aspect_ratio", "Aspect ratio; auto|ntsc|pal" },
+      { "bsnes_aspect_ratio", "Preferred aspect ratio; auto|ntsc|pal" },
       { "bsnes_crop_overscan", "Crop overscan; disabled|enabled" }, 
 #ifdef EXPERIMENTAL_FEATURES
       { "bsnes_sgb_core", "Super Game Boy core; Internal|Gambatte" },
@@ -598,8 +602,6 @@ void retro_set_environment(retro_environment_t environ_cb)
    environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
 }
 
-static bool update_viewport = false;
-
 static void update_variables(void) {
    if (SuperFamicom::cartridge.has_superfx()) {
       const char * speed=read_opt("bsnes_superfx_overclock", "100%");
@@ -614,7 +616,6 @@ static void update_variables(void) {
    else
      core_bind.crop_overscan = false;
 
-   unsigned short old_region_mode = core_bind.region_mode;
    struct retro_variable region_var = { "bsnes_region", "auto" };
    core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&region_var);
    if (strcmp(region_var.value, "ntsc") == 0)
@@ -643,16 +644,14 @@ static void update_variables(void) {
 
    if (old_aspect_ratio_mode != core_bind.aspect_ratio_mode)
    {
-     update_viewport = true;
+     update_system_geometry();
    }
 
-#ifdef __DEBUG
-   output(RETRO_LOG_INFO, "superfx_freq_orig: %u\n", superfx_freq_orig);
-   output(RETRO_LOG_INFO, "SuperFamicom::superfx.frequency: %u\n", SuperFamicom::superfx.frequency);
-   output(RETRO_LOG_INFO, "Overscan mode: %u\n", core_bind.crop_overscan);
-   output(RETRO_LOG_INFO, "Region mode: %u\n", core_bind.region_mode);
-   output(RETRO_LOG_INFO, "Aspect ratio mode: %u\n", core_bind.aspect_ratio_mode);
-#endif
+   output(RETRO_LOG_DEBUG, "superfx_freq_orig: %u\n", superfx_freq_orig);
+   output(RETRO_LOG_DEBUG, "SuperFamicom::superfx.frequency: %u\n", SuperFamicom::superfx.frequency);
+   output(RETRO_LOG_DEBUG, "Overscan mode: %u\n", core_bind.crop_overscan);
+   output(RETRO_LOG_DEBUG, "Region mode: %u\n", core_bind.region_mode);
+   output(RETRO_LOG_DEBUG, "Aspect ratio mode: %u\n", core_bind.aspect_ratio_mode);
 }
 
 void retro_set_video_refresh(retro_video_refresh_t cb)           { core_bind.pvideo_refresh = cb; }
@@ -687,6 +686,18 @@ void retro_deinit(void) {
 
 void retro_reset(void) {
   SuperFamicom::system.reset();
+}
+
+void retro_run(void) {
+  core_bind.input_polled=false;
+  bool updated = false;
+  if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+    update_variables();
+  SuperFamicom::system.run();
+  if(core_bind.sampleBufPos) {
+    core_bind.paudio(core_bind.sampleBuf, core_bind.sampleBufPos/2);
+    core_bind.sampleBufPos = 0;
+  }
 }
 
 size_t retro_serialize_size(void) {
@@ -746,8 +757,6 @@ void retro_get_system_info(struct retro_system_info *info) {
   info->need_fullpath    = false;
 }
 
-#define SAMPLE_FREQ_PAL 14750000.0
-#define SAMPLE_FREQ_NTSC (135000000.0/11.0)
 static double get_aspect_ratio(unsigned width, unsigned height)
 {
   bool is_pal = retro_get_region() == RETRO_REGION_PAL;
@@ -762,80 +771,35 @@ static double get_aspect_ratio(unsigned width, unsigned height)
 
 static void get_system_av_info(struct retro_system_av_info *info)
 {
-  update_variables();
-  memset(info, 0, sizeof(retro_system_av_info));
   struct retro_system_timing timing = { 0.0, 32040.5 };
   timing.fps = retro_get_region() == RETRO_REGION_NTSC ? 21477272.0 / 357366.0 : 21281370.0 / 425568.0;
   unsigned max_width = 512;
   unsigned max_height = core_bind.crop_overscan ? 448 : 478;
   unsigned base_width = 256;
-  unsigned base_height = SuperFamicom::ppu.overscan() ? 239 : 224;
-
-  if (core_bind.crop_overscan)
-    base_height = 224;
+  unsigned base_height = core_bind.crop_overscan || !SuperFamicom::ppu.overscan() ? 224 : 239;
 
   double aspect_ratio = get_aspect_ratio(base_width, base_height);
-#ifdef __DEBUG
-  output(RETRO_LOG_INFO, "Base height: %u\n", base_height);
-  output(RETRO_LOG_INFO, "Base width: %u\n", base_width);
-  output(RETRO_LOG_INFO, "Aspect ratio: %f\n", aspect_ratio);
-  output(RETRO_LOG_INFO, "FPS: %f\n", timing.fps);
-#endif
+  output(RETRO_LOG_DEBUG, "Base height: %u\n", base_height);
+  output(RETRO_LOG_DEBUG, "Base width: %u\n", base_width);
+  output(RETRO_LOG_DEBUG, "Aspect ratio: %f\n", aspect_ratio);
+  output(RETRO_LOG_DEBUG, "FPS: %f\n", timing.fps);
   struct retro_game_geometry geom = { base_width, base_height, max_width, max_height, (float)aspect_ratio };
 
   info->timing = timing;
   info->geometry = geom;
 }
 
-retro_system_av_info current_info;
-
-static void update_system_av_info()
-{
-  struct retro_system_av_info info;
-  get_system_av_info(&info);
-  bool b = false;
-  if (current_info.geometry.aspect_ratio != info.geometry.aspect_ratio)
-    b = true;
-  else if (current_info.geometry.base_height != info.geometry.base_height)
-    b = true;
-  else if (current_info.geometry.base_width != info.geometry.base_width)
-    b = true;
-  else if (current_info.timing.fps != info.timing.fps)
-    b = true;
-
-  if (b)
-  {
-    current_info.geometry = info.geometry;
-    current_info.timing = info.timing;
-    core_bind.penviron(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &info);
-  }
-}
-
 static void update_system_geometry()
 {
   struct retro_system_av_info info;
   get_system_av_info(&info);
-  bool b = false;
-  if (current_info.geometry.aspect_ratio != info.geometry.aspect_ratio)
-    b = true;
-  else if (current_info.geometry.base_height != info.geometry.base_height)
-    b = true;
-  else if (current_info.geometry.base_width != info.geometry.base_width)
-    b = true;
-
-  if (b)
-  {
-    current_info.geometry = info.geometry;
-    core_bind.penviron(RETRO_ENVIRONMENT_SET_GEOMETRY, &info.geometry);
-  }
+  core_bind.penviron(RETRO_ENVIRONMENT_SET_GEOMETRY, &info.geometry);
 }
 
 void retro_get_system_av_info(struct retro_system_av_info *info)
 {
   get_system_av_info(info);
-  current_info.geometry = info->geometry;
-  current_info.timing = info->timing;
-
+  
   enum retro_pixel_format fmt;
   fmt = RETRO_PIXEL_FORMAT_XRGB8888;
   if (core_bind.penviron(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
@@ -851,23 +815,6 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
       core_bind.video_fmt = Callbacks::video_fmt_15;
     }
     SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard);
-  }
-}
-
-void retro_run(void) {
-  core_bind.input_polled = false;
-  bool updated = false;
-  if (core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
-    update_variables();
-  if (update_viewport)
-  {
-    update_viewport = false;
-    update_system_geometry();
-  }
-  SuperFamicom::system.run();
-  if (core_bind.sampleBufPos) {
-    core_bind.paudio(core_bind.sampleBuf, core_bind.sampleBufPos / 2);
-    core_bind.sampleBufPos = 0;
   }
 }
 
@@ -1262,5 +1209,4 @@ size_t retro_get_memory_size(unsigned id) {
   if(size == -1U) size = 0;
   return size;
 }
-
 
