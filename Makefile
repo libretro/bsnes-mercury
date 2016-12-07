@@ -29,7 +29,7 @@ sfc_lagfix := 1
 
 # compiler
 
-ifneq ($(debug),)
+ifeq ($(DEBUG), 1)
   flags := -I. -O0 -g
 else
   flags := -I. -O3 -fomit-frame-pointer
