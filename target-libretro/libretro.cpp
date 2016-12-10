@@ -675,7 +675,10 @@ void retro_cheat_set(unsigned index, bool enable, const char *code) {
 }
 
 void retro_get_system_info(struct retro_system_info *info) {
-  static string version("v", Emulator::Version, " (", Emulator::Profile, ")");
+#ifndef GIT_VERSION
+#define GIT_VERSION ""
+#endif
+  static string version("v", Emulator::Version, " (", Emulator::Profile, ")", GIT_VERSION);
   info->library_name     = "bsnes-mercury";
   info->library_version  = version;
   info->valid_extensions = "sfc|smc|bml";
