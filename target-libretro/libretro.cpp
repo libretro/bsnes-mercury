@@ -895,6 +895,9 @@ static void init_descriptors(void)
 }
 
 bool retro_load_game(const struct retro_game_info *info) {
+  if (!info)
+     return false;
+
   // Support loading a manifest directly.
   core_bind.manifest = info->path && string(info->path).endsWith(".bml");
   init_descriptors();
