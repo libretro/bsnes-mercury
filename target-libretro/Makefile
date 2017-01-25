@@ -28,7 +28,7 @@ endif
 
 flags += -D__LIBRETRO__
 
-GIT_VERSION := " $(shell git rev-parse --short HEAD || echo unknown)"
+GIT_VERSION ?= " $(shell git rev-parse --short HEAD || echo unknown)"
 ifneq ($(GIT_VERSION)," unknown")
 	flags += -DGIT_VERSION=\"$(GIT_VERSION)\"
 endif
