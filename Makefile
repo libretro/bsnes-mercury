@@ -35,8 +35,8 @@ else
   flags := -I. -O3 -fomit-frame-pointer
 endif
 
-cflags := -std=gnu99 -xc
-cppflags := -std=gnu++0x
+cflags := $(CPPFLAGS) $(CFLAGS) -std=gnu99 -xc
+cppflags := $(CPPFLAGS) $(CXXFLAGS) -std=gnu++0x
 
 objects := libco
 
