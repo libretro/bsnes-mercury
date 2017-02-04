@@ -53,7 +53,7 @@ ifeq ($(compiler),)
   else
     compiler := g++
     flags :=
-    link :=
+    link := $(LDFLAGS)
   endif
 
   cflags := -x c -std=c99
