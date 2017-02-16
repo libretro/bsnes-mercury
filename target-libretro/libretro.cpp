@@ -406,9 +406,9 @@ static Callbacks core_bind;
 
 static const char * read_opt(const char * name, const char * defval)
 {
-	struct retro_variable allowvar = { "bsnes_violate_accuracy", "No" };
+	struct retro_variable allowvar = { "bsnes_violate_accuracy", "disabled" };
 	core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&allowvar);
-	if (!strcmp(allowvar.value, "Yes"))
+	if (!strcmp(allowvar.value, "enabled"))
 	{
 		struct retro_variable var = {name, defval};
 		core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&var);
@@ -489,7 +489,7 @@ void retro_set_environment(retro_environment_t environ_cb)
    core_bind.penviron = environ_cb;
 
    static const struct retro_variable vars[] = {
-      { "bsnes_violate_accuracy", "Respect accuracy-impacting settings; No|Yes" },
+      { "bsnes_violate_accuracy", "Respect accuracy-impacting settings; disabled|enabled" },
       { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
       { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
          //Any integer is usable here, but there is no such thing as "any integer" in core options.
