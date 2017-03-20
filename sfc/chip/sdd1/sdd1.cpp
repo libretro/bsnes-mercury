@@ -50,6 +50,8 @@ uint8 SDD1::read(unsigned addr) {
   }
 
   switch(addr) {
+  case 0x4800: return sdd1_enable;
+  case 0x4801: return xfer_enable;
   case 0x4804: return mmc[0] >> 20;
   case 0x4805: return mmc[1] >> 20;
   case 0x4806: return mmc[2] >> 20;
