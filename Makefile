@@ -138,27 +138,6 @@ clean:
 	-@$(call delete,*.res)
 	-@$(call delete,*.manifest)
 
-archive:
-	if [ -f higan.tar.xz ]; then rm higan.tar.xz; fi
-	tar -cJf higan.tar.xz `ls`
-
-sync:
-ifeq ($(shell id -un),byuu)
-	if [ -d ./libco ]; then rm -r ./libco; fi
-	if [ -d ./nall ]; then rm -r ./nall; fi
-	if [ -d ./ruby ]; then rm -r ./ruby; fi
-	if [ -d ./phoenix ]; then rm -r ./phoenix; fi
-	cp -r ../libco ./libco
-	cp -r ../nall ./nall
-	cp -r ../ruby ./ruby
-	cp -r ../phoenix ./phoenix
-	rm -r libco/doc
-	rm -r libco/.test
-	rm -r nall/.test
-	rm -r ruby/.test
-	rm -r phoenix/.test
-endif
-
 help:;
 
 #this must be last because other things may have altered $(flags)
