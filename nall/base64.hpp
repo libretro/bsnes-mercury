@@ -74,7 +74,7 @@ string Base64::encode(const string& text, Format format) {
 vector<uint8_t> Base64::decode(const string& text) {
   vector<uint8_t> result;
 
-  uint8_t buffer, output;
+  uint8_t output;
   for(unsigned i = 0; i < text.size(); i++) {
     uint8_t buffer = value(text[i]);
     if(buffer == 0) break;

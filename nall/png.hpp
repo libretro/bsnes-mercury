@@ -76,7 +76,6 @@ bool png::decode(const uint8_t* sourceData, unsigned sourceSize) {
   while(offset < sourceSize) {
     unsigned length   = read(sourceData + offset + 0, 4);
     unsigned fourCC   = read(sourceData + offset + 4, 4);
-    unsigned checksum = read(sourceData + offset + 8 + length, 4);
 
     if(fourCC == (unsigned)FourCC::IHDR) {
       info.width             = read(sourceData + offset +  8, 4);
