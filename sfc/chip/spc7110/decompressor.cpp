@@ -14,7 +14,7 @@ struct Decompressor {
   //inverse morton code transform: unpack big-endian packed pixels
   //returns odd bits in lower half; even bits in upper half
   uint32 deinterleave(uint64 data, unsigned bits) {
-    data = data & (1ull << bits) - 1;
+    data = data & ((1ull << bits) - 1);
     data = 0x5555555555555555ull & (data << bits | data >> 1);
     data = 0x3333333333333333ull & (data | data >> 1);
     data = 0x0f0f0f0f0f0f0f0full & (data | data >> 2);
@@ -72,7 +72,7 @@ struct Decompressor {
 
       for(unsigned plane = 0; plane < bpp; plane++) {
         unsigned bit = bpp > 1 ? 1 << plane : 1 << (pixel & 3);
-        unsigned history = bit - 1 & output;
+        unsigned history = (bit - 1) & output;
         unsigned set = 0;
 
         if(bpp == 1) set = pixel >= 4;
@@ -108,7 +108,7 @@ struct Decompressor {
         if(symbol == LPS && model.probability > Half) ctx.swap ^= 1;
       }
 
-      unsigned index = output & (1 << bpp) - 1;
+      unsigned index = output & ((1 << bpp) - 1);
       if(bpp == 1) index ^= pixels >> 15 & 1;
 
       pixels = pixels << bpp | (map >> 4 * index & 15);
