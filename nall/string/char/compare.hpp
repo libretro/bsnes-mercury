@@ -28,7 +28,7 @@ int istrcmp(const char* str1, const char* str2) {
 
 bool strbegin(const char* str, const char* key) {
   if(!str || !key) return false;
-  int i, ssl = strlen(str), ksl = strlen(key);
+  int ssl = strlen(str), ksl = strlen(key);
 
   if(ksl > ssl) return false;
   return (!memcmp(str, key, ksl));
