@@ -196,7 +196,7 @@ uint16 Cx4::readw(uint16 addr) {
 }
 
 uint32 Cx4::readl(uint16 addr) {
-  return read(addr) | (read(addr + 1) << 8) + (read(addr + 2) << 16);
+  return read(addr) | ((read(addr + 1) << 8) + (read(addr + 2) << 16));
 }
 
 void Cx4::power() {
