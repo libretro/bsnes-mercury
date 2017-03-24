@@ -379,6 +379,7 @@ struct Callbacks : Emulator::Interface::Bind {
     if (video_fmt == video_fmt_32) return (r << 16) | (g << 8) | (b << 0);
     if (video_fmt == video_fmt_16) return (r>>3 << 11) | (g>>2 << 5) | (b>>3 << 0);
     if (video_fmt == video_fmt_15) return (r>>3 << 10) | (g>>3 << 5) | (b>>3 << 0);
+    return 0;
   }
 
   void notify(string text) {
