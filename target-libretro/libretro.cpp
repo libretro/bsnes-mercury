@@ -382,7 +382,7 @@ struct Callbacks : Emulator::Interface::Bind {
     return 0;
   }
 
-  void notify(string text) {
+  void notify(string text) override {
     output(RETRO_LOG_ERROR, "%s\n", (const char*)text);
   }
 
