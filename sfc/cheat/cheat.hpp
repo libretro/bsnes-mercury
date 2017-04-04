@@ -12,9 +12,6 @@ struct Cheat {
   void append(unsigned addr, unsigned data);
   void append(unsigned addr, unsigned comp, unsigned data);
   optional<unsigned> find(unsigned addr, unsigned comp);
-  
-  bool decode(const char *part, unsigned &addr, unsigned &data);
-  void synchronize();
 };
 
 extern Cheat cheat;
