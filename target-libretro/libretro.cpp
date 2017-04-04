@@ -421,8 +421,6 @@ static const char * read_opt(const char * name, const char * defval)
 struct Interface : public SuperFamicom::Interface {
   SuperFamicomCartridge::Mode mode;
 
-  void setCheats(const lstring &list = lstring());
-
   Interface();
 
   void init() {
