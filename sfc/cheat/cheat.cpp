@@ -1,4 +1,5 @@
 #include <sfc/sfc.hpp>
+#include <iostream>
 
 #define CHEAT_CPP
 namespace SuperFamicom {

@@ -421,8 +421,6 @@ static const char * read_opt(const char * name, const char * defval)
 struct Interface : public SuperFamicom::Interface {
   SuperFamicomCartridge::Mode mode;
 
-  void setCheats(const lstring &list = lstring());
-
   Interface();
 
   void init() {
@@ -443,40 +441,6 @@ static GBInterface core_gb_interface;
 Interface::Interface() {
   bind = &core_bind;
   core_bind.iface = &core_interface;
-}
-
-void Interface::setCheats(const lstring &) {
-#if 0
-  if(core_interface.mode == SuperFamicomCartridge::ModeSuperGameBoy) {
-    GameBoy::cheat.reset();
-    for(auto &code : list) {
-      lstring codelist;
-      codelist.split("+", code);
-      for(auto &part : codelist) {
-        unsigned addr, data, comp;
-        if(GameBoy::Cheat::decode(part, addr, data, comp)) {
-          GameBoy::cheat.append({addr, data, comp});
-        }
-      }
-    }
-    GameBoy::cheat.synchronize();
-    return;
-  }
-
-  SuperFamicom::cheat.reset();
-  for(auto &code : list) {
-    lstring codelist;
-    codelist.split("+", code);
-    for(auto &part : codelist) {
-      unsigned addr, data;
-      if(SuperFamicom::Cheat::decode(part, addr, data)) {
-        SuperFamicom::cheat.append({addr, data});
-      }
-    }
-  }
-
-  SuperFamicom::cheat.synchronize();
-#endif
 }
 
 unsigned retro_api_version(void) {
@@ -643,36 +607,170 @@ bool retro_unserialize(const void *data, size_t size) {
   return SuperFamicom::system.unserialize(s);
 }
 
-#if 0
-struct CheatList {
-  bool enable;
-  string code;
-  CheatList() : enable(false) {}
-};
-
-static vector<CheatList> cheatList;
-#endif
-
 void retro_cheat_reset(void) {
-#if 0
-  cheatList.reset();
-  core_interface.setCheats();
-#endif
+  SuperFamicom::cheat.reset();
+}
+
+static char genie_replace(char input){
+  switch (input){
+    case '0':
+      return '4';
+    case '1':
+      return '6';
+    case '2':
+      return 'D';
+    case '3':
+      return 'E';
+    case '4':
+      return '2';
+    case '5':
+      return '7';
+    case '6':
+      return '8';
+    case '7':
+      return '3';
+    case '8':
+      return 'B';
+    case '9':
+      return '5';
+    case 'A':
+    case 'a':
+      return 'C';
+    case 'B':
+    case 'b':
+      return '9';
+    case 'C':
+    case 'c':
+      return 'A';
+    case 'D':
+    case 'd':
+      return '0';
+    case 'E':
+    case 'e':
+      return 'F';
+    case 'F':
+    case 'f':
+      break;
+  }
+
+  return '1';
 }
 
 void retro_cheat_set(unsigned index, bool enable, const char *code) {
-#if 0
-  cheatList.reserve(index+1);
-  cheatList[index].enable = enable;
-  cheatList[index].code = code;
-  lstring list;
+  char codeCopy[256];
+  char *part;
+  unsigned addr, data;
+  char addr_str[7], data_str[6];
+  char *nulstr = '\0';
+
+  if (code == nulstr) return;
+  strcpy(codeCopy,code);
+  part=strtok(codeCopy,"+,;._ ");
   
-  for(unsigned n = 0; n < cheatList.size(); n++) {
-    if(cheatList[n].enable) list.append(cheatList[n].code);
+  while (part!=NULL)
+  {
+
+    addr_str[6]=0;
+    data_str[2]=0;
+    data_str[6]=0;
+    addr=data=0;
+
+    //RAW
+    if (strlen(part)>=9 && part[6]==':') {
+      strncpy(addr_str,part,6);
+      strncpy(data_str,part+7,2);
+      addr=strtoul(addr_str,&nulstr,16);
+      data=strtoul(data_str,&nulstr,16);
+      SuperFamicom::cheat.append(addr,data);
+    }
+
+    //Game Genie
+    else if (strlen(part)>=9 && part[4]=='-') {
+      strncpy(data_str,part,2);
+      strncpy(addr_str,part+2,2);
+      strncpy(addr_str+2,part+5,4);
+      for (int i=0;i<2;i++)
+        data_str[i]=genie_replace(data_str[i]);
+      for (int i=0;i<6;i++)
+        addr_str[i]=genie_replace(addr_str[i]);
+      data=strtoul(data_str,&nulstr,16);
+      int addr_scrambled=strtoul(addr_str,&nulstr,16);
+      addr=(addr_scrambled&0x003C00)<<10;
+      addr|=(addr_scrambled&0x00003C)<<14;
+      addr|=(addr_scrambled&0xF00000)>>8;
+      addr|=(addr_scrambled&0x000003)<<10;
+      addr|=(addr_scrambled&0x00C000)>>6;
+      addr|=(addr_scrambled&0x0F0000)>>12;
+      addr|=(addr_scrambled&0x0003C0)>>6;
+      SuperFamicom::cheat.append(addr,data);
+    }
+
+    //PAR & X-Terminator
+    else if (strlen(part)==8) {
+      strncpy(addr_str,part,6);
+      strncpy(data_str,part+6,2);
+      addr=strtoul(addr_str,&nulstr,16);
+      data=strtoul(data_str,&nulstr,16);
+      SuperFamicom::cheat.append(addr,data);
+    }
+
+    //Gold Finger
+    else if (strlen(part)==14) {
+      if (part[13]=='1'){
+        retro_log_default(RETRO_LOG_INFO,"CHEAT: Goldfinger SRAM cheats not supported: %s\n",part);
+        goto nextLine;
+      }
+      addr_str[0]='0';
+      strncpy(addr_str+1,part,5);
+
+      addr=strtoul(addr_str,&nulstr,16);
+      addr=(addr&0x7FFF)|((addr&0x7F8000)<<1)|0x8000;
+
+      strncpy(data_str,part+5,6);
+
+      char pair_str[3];
+      pair_str[2]=0;
+      int csum_calc=0,csum_code;
+      for (int i=0;i<6;i++){
+        if (i<3){
+          strncpy(pair_str,addr_str+2*i,2);
+        } else {
+          strncpy(pair_str,part+2*i-1,2);
+        }
+        csum_calc+=strtoul(pair_str,&nulstr,16);
+      }
+      csum_calc-=0x160;
+      csum_calc&=0xFF;
+      strncpy(pair_str,part+11,2);
+      csum_code=strtoul(pair_str,&nulstr,16);
+      if (csum_calc!=csum_code){
+        retro_log_default(RETRO_LOG_INFO,"CHEAT: Goldfinger calculated checksum '%X' doesn't match code: %s\n", csum_calc, part);
+        goto nextLine;
+      }
+
+      for (int i=0;i<3;i++){
+        strncpy(pair_str,data_str+2*i,2);
+        if (pair_str[0]!='x' && pair_str[0]!='X'){
+          data=strtoul(pair_str,&nulstr,16);
+          SuperFamicom::cheat.append(addr+i,data);
+        }
+      }
+    }
+
+    //Unknown
+    else {
+      retro_log_default(RETRO_LOG_INFO, "CHEAT: Unrecognized code type: %s\n",part);
+    }
+
+    if (addr == 0 || data == 0){
+      retro_log_default(RETRO_LOG_INFO,"CHEAT: Decoding failed: %s\n",part);
+    }
+
+    nextLine:
+      part=strtok(NULL,"+,;._ ");
+
   }
   
-  core_interface.setCheats(list);
-#endif
 }
 
 void retro_get_system_info(struct retro_system_info *info) {

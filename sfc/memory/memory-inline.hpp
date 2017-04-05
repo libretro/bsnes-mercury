@@ -95,11 +95,9 @@ uint8 Bus::read(unsigned addr) {
   if (fast_read[addr>>fast_page_size_bits]) data = fast_read[addr>>fast_page_size_bits][addr];
   else data = reader[lookup[addr]](target[addr]);
 
-#ifndef __LIBRETRO__
   if(cheat.enable()) {
     if(auto result = cheat.find(addr, data)) return result();
   }
-#endif
 
   return data;
 }
