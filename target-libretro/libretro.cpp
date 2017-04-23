@@ -454,7 +454,7 @@ void retro_set_environment(retro_environment_t environ_cb)
    core_bind.penviron = environ_cb;
 
    static const struct retro_variable vars[] = {
-      { "bsnes_violate_accuracy", "Respect accuracy-impacting settings; disabled|enabled" },
+      { "bsnes_violate_accuracy", "Allow settings to reduce accuracy; disabled|enabled" },
       { "bsnes_chip_hle", "Special chip accuracy; LLE|HLE" },
       { "bsnes_superfx_overclock", "SuperFX speed; 100%|150%|200%|300%|400%|500%|1000%" },
          //Any integer is usable here, but there is no such thing as "any integer" in core options.
