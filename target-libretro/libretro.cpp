@@ -735,7 +735,7 @@ void retro_cheat_set(unsigned index, bool enable, const char *code) {
   char codeCopy[256];
   char *part;
   unsigned addr, data;
-  char addr_str[7], data_str[6];
+  char addr_str[7], data_str[7];
   char *nulstr = (char *)'\0';
 
   if (code == nulstr) return;
