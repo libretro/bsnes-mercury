@@ -1,6 +1,12 @@
 #ifndef NALL_BIT_HPP
 #define NALL_BIT_HPP
 
+// workaround for an infinite loop compiler bug in gcc7
+// https://github.com/libretro/bsnes-mercury/issues/47
+#if defined(PROFILE_ACCURACY)
+#define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+#endif
+
 #include <nall/stdint.hpp>
 
 namespace nall {
@@ -10,10 +16,23 @@ template<unsigned bits> inline uintmax_t uclamp(const uintmax_t x) {
   return y + ((x - y) & -(x < y));  //min(x, y);
 }
 
+#if defined(PROFILE_ACCURACY)
+#if GCC_VERSION > 70000
+#pragma GCC push_options
+#pragma GCC optimize ("no-strict-aliasing")
+#endif
+#endif
+
 template<unsigned bits> inline uintmax_t uclip(const uintmax_t x) {
   enum : uintmax_t { b = 1ull << (bits - 1), m = b * 2 - 1 };
   return (x & m);
 }
+
+#if defined(PROFILE_ACCURACY)
+#if GCC_VERSION > 70000
+#pragma GCC pop_options
+#endif
+#endif
 
 template<unsigned bits> inline intmax_t sclamp(const intmax_t x) {
   enum : intmax_t { b = 1ull << (bits - 1), m = b - 1 };
