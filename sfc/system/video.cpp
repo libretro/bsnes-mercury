@@ -33,8 +33,9 @@ void Video::generate_palette(Emulator::Interface::PaletteMode mode) {
       b = image::normalize(b, 5, 8);
     }
 
-    double L = (1.0 + l) / 16.0;
-    if(l == 0) L *= 0.5;
+    //luma=0 is not 100% black; but it's much darker than normal linear scaling
+    //exact effect seems to be analog; requires > 24-bit color depth to represent accurately
+    double L = (1.0 + l) / 16.0 * (l ? 1.0 : 0.25);
     unsigned R = L * image::normalize(r, 8, 16);
     unsigned G = L * image::normalize(g, 8, 16);
     unsigned B = L * image::normalize(b, 8, 16);
