@@ -272,6 +272,15 @@ void DSP::power() {
     voice[i].t_envx_out = 0;
     voice[i].hidden_env = 0;
   }
+  
+  for(unsigned r = 0; r < 0x80; r++) {
+      state.regs[r] = random(0x00);
+  }
+
+  for(unsigned v = 0; v < 8; v++) {
+    state.regs[v * 0x10 + v_envx] = 0;
+    state.regs[v * 0x10 + v_outx] = 0;
+  }
 }
 
 void DSP::reset() {
