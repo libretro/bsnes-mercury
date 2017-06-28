@@ -273,14 +273,14 @@ void DSP::power() {
     voice[i].hidden_env = 0;
   }
   
+  //note: memory is pseudo-random at startup; but internal state is less so
+  //exact differences are unknown. need to separate memory from internal state
   for(unsigned r = 0; r < 0x80; r++) {
-      state.regs[r] = random(0x00);
+     state.regs[r] = 0x00;
   }
+  REG(endx) = random(0x00);
 
-  for(unsigned v = 0; v < 8; v++) {
-    state.regs[v * 0x10 + v_envx] = 0;
-    state.regs[v * 0x10 + v_outx] = 0;
-  }
+  REG(flg) = 0xe0;
 }
 
 void DSP::reset() {
