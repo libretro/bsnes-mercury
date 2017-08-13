@@ -5,8 +5,8 @@ bsnes-mercury is a fork of higan, aiming to restore some useful features that ha
 Maximum accuracy is still uncompromisable; anything that affects accuracy is optional and off by default.
 
 In case you read any FUD regarding bsnes mercury, this is perhaps worth a read -		
- -		
- -https://floating.muncher.se/byuu/uncooperative.html
+
+- https://floating.muncher.se/byuu/uncooperative.html
 
 Changes to upstream:
 - The biggest change is getting the interface sane, which is accomplished through libretro.
