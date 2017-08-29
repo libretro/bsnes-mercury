@@ -18,4 +18,4 @@ Todo list:
 - Is the compat core's DSP identical to that of the accuracy core, but a bit faster?
 - Examine if ST-0011 is confused by attempts to HLE it.
 
-The name is because metals are shiny, like the accuracy promises of bsnes, and mercury is the fastest metal. And like byuu's constantly changing interfaces, mercury is harmful to your brain :)
+The name is because metals are shiny, like the accuracy promises of bsnes, and mercury is the fastest metal.
