@@ -88,6 +88,7 @@ struct Callbacks : Emulator::Interface::Bind {
   retro_input_state_t pinput_state;
   retro_environment_t penviron;
   bool crop_overscan;
+  bool gamma_ramp;
   unsigned short region_mode;
   unsigned short aspect_ratio_mode;
   bool manifest;
@@ -451,14 +452,20 @@ struct Interface : public SuperFamicom::Interface {
   Interface();
 
   void init() {
-     SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard);
+     if (core_bind.gamma_ramp)
+        { SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Emulation); }
+     else
+        { SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard); }
   }
 };
 
 struct GBInterface : public GameBoy::Interface {
   GBInterface() { bind = &core_bind; }
   void init() {
-     SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard);
+     if (core_bind.gamma_ramp)
+        { SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Emulation); }
+     else
+        { SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard); }
   }
 };
 
@@ -488,6 +495,7 @@ void retro_set_environment(retro_environment_t environ_cb)
       { "bsnes_region", "System region; auto|ntsc|pal" },
       { "bsnes_aspect_ratio", "Preferred aspect ratio; auto|ntsc|pal" },
       { "bsnes_crop_overscan", "Crop overscan; disabled|enabled" }, 
+      { "bsnes_gamma_ramp", "Gamma ramp (requires restart); disabled|enabled" },
 #ifdef EXPERIMENTAL_FEATURES
       { "bsnes_sgb_core", "Super Game Boy core; Internal|Gambatte" },
 #endif
@@ -580,6 +588,13 @@ static void update_variables(void) {
      core_bind.crop_overscan = true;
    else
      core_bind.crop_overscan = false;
+     
+   struct retro_variable gamma_ramp_var = { "bsnes_gamma_ramp", "disabled" };
+   core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&gamma_ramp_var);
+   if (strcmp(gamma_ramp_var.value, "enabled") == 0)
+     core_bind.gamma_ramp = true;
+   else
+     core_bind.gamma_ramp = false;
 
    struct retro_variable region_var = { "bsnes_region", "auto" };
    core_bind.penviron(RETRO_ENVIRONMENT_GET_VARIABLE, (void*)&region_var);
@@ -916,7 +931,10 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
       //this one is always supported
       core_bind.video_fmt = Callbacks::video_fmt_15;
     }
-    SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard);
+    if (core_bind.gamma_ramp)
+        { SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Emulation); }
+     else
+        { SuperFamicom::video.generate_palette(Emulator::Interface::PaletteMode::Standard); }
   }
 }
 
