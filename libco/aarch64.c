@@ -38,7 +38,7 @@ asm (
       "  stp x26, x27, [x1, #128]\n"
       "  stp x28, x29, [x1, #144]\n"
       "  mov x16, sp\n"
-      "  stp x16, lr, [x1, #160]\n"
+      "  stp x16, x30, [x1, #160]\n"
 
       "  ldp x8,  x9,  [x0]\n"
       "  ldp x10, x11, [x0, #16]\n"
