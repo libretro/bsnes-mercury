@@ -6,7 +6,7 @@ namespace nall {
 struct Intrinsics {
   enum class Compiler : unsigned { Clang, GCC, VisualCPP, Unknown };
   enum class Platform : unsigned { Windows, MacOSX, X, Unknown };  //X = Linux, BSD, etc
-  enum class Architecture : unsigned { x86, amd64, ARM, Unknown };
+  enum class Architecture : unsigned { x86, amd64, ARM, aarch64, Unknown };
   enum class Endian : unsigned { LSB, MSB, Unknown };
 
   static inline Compiler compiler();
@@ -57,6 +57,9 @@ struct Intrinsics {
 #elif defined(__amd64__) || defined(_M_AMD64)
   #define ARCH_AMD64
   Intrinsics::Architecture Intrinsics::architecture() { return Intrinsics::Architecture::amd64; }
+#elif defined(__aarch64__)
+  #define ARCH_AARCH64
+  Intrinsics::Architecture Intrinsics::architecture() { return Intrinsics::Architecture::aarch64; }
 #elif defined(__arm__) || defined(__ARM_EABI__)
   #define ARCH_ARM
   Intrinsics::Architecture Intrinsics::architecture() { return Intrinsics::Architecture::ARM; }
@@ -68,7 +71,7 @@ struct Intrinsics {
 
 /* Endian detection */
 
-#if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__amd64__) || defined(_M_IX86) || defined(_M_AMD64) || defined(__ARM_EABI__) || defined(__arm__)
+#if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && __BYTE_ORDER == __LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || defined(__i386__) || defined(__amd64__) || defined(_M_IX86) || defined(_M_AMD64) || defined(__ARM_EABI__) || defined(__arm__)  || defined(__aarch64__)
   #define ENDIAN_LSB
   Intrinsics::Endian Intrinsics::endian() { return Intrinsics::Endian::LSB; }
 #elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && __BYTE_ORDER == __BIG_ENDIAN) || defined(__BIG_ENDIAN__) || defined(__powerpc__) || defined(_M_PPC)
