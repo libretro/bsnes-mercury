@@ -11,7 +11,7 @@ addons:
 env:
   global:
     - CORE=bsnes_mercury
-    - COMPILER_NAME=gcc CXX=g++-7 CC=gcc-7
+    - COMPILER_NAME=gcc CXX=g++-7 CC=gcc-7 CXX11=g++-7
   matrix:
     - PLATFORM=linux_x64
 before_script:
