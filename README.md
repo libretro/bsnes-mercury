@@ -1,10 +1,9 @@
-bsnes-mercury
--------------
+# bsnes-mercury
 
 bsnes-mercury is a fork of higan, aiming to restore some useful features that have been removed, as well as improving performance a bit.
 Maximum accuracy is still uncompromisable; anything that affects accuracy is optional and off by default.
 
-Changes to upstream:
+## Changes to upstream:
 - The biggest change is getting the interface sane, which is accomplished through libretro.
 - 'inline' was added all across the PPU subclasses. Framerate went up by 20% from such a trivial change! (Spamming inline elsewhere does little if anything, so it wasn't done.)
 - A fast path was added to various parts of the CPU bus, improving framerate by about 2.5%.
@@ -14,7 +13,7 @@ Changes to upstream:
 - HLE emulation of some special chips is optionally restored (defaults to LLE), to improve performance and reduce reliance on those chip ROMs (they're not really easy to find). Chips for which no HLE emulation was developed (ST-0011 and ST-0018) are still LLE.
 - SuperFX overclock is now available (off by default, of course); if enabled, it makes Star Fox look quite a lot smoother.
 
-Todo list:
+## Todo list:
 - Is the compat core's DSP identical to that of the accuracy core, but a bit faster?
 - Examine if ST-0011 is confused by attempts to HLE it.
 
