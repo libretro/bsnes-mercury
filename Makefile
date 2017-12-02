@@ -130,13 +130,11 @@ flags := $(flags) $(foreach o,$(call strupper,$(options)),-D$o)
 
 # targets
 clean:
-	-@$(call delete,obj/*.o)
-	-@$(call delete,obj/*.a)
-	-@$(call delete,obj/*.so)
-	-@$(call delete,obj/*.dylib)
-	-@$(call delete,obj/*.dll)
-	-@$(call delete,*.res)
-	-@$(call delete,*.manifest)
+	rm -f obj/*.o
+	rm -f obj/*.a
+	rm -f out/*.so
+	rm -f out/*.dylib
+	rm -f out/*.dll
 
 help:;
 

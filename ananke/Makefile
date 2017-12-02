@@ -20,9 +20,9 @@ resource: force
 	sourcery resource/resource.bml resource/resource.cpp resource/resource.hpp
 
 clean:
-	-@$(call delete,obj/*.o)
-	-@$(call delete,*.dll)
-	-@$(call delete,*.so)
+	rm -f obj/*.o
+	rm -f *.dll
+	rm -f *.so
 
 install: uninstall
 ifeq ($(platform),windows)
