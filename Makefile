@@ -135,8 +135,6 @@ clean:
 	-$(call delete,out/*.so)
 	-$(call delete,out/*.dylib)
 	-$(call delete,out/*.dll)
-	-$(call delete,*.res)
-	-$(call delete,*.manifest)
 
 help:;
 
