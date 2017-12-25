@@ -13,7 +13,9 @@ env:
     - CORE=bsnes_mercury
     - COMPILER_NAME=gcc CXX=g++-7 CC=gcc-7 CXX11=g++-7
   matrix:
-    - PLATFORM=linux_x64
+    - PLATFORM=linux_x64 NAME=bsnes_mercury_accuracy
+    - PLATFORM=linux_x64 NAME=bsnes_mercury_balanced
+    - PLATFORM=linux_x64 NAME=bsnes_mercury_performance
 before_script:
   - pwd
   - mkdir -p ~/bin
