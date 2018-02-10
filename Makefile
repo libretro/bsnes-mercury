@@ -83,6 +83,9 @@ ifeq ($(findstring libretro,$(ui)),)
   else ifeq ($(platform),bsd)
     flags += -march=native
     link += -Wl,-export-dynamic -lX11 -lXext
+  else ifeq ($(platform),haiku)
+    flags += -march=native
+    link += -Wl,-export-dynamic -lX11 -lXext -lroot
   else
     $(error unsupported platform.)
   endif
