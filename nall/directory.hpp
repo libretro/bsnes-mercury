@@ -190,9 +190,16 @@ private:
       while((ep = readdir(dp))) {
         if(!strcmp(ep->d_name, ".")) continue;
         if(!strcmp(ep->d_name, "..")) continue;
+#if defined(__HAIKU__) || defined(__sun)
+		struct stat sp = {0};
+        stat(ep->d_name, &sp);
+        bool is_directory = S_ISDIR(sp.st_mode);
+		if(!(S_ISDIR(sp.st_mode)) & !(S_ISREG(sp.st_mode)) & !(S_ISLNK(sp.st_mode))) {
+#else
         bool is_directory = ep->d_type & DT_DIR;
         if(ep->d_type & DT_UNKNOWN) {
           struct stat sp = {0};
+#endif
           stat(string{pathname, ep->d_name}, &sp);
           is_directory = S_ISDIR(sp.st_mode);
         }
@@ -215,7 +222,13 @@ private:
       while((ep = readdir(dp))) {
         if(!strcmp(ep->d_name, ".")) continue;
         if(!strcmp(ep->d_name, "..")) continue;
+#if defined(__HAIKU__) || defined(__sun)
+        struct stat sp = {0};
+        stat(ep->d_name, &sp);
+        if(!S_ISDIR(sp.st_mode)) {
+#else
         if((ep->d_type & DT_DIR) == 0) {
+#endif
           if(strmatch(ep->d_name, pattern)) list.append(ep->d_name);
         }
       }

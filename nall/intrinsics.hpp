@@ -40,7 +40,7 @@ struct Intrinsics {
 #elif defined(__APPLE__)
   #define PLATFORM_MACOSX
   Intrinsics::Platform Intrinsics::platform() { return Intrinsics::Platform::MacOSX; }
-#elif defined(linux) || defined(__linux__) || defined(__sun__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__GNU__)
+#elif defined(linux) || defined(__linux__) || defined(__sun__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__GNU__) || defined(__HAIKU__) || defined(__sun)
   #define PLATFORM_X
   Intrinsics::Platform Intrinsics::platform() { return Intrinsics::Platform::X; }
 #else
