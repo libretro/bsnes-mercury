@@ -102,6 +102,7 @@ LOCAL_SRC_FILES += $(SRCDIR)/libco/libco.c \
 LOCAL_CPPFLAGS += -std=gnu++11 -fexceptions -frtti -Wno-literal-suffix 
 LOCAL_CFLAGS += -O3 -fomit-frame-pointer -ffast-math -D__LIBRETRO__
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../..
+LOCAL_LDLIBS := -latomic
 
 include $(BUILD_SHARED_LIBRARY)
 
