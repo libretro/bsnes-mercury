@@ -641,8 +641,8 @@ void retro_init(void) {
   core_bind.sampleBufPos = 0;
 
   SuperFamicom::system.init();
-  SuperFamicom::input.connect(SuperFamicom::Controller::Port1, SuperFamicom::Input::Device::Joypad);
-  SuperFamicom::input.connect(SuperFamicom::Controller::Port2, SuperFamicom::Input::Device::Joypad);
+  SuperFamicom::input.connect(SuperFamicom::Controller::Port1, SuperFamicom::Input::Device::None);
+  SuperFamicom::input.connect(SuperFamicom::Controller::Port2, SuperFamicom::Input::Device::None);
 }
 
 void retro_deinit(void) {
