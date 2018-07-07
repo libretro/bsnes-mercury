@@ -17,7 +17,7 @@ template<unsigned bits> inline uintmax_t uclamp(const uintmax_t x) {
 }
 
 #if defined(PROFILE_ACCURACY)
-#if GCC_VERSION > 70000
+#if GCC_VERSION > 70000 && GCC_VERSION < 80101
 #pragma GCC push_options
 #pragma GCC optimize ("no-strict-aliasing")
 #endif
@@ -29,7 +29,7 @@ template<unsigned bits> inline uintmax_t uclip(const uintmax_t x) {
 }
 
 #if defined(PROFILE_ACCURACY)
-#if GCC_VERSION > 70000
+#if GCC_VERSION > 70000 && GCC_VERSION < 80101
 #pragma GCC pop_options
 #endif
 #endif
