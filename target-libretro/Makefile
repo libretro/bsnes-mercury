@@ -5,6 +5,8 @@ include sfc/Makefile
 include gb/Makefile
 output := libretro
 
+core_installdir := $(prefix)/lib
+
 ifeq ($(platform),linux)
   flags += -fPIC
   ifeq ($(arch),arm)
@@ -65,23 +67,23 @@ endif
 
 install:
 ifeq ($(platform),linux)
-	install -D -m 755 out/bsnes_mercury_$(profile)_libretro.so $(DESTDIR)$(prefix)/lib/bsnes_mercury_$(profile)_libretro.so
+	install -D -m 755 out/bsnes_mercury_$(profile)_libretro.so $(DESTDIR)$(core_installdir)/bsnes_mercury_$(profile)_libretro.so
 else ifeq ($(platform),bsd)
-	install -D -m 755 out/bsnes_mercury_$(profile)_libretro.so $(DESTDIR)$(prefix)/lib/bsnes_mercury_$(profile)_libretro.so
+	install -D -m 755 out/bsnes_mercury_$(profile)_libretro.so $(DESTDIR)$(core_installdir)/bsnes_mercury_$(profile)_libretro.so
 else ifeq ($(platform),macosx)
-	cp out/bsnes_mercury_$(profile)_libretro.dylib $(DESTDIR)$(prefix)/lib/bsnes_mercury_$(profile)_libretro.dylib
+	cp out/bsnes_mercury_$(profile)_libretro.dylib $(DESTDIR)$(core_installdir)/bsnes_mercury_$(profile)_libretro.dylib
 else ifneq (,$(findstring ios,$(platform)))
-	cp out/bsnes_mercury_$(profile)_libretro_ios.dylib $(DESTDIR)$(prefix)/lib/bsnes_mercury_$(profile)_libretro_ios.dylib
+	cp out/bsnes_mercury_$(profile)_libretro_ios.dylib $(DESTDIR)$(core_installdir)/bsnes_mercury_$(profile)_libretro_ios.dylib
 endif
 
 uninstall:
 ifeq ($(platform),linux)
-	rm $(DESTDIR)$(prefix)/lib/bsnes_mercury_$(profile)_libretro.so
+	rm $(DESTDIR)$(core_installdir)/bsnes_mercury_$(profile)_libretro.so
 else ifeq ($(platform),bsd)
-	rm $(DESTDIR)$(prefix)/lib/bsnes_mercury_$(profile)_libretro.so
+	rm $(DESTDIR)$(core_installdir)/bsnes_mercury_$(profile)_libretro.so
 else ifeq ($(platform),macosx)
-	rm /usr/local/lib/bsnes_mercury_$(profile)_libretro.dylib
+	rm $(DESTDIR)$(core_installdir)/bsnes_mercury_$(profile)_libretro.dylib
 else ifneq (,$(findstring ios,$(platform)))
-	rm /usr/local/lib/bsnes_mercury_$(profile)_libretro_ios.dylib
+	rm $(DESTDIR)$(core_installdir)/bsnes_mercury_$(profile)_libretro_ios.dylib
 endif
 
