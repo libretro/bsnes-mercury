@@ -41,7 +41,11 @@ endif
 
 # compiler detection
 ifeq ($(compiler),)
-  ifeq ($(platform),windows)
+  ifneq ($(CXX),)
+    compiler := $(CXX)
+    flags :=
+    link := $(LDFLAGS)
+  else ifeq ($(platform),windows)
     compiler := g++
     flags :=
     link :=
