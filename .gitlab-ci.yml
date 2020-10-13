@@ -1,6 +1,6 @@
 .core-defs:
   variables:
-    JNI_PATH: .
+    JNI_PATH: target-libretro
     CORENAME: bsnes_mercury_performance
 
 include:
