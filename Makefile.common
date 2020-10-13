@@ -1,0 +1,85 @@
+SOURCES_CXX :=
+SOURCES_C   :=
+
+GB_DIR      := $(CORE_DIR)/gb
+SNES_DIR    := $(CORE_DIR)/sfc
+
+INCFLAGS := \
+			   -I$(CORE_DIR) \
+				-I$(SNES_DIR)
+
+SOURCES_C   += $(CORE_DIR)/libco/libco.c
+
+SOURCES_CXX += \
+					$(CORE_DIR)/processor/arm/arm.cpp \
+					$(CORE_DIR)/processor/gsu/gsu.cpp \
+					$(CORE_DIR)/processor/hg51b/hg51b.cpp \
+					$(CORE_DIR)/processor/lr35902/lr35902.cpp \
+					$(CORE_DIR)/processor/r65816/r65816.cpp \
+					$(CORE_DIR)/processor/spc700/spc700.cpp \
+					$(CORE_DIR)/processor/upd96050/upd96050.cpp \
+					$(GB_DIR)/interface/interface.cpp \
+					$(GB_DIR)/system/system.cpp \
+					$(GB_DIR)/scheduler/scheduler.cpp \
+					$(GB_DIR)/memory/memory.cpp \
+					$(GB_DIR)/cartridge/cartridge.cpp \
+					$(GB_DIR)/cpu/cpu.cpp \
+					$(GB_DIR)/ppu/ppu.cpp \
+					$(GB_DIR)/apu/apu.cpp \
+					$(GB_DIR)/cheat/cheat.cpp \
+					$(GB_DIR)/video/video.cpp \
+					$(SNES_DIR)/interface/interface.cpp \
+					$(SNES_DIR)/base/satellaview/satellaview.cpp \
+					$(SNES_DIR)/system/system.cpp \
+					$(SNES_DIR)/controller/controller.cpp \
+					$(SNES_DIR)/cartridge/cartridge.cpp \
+					$(SNES_DIR)/cheat/cheat.cpp \
+					$(SNES_DIR)/memory/memory.cpp \
+					$(SNES_DIR)/chip/icd2/icd2.cpp \
+					$(SNES_DIR)/chip/bsx/bsx.cpp \
+					$(SNES_DIR)/chip/nss/nss.cpp \
+					$(SNES_DIR)/chip/event/event.cpp \
+					$(SNES_DIR)/chip/sa1/sa1.cpp \
+					$(SNES_DIR)/chip/superfx/superfx.cpp \
+					$(SNES_DIR)/chip/armdsp/armdsp.cpp \
+					$(SNES_DIR)/chip/hitachidsp/hitachidsp.cpp \
+					$(SNES_DIR)/chip/necdsp/necdsp.cpp \
+					$(SNES_DIR)/chip/epsonrtc/epsonrtc.cpp \
+					$(SNES_DIR)/chip/sharprtc/sharprtc.cpp \
+					$(SNES_DIR)/chip/spc7110/spc7110.cpp \
+					$(SNES_DIR)/chip/sdd1/sdd1.cpp \
+					$(SNES_DIR)/chip/obc1/obc1.cpp \
+					$(SNES_DIR)/chip/hsu1/hsu1.cpp \
+					$(SNES_DIR)/chip/msu1/msu1.cpp \
+					$(SNES_DIR)/slot/satellaview/satellaview.cpp \
+					$(SNES_DIR)/slot/sufamiturbo/sufamiturbo.cpp \
+					$(SNES_DIR)/chip/dsp1/dsp1.cpp \
+					$(SNES_DIR)/chip/dsp2/dsp2.cpp \
+					$(SNES_DIR)/chip/dsp3/dsp3.cpp \
+					$(SNES_DIR)/chip/dsp4/dsp4.cpp \
+					$(SNES_DIR)/chip/cx4/cx4.cpp \
+					$(SNES_DIR)/chip/st0010/st0010.cpp \
+					$(SNES_DIR)/chip/sgb-external/sgb-external.cpp \
+					$(CORE_DIR)/target-libretro/libretro.cpp
+
+ifeq ($(PROFILE), performance)
+SOURCES_CXX += $(SNES_DIR)/alt/cpu/cpu.cpp
+SOURCES_CXX += $(SNES_DIR)/alt/smp/smp.cpp
+SOURCES_CXX += $(SNES_DIR)/alt/dsp/dsp.cpp
+SOURCES_CXX += $(SNES_DIR)/alt/ppu-performance/ppu.cpp
+else ifeq ($(PROFILE), balanced)
+SOURCES_CXX += $(SNES_DIR)/cpu/cpu.cpp
+SOURCES_CXX += $(SNES_DIR)/smp/smp.cpp
+SOURCES_CXX += $(SNES_DIR)/alt/dsp/dsp.cpp
+SOURCES_CXX += $(SNES_DIR)/alt/ppu-balanced/ppu.cpp
+else ifeq ($(PROFILE), accuracy)
+SOURCES_CXX += $(SNES_DIR)/cpu/cpu.cpp
+SOURCES_CXX += $(SNES_DIR)/smp/smp.cpp
+SOURCES_CXX += $(SNES_DIR)/dsp/dsp.cpp
+SOURCES_CXX += $(SNES_DIR)/ppu/ppu.cpp
+endif
+
+ifneq ($(STATIC_LINKING), 1)
+   SOURCES_CXX +=
+   SOURCES_C += 
+endif

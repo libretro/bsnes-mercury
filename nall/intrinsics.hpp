@@ -64,7 +64,6 @@ struct Intrinsics {
   #define ARCH_ARM
   Intrinsics::Architecture Intrinsics::architecture() { return Intrinsics::Architecture::ARM; }
 #else
-  #warning "unable to detect architecture"
   #define ARCH_UNKNOWN
   Intrinsics::Architecture Intrinsics::architecture() { return Intrinsics::Architecture::Unknown; }
 #endif
