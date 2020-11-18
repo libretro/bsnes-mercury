@@ -123,6 +123,16 @@ endif
    CC += $(IPHONEMINVER)
    CXX += $(IPHONEMINVER)
 
+# Raspberry Pi 4 in 64bit mode
+else ifeq ($(platform), rpi4_64)
+   TARGET := $(TARGET_NAME)_libretro.so
+   fpic := -fPIC
+   SHARED := -shared -Wl,--no-undefined -Wl,--version-script=target-libretro/link.T
+   FLAGS += -march=armv8-a+crc+simd -mtune=cortex-a72
+   ASFLAGS += -march=armv8-a+crc+simd -mtune=cortex-a72
+   LDFLAGS += -ldl
+   IS_X86 = 0
+
 # tvOS
 else ifeq ($(platform), tvos-arm64)
    TARGET := $(TARGET_NAME)_libretro_tvos.dylib
