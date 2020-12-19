@@ -1,6 +1,6 @@
 DEBUG = 0
 FRONTEND_SUPPORTS_RGB565 = 1
-PROFILE = performance
+PROFILE ?= performance
 
 CORE_DIR := .
 CFLAGS :=
