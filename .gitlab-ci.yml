@@ -2,6 +2,19 @@
   variables:
     JNI_PATH: target-libretro
     CORENAME: bsnes_mercury_performance
+    PROFILE: performance
+
+.core-defs-balanced:
+  extends: .core-defs
+  variables:
+    CORENAME: bsnes_mercury_balanced
+    PROFILE: balanced
+
+.core-defs-accuracy:
+  extends: .core-defs
+  variables:
+    CORENAME: bsnes_mercury_accuracy
+    PROFILE: accuracy
 
 include:
   - template: Jobs/Code-Quality.gitlab-ci.yml
@@ -18,7 +31,11 @@ stages:
   - build-static
   - test
 
-#Desktop
+###############################
+## bsnes_mercury_performance ##
+###############################
+
+# Desktop
 libretro-build-linux-x64:
   extends:
     - .libretro-linux-x64-make-default
@@ -28,7 +45,7 @@ libretro-build-windows-x64:
   extends:
     - .libretro-windows-x64-mingw-make-default
     - .core-defs
-    
+
 # Android
 android-armeabi-v7a:
   extends:
@@ -44,8 +61,80 @@ android-x86_64:
   extends:
     - .libretro-android-jni-x86_64
     - .core-defs
-    
+
 android-x86:
   extends:
     - .libretro-android-jni-x86
     - .core-defs
+
+############################
+## bsnes_mercury_balanced ##
+############################
+
+# Desktop
+libretro-build-linux-x64-balanced:
+  extends:
+    - .libretro-linux-x64-make-default
+    - .core-defs-balanced
+
+libretro-build-windows-x64-balanced:
+  extends:
+    - .libretro-windows-x64-mingw-make-default
+    - .core-defs-balanced
+
+# Android
+android-armeabi-v7a-balanced:
+  extends:
+    - .libretro-android-jni-armeabi-v7a
+    - .core-defs-balanced
+
+android-arm64-v8a-balanced:
+  extends:
+    - .libretro-android-jni-arm64-v8a
+    - .core-defs-balanced
+
+android-x86_64-balanced:
+  extends:
+    - .libretro-android-jni-x86_64
+    - .core-defs-balanced
+
+android-x86-balanced:
+  extends:
+    - .libretro-android-jni-x86
+    - .core-defs-balanced
+
+############################
+## bsnes_mercury_accuracy ##
+############################
+
+# Desktop
+libretro-build-linux-x64-accuracy:
+  extends:
+    - .libretro-linux-x64-make-default
+    - .core-defs-accuracy
+
+libretro-build-windows-x64-accuracy:
+  extends:
+    - .libretro-windows-x64-mingw-make-default
+    - .core-defs-accuracy
+
+# Android
+android-armeabi-v7a-accuracy:
+  extends:
+    - .libretro-android-jni-armeabi-v7a
+    - .core-defs-accuracy
+
+android-arm64-v8a-accuracy:
+  extends:
+    - .libretro-android-jni-arm64-v8a
+    - .core-defs-accuracy
+
+android-x86_64-accuracy:
+  extends:
+    - .libretro-android-jni-x86_64
+    - .core-defs-accuracy
+
+android-x86-accuracy:
+  extends:
+    - .libretro-android-jni-x86
+    - .core-defs-accuracy
