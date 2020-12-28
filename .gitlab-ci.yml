@@ -17,7 +17,6 @@
     PROFILE: accuracy
 
 include:
-  - template: Jobs/Code-Quality.gitlab-ci.yml
   - project: 'libretro-infrastructure/ci-templates'
     file: '/linux-x64.yml'
   - project: 'libretro-infrastructure/ci-templates'
@@ -29,7 +28,6 @@ stages:
   - build-prepare
   - build-shared
   - build-static
-  - test
 
 ###############################
 ## bsnes_mercury_performance ##
