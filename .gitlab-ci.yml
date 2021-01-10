@@ -1,3 +1,10 @@
+# DESCRIPTION: GitLab CI/CD for libRetro (NOT FOR GitLab-proper)
+
+##############################################################################
+################################# BOILERPLATE ################################
+##############################################################################
+
+# Core definitions
 .core-defs:
   variables:
     JNI_PATH: target-libretro
@@ -16,14 +23,31 @@
     CORENAME: bsnes_mercury_accuracy
     PROFILE: accuracy
 
+# Inclusion templates, required for the build to work
 include:
-  - project: 'libretro-infrastructure/ci-templates'
-    file: '/linux-x64.yml'
+  ################################## DESKTOPS ################################
+  # Windows 64-bit
   - project: 'libretro-infrastructure/ci-templates'
     file: '/windows-x64-mingw.yml'
+
+  # Windows 32-bit
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/windows-i686-mingw.yml'
+
+  # Linux 64-bit
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/linux-x64.yml'
+
+  # Linux 32-bit
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/linux-i686.yml'
+
+  ################################## CELLULAR ################################
+  # Android
   - project: 'libretro-infrastructure/ci-templates'
     file: '/android-jni.yml'
 
+# Stages for building
 stages:
   - build-prepare
   - build-shared
@@ -34,14 +58,29 @@ stages:
 ###############################
 
 # Desktop
+
+# Linux 64-bit
 libretro-build-linux-x64:
   extends:
     - .libretro-linux-x64-make-default
     - .core-defs
 
+# Linux 32-bit
+libretro-build-linux-i686:
+  extends:
+    - .libretro-linux-i686-make-default
+    - .core-defs
+
+# Windows 64-bit
 libretro-build-windows-x64:
   extends:
     - .libretro-windows-x64-mingw-make-default
+    - .core-defs
+
+# Windows 32-bit
+libretro-build-windows-i686:
+  extends:
+    - .libretro-windows-i686-mingw-make-default
     - .core-defs
 
 # Android
@@ -70,16 +109,30 @@ android-x86:
 ############################
 
 # Desktop
+# Linux 64-bit
 libretro-build-linux-x64-balanced:
   extends:
     - .libretro-linux-x64-make-default
     - .core-defs-balanced
 
+# Linux 32-bit
+libretro-build-linux-i686-balanced:
+  extends:
+    - .libretro-linux-i686-make-default
+    - .core-defs-balanced
+
+# Windows 64-bit
 libretro-build-windows-x64-balanced:
   extends:
     - .libretro-windows-x64-mingw-make-default
     - .core-defs-balanced
 
+# Windows 32-bit
+libretro-build-windows-i686-balanced:
+  extends:
+    - .libretro-windows-i686-mingw-make-default
+    - .core-defs-balanced
+    
 # Android
 android-armeabi-v7a-balanced:
   extends:
@@ -106,14 +159,29 @@ android-x86-balanced:
 ############################
 
 # Desktop
+
+# Linux 64-bit
 libretro-build-linux-x64-accuracy:
   extends:
     - .libretro-linux-x64-make-default
     - .core-defs-accuracy
 
+# Linux 32-bit
+libretro-build-linux-i686-accuracy:
+  extends:
+    - .libretro-linux-i686-make-default
+    - .core-defs-accuracy
+
+# Windows 64-bit
 libretro-build-windows-x64-accuracy:
   extends:
     - .libretro-windows-x64-mingw-make-default
+    - .core-defs-accuracy
+
+# Windows 32-bit
+libretro-build-windows-i686-accuracy:
+  extends:
+    - .libretro-windows-i686-mingw-make-default
     - .core-defs-accuracy
 
 # Android
