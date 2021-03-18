@@ -33,11 +33,13 @@ ifeq ($(shell uname -s),)
 	system_platform = win
 else ifneq ($(findstring Darwin,$(shell uname -s)),)
 	system_platform = osx
-ifeq ($(shell uname -p),powerpc)
-	arch = ppc
-else
 	arch = intel
-endif
+	ifeq ($(shell uname -p),powerpc)
+		arch = ppc
+	endif
+	ifeq ($(shell uname -p),arm)
+		arch = arm
+	endif
 else ifneq ($(findstring MINGW,$(shell uname -s)),)
 	system_platform = win
 endif
@@ -86,13 +88,30 @@ else ifeq ($(platform), osx)
    TARGET := $(TARGET_NAME)_libretro.dylib
    fpic := -fPIC
    SHARED := -dynamiclib
+   MINVERSION :=
 ifeq ($(arch),ppc)
    ENDIANNESS_DEFINES := -DMSB_FIRST
    OLD_GCC := 1
 endif
    OSXVER = `sw_vers -productVersion | cut -d. -f 2`
    OSX_LT_MAVERICKS = `(( $(OSXVER) <= 9)) && echo "YES"`
-   fpic += -mmacosx-version-min=10.1
+   FLAGS += -DHAVE_POSIX_MEMALIGN
+   ifeq ($(OSX_LT_MAVERICKS),YES)
+      MINVERSION = -mmacosx-version-min=10.1
+   endif
+   FLAGS += $(MINVERSION)
+
+   ifeq ($(CROSS_COMPILE),1)
+      TARGET_RULE   = -target $(LIBRETRO_APPLE_PLATFORM) -isysroot $(LIBRETRO_APPLE_ISYSROOT)
+      CFLAGS   += $(TARGET_RULE)
+      CPPFLAGS += $(TARGET_RULE)
+      CXXFLAGS += $(TARGET_RULE)
+      LDFLAGS  += $(TARGET_RULE)
+   endif
+
+   CFLAGS  += $(ARCHFLAGS)
+   CXXFLAGS  += $(ARCHFLAGS)
+   LDFLAGS += $(ARCHFLAGS)
 
 # iOS
 else ifneq (,$(findstring ios,$(platform)))
@@ -100,6 +119,7 @@ else ifneq (,$(findstring ios,$(platform)))
    TARGET := $(TARGET_NAME)_libretro_ios.dylib
    fpic := -fPIC
    SHARED := -dynamiclib
+   MINVERSION := 
 
 ifeq ($(IOSSDK),)
    IOSSDK := $(shell xcodebuild -version -sdk iphoneos Path)
@@ -112,16 +132,28 @@ else
    CC = cc -arch armv7 -isysroot $(IOSSDK)
    CXX = c++ -arch armv7 -isysroot $(IOSSDK)
 endif
-IPHONEMINVER :=
 ifeq ($(platform),$(filter $(platform),ios9 ios-arm64))
-	IPHONEMINVER = -miphoneos-version-min=8.0
+	MINVERSION = -miphoneos-version-min=8.0
 else
-	IPHONEMINVER = -miphoneos-version-min=5.0
+	MINVERSION = -miphoneos-version-min=5.0
 endif
-   LDFLAGS += $(IPHONEMINVER)
-   FLAGS += $(IPHONEMINVER)
-   CC += $(IPHONEMINVER)
-   CXX += $(IPHONEMINVER)
+   LDFLAGS += $(MINVERSION)
+   FLAGS += $(MINVERSION)
+   FLAGS += -DHAVE_POSIX_MEMALIGN
+
+# tvOS
+else ifeq ($(platform), tvos-arm64)
+   TARGET := $(TARGET_NAME)_libretro_tvos.dylib
+   fpic := -fPIC
+   SHARED := -dynamiclib
+
+ifeq ($(IOSSDK),)
+   IOSSDK := $(shell xcodebuild -version -sdk appletvos Path)
+endif
+
+   CC = cc -arch arm64 -isysroot $(IOSSDK)
+   CXX = c++ -arch arm64 -isysroot $(IOSSDK) 
+   FLAGS += -DHAVE_POSIX_MEMALIGN
 
 # Raspberry Pi 4 in 64bit mode
 else ifeq ($(platform), rpi4_64)
@@ -479,7 +511,7 @@ FLAGS += $(fpic) $(NEW_GCC_FLAGS) $(INCFLAGS)
 
 FLAGS += $(ENDIANNESS_DEFINES) $(WARNINGS) $(CORE_DEFINE) -DSTDC_HEADERS -D__STDC_LIMIT_MACROS -D__LIBRETRO__ -DSFC_LAGFIX $(EXTRA_INCLUDES) $(SOUND_DEFINE)
 
-CXXFLAGS += $(FLAGS)
+CXXFLAGS += $(FLAGS) -std=c++11
 CFLAGS   += $(FLAGS)
 
 OBJOUT   = -o 
