@@ -12,6 +12,9 @@ void MSU1::serialize(serializer& s) {
   s.integer(mmio.audio_track);
   s.integer(mmio.audio_volume);
 
+  s.integer(mmio.resume_track);
+  s.integer(mmio.resume_offset);
+  
   s.integer(mmio.data_busy);
   s.integer(mmio.audio_busy);
   s.integer(mmio.audio_repeat);

@@ -77,6 +77,8 @@ void MSU1::reset() {
   mmio.data_offset  = 0;
   mmio.audio_offset = 0;
   mmio.audio_track  = 0;
+  mmio.resume_track = 0;
+  mmio.resume_offset = 0;
   mmio.audio_volume = 255;
   mmio.data_busy    = true;
   mmio.audio_busy   = true;
@@ -160,9 +162,17 @@ void MSU1::mmio_write(unsigned addr, uint8 data) {
         audiofile.close();
       } else {
         mmio.audio_loop_offset = 8 + audiofile.readl(4) * 4;
-        mmio.audio_offset = 8;
+        if (mmio.audio_track == mmio.resume_track) {
+          mmio.audio_offset = mmio.resume_offset;
+          mmio.resume_offset = 0;
+          mmio.resume_track = ~0;
+          audiofile.seek(mmio.audio_offset);
+        } else {
+          mmio.audio_offset = 8;
+        }
       }
     }
+
     mmio.audio_busy   = false;
     mmio.audio_repeat = false;
     mmio.audio_play   = false;
@@ -172,8 +182,15 @@ void MSU1::mmio_write(unsigned addr, uint8 data) {
     mmio.audio_volume = data;
     break;
   case 0x2007:
+    if (mmio.audio_busy || mmio.audio_error) break;
+    mmio.audio_resume = data & 4;
     mmio.audio_repeat = data & 2;
     mmio.audio_play   = data & 1;
+    if (mmio.audio_resume && !mmio.audio_play)
+		{
+			mmio.resume_track = mmio.audio_track; 
+			mmio.resume_offset = mmio.audio_offset;
+		}
     break;
   }
 }
