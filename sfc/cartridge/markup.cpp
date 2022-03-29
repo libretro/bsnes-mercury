@@ -591,17 +591,27 @@ void Cartridge::parse_markup_hsu1(Markup::Node root) {
 }
 
 void Cartridge::parse_markup_msu1(Markup::Node root) {
-  if(root.exists() == false) return;
-  has_msu1 = true;
+  // Read MSU-1 mapping from markup
+  if (root.exists()) {
+    has_msu1 = true;
+    for(auto& node : root) {
+      if(node.name != "map") continue;
 
-  for(auto& node : root) {
-    if(node.name != "map") continue;
-
-    if(node["id"].data == "io") {
-      Mapping m({&MSU1::mmio_read, &msu1}, {&MSU1::mmio_write, &msu1});
-      parse_markup_map(m, node);
-      mapping.append(m);
+      if(node["id"].data == "io") {
+        Mapping m({&MSU1::mmio_read, &msu1}, {&MSU1::mmio_write, &msu1});
+        parse_markup_map(m, node);
+        mapping.append(m);
+      }
     }
+    return;
+  }
+
+  // Use default mapping if .msu file exists
+  if (file::exists({interface->path(ID::SuperFamicom), nall::basename(interface->filename()), ".msu"})) {
+    has_msu1 = true;
+    Mapping m({&MSU1::mmio_read, &msu1}, {&MSU1::mmio_write, &msu1});
+    m.addr = "00-3f,80-bf:2000-2007";
+    mapping.append(m);
   }
 }
 

@@ -57,6 +57,7 @@ struct Interface {
     virtual void inputRumble(unsigned, unsigned, unsigned, bool) {}
     virtual unsigned dipSettings(const Markup::Node&) { return 0; }
     virtual string path(unsigned) { return ""; }
+    virtual string filename() { return ""; }
     virtual string server() { return ""; }
     virtual void notify(string text) { print(text, "\n"); }
     virtual unsigned altImplementation(unsigned) { return 0; }
@@ -74,6 +75,7 @@ struct Interface {
   void inputRumble(unsigned port, unsigned device, unsigned input, bool enable) { return bind->inputRumble(port, device, input, enable); }
   unsigned dipSettings(const Markup::Node& node) { return bind->dipSettings(node); }
   string path(unsigned group) { return bind->path(group); }
+  string filename() { return bind->filename(); }
   string server() { return bind->server(); }
   template<typename... Args> void notify(Args&&... args) { return bind->notify({std::forward<Args>(args)...}); }
 

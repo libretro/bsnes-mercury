@@ -106,6 +106,7 @@ struct Callbacks : Emulator::Interface::Bind {
 
   Emulator::Interface *iface;
   string basename;
+  string rom_filename;
 
   bool input_polled;
 
@@ -398,6 +399,10 @@ struct Callbacks : Emulator::Interface::Bind {
 
   string path(unsigned) override {
     return string(basename);
+  }
+
+  string filename() override {
+    return string(rom_filename);
   }
 
   uint32_t videoColor(unsigned, uint16_t, uint16_t r, uint16_t g, uint16_t b) override {
@@ -1133,6 +1138,7 @@ bool retro_load_game(const struct retro_game_info *info) {
   if (info->path) {
     core_bind.load_request_error = false;
     core_bind.basename = info->path;
+    core_bind.rom_filename = nall::notdir(info->path);
 
     char *posix_slash = (char*)strrchr(core_bind.basename, '/');
     char *win_slash = (char*)strrchr(core_bind.basename, '\\');
@@ -1180,6 +1186,7 @@ bool retro_load_game_special(unsigned game_type,
   if (info[0].path) {
     core_bind.load_request_error = false;
     core_bind.basename = info[0].path;
+    core_bind.rom_filename = nall::notdir(info->path);
 
     char *posix_slash = (char*)strrchr(core_bind.basename, '/');
     char *win_slash = (char*)strrchr(core_bind.basename, '\\');
