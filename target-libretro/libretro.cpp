@@ -2,6 +2,7 @@
 #include <sfc/sfc.hpp>
 #include <nall/stream/mmap.hpp>
 #include <nall/stream/file.hpp>
+#include <nall/vector.hpp>
 #include "../ananke/heuristics/super-famicom.hpp"
 #include "../ananke/heuristics/game-boy.hpp"
 #include <string>
@@ -28,6 +29,10 @@
 
 #define SAMPLE_FREQ_PAL 14750000.0
 #define SAMPLE_FREQ_NTSC (135000000.0/11.0)
+
+#define AUDIO_SAMPLE_RATE       32040.5
+#define VIDEO_REFRESH_RATE_PAL  (21281370.0 / 425568.0)
+#define VIDEO_REFRESH_RATE_NTSC (21477272.0 / 357366.0)
 
 using namespace nall;
 
@@ -202,16 +207,17 @@ struct Callbacks : Emulator::Interface::Bind {
     }
   }
 
-  int16_t sampleBuf[128];
+  vector<int16_t> sampleBuf;
   unsigned int sampleBufPos;
 
   void audioSample(int16_t left, int16_t right) override {
+    unsigned buf_capacity = sampleBuf.capacity();
+    if(buf_capacity - sampleBufPos < 2) {
+      unsigned new_size = ((buf_capacity + 2) << 1) - ((buf_capacity + 2) >> 1);
+      sampleBuf.resize(new_size);
+    }
     sampleBuf[sampleBufPos++] = left;
     sampleBuf[sampleBufPos++] = right;
-    if(sampleBufPos==128) {
-      paudio(sampleBuf, 64);
-      sampleBufPos = 0;
-    }
   }
 
   int16_t inputPoll(unsigned port, unsigned device, unsigned id) override {
@@ -657,7 +663,11 @@ void retro_init(void) {
 
   core_interface.init();
   core_gb_interface.init();
-  
+
+  // Allocate enough space in the audio sample
+  // buffer for one frame at PAL refresh rate
+  // (i.e. 'worst case' scenario)
+  core_bind.sampleBuf.resize(((unsigned)(AUDIO_SAMPLE_RATE / VIDEO_REFRESH_RATE_PAL) + 1) << 1);
   core_bind.sampleBufPos = 0;
 
   SuperFamicom::system.init();
@@ -680,7 +690,7 @@ void retro_run(void) {
     update_variables();
   SuperFamicom::system.run();
   if(core_bind.sampleBufPos) {
-    core_bind.paudio(core_bind.sampleBuf, core_bind.sampleBufPos/2);
+    core_bind.paudio(core_bind.sampleBuf.data(), core_bind.sampleBufPos >> 1);
     core_bind.sampleBufPos = 0;
   }
 }
@@ -893,8 +903,8 @@ static double get_aspect_ratio(unsigned width, unsigned height)
 
 static void get_system_av_info(struct retro_system_av_info *info)
 {
-  struct retro_system_timing timing = { 0.0, 32040.5 };
-  timing.fps = retro_get_region() == RETRO_REGION_NTSC ? 21477272.0 / 357366.0 : 21281370.0 / 425568.0;
+  struct retro_system_timing timing = { 0.0, AUDIO_SAMPLE_RATE };
+  timing.fps = retro_get_region() == RETRO_REGION_NTSC ? VIDEO_REFRESH_RATE_NTSC : VIDEO_REFRESH_RATE_PAL;
   unsigned max_width = 512;
   unsigned max_height = core_bind.crop_overscan ? 448 : 478;
   unsigned base_width = 256;
