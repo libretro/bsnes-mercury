@@ -5,8 +5,9 @@ GB_DIR      := $(CORE_DIR)/gb
 SNES_DIR    := $(CORE_DIR)/sfc
 
 INCFLAGS := \
-			   -I$(CORE_DIR) \
-				-I$(SNES_DIR)
+	    -I$(CORE_DIR) \
+	    -I$(CORE_DIR)/libco \
+	    -I$(SNES_DIR)
 
 SOURCES_C   += $(CORE_DIR)/libco/libco.c
 
