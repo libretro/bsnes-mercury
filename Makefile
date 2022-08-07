@@ -292,7 +292,7 @@ else ifneq (,$(findstring armv,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.so
    fpic := -fPIC
    SHARED := -shared -Wl,--no-undefined -Wl,--version-script=target-libretro/link.T
-   CC = gcc
+   CC ?= gcc
    IS_X86 = 0
 ifneq (,$(findstring cortexa8,$(platform)))
    FLAGS += -marm -mcpu=cortex-a8
@@ -312,7 +312,8 @@ ifneq (,$(findstring softfloat,$(platform)))
 else ifneq (,$(findstring hardfloat,$(platform)))
    FLAGS += -mfloat-abi=hard
 endif
-   FLAGS += -DARM
+   arch = arm
+   LDFLAGS += -ldl
 
 # Windows MSVC 2017 all architectures
 else ifneq (,$(findstring windows_msvc2017,$(platform)))
