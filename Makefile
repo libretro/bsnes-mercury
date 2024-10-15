@@ -153,6 +153,9 @@ endif
 
    CC = cc -arch arm64 -isysroot $(IOSSDK)
    CXX = c++ -arch arm64 -isysroot $(IOSSDK) 
+   MINVERSION = -mappletvos-version-min=11.0
+   LDFLAGS += $(MINVERSION)
+   FLAGS += $(MINVERSION)
    FLAGS += -DHAVE_POSIX_MEMALIGN
 
 # Raspberry Pi 4 in 64bit mode
