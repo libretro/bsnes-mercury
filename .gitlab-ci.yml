@@ -73,6 +73,9 @@ include:
     file: '/tvos-arm64.yml'
     
   #################################### MISC ##################################
+  # webOS 32-bit (LGTV)
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/webos-make.yml'
 
 # Stages for building
 stages:
@@ -161,6 +164,12 @@ libretro-build-tvos-arm64:
     - .libretro-tvos-arm64-make-default
     - .core-defs
 
+# webOS 32-bit
+libretro-build-webos-armv7a:
+  extends:
+    - .libretro-webos-armv7a-make-default
+    - .core-defs
+
 ############################
 ## bsnes_mercury_balanced ##
 ############################
@@ -239,6 +248,12 @@ libretro-build-ios9-balanced:
 libretro-build-tvos-arm64-balanced:
   extends:
     - .libretro-tvos-arm64-make-default
+    - .core-defs-balanced
+
+# webOS 32-bit
+libretro-build-webos-armv7a-balanced:
+  extends:
+    - .libretro-webos-armv7a-make-default
     - .core-defs-balanced
 
 ############################
@@ -320,4 +335,10 @@ libretro-build-ios9-accuracy:
 libretro-build-tvos-arm64-accuracy:
   extends:
     - .libretro-tvos-arm64-make-default
+    - .core-defs-accuracy
+
+# webOS 32-bit
+libretro-build-webos-armv7a-accuracy:
+  extends:
+    - .libretro-webos-armv7a-make-default
     - .core-defs-accuracy
