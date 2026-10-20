@@ -42,11 +42,11 @@ void Bus::map(
     retro_memory_descriptor desc;
     desc.flags=(fastmode==Cartridge::Mapping::fastmode_readwrite ? 0 : RETRO_MEMDESC_CONST);
     desc.ptr=fastptr;
-    desc.offset=0;
     desc.start=banklo<<16 | addrlo;
+    desc.offset=base + mirror(reduce(desc.start, mask), size - base);
     desc.select=(banklo<<16 | addrlo) ^ (bankhi<<16 | addrhi) ^ 0xFFFFFF;
     desc.disconnect=mask;
-    desc.len=size;
+    desc.len=size-desc.offset;
     if (!size) desc.len=0x01000000;
     desc.addrspace=NULL;
     libretro_mem_map.append(desc);
